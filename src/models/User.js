@@ -1,26 +1,21 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const { JWT_ROLES } = require("../config/jwt");
 
-const UserSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true },
-    role: { type: String, enum: JWT_ROLES, default: "etudiant" },
-  },
-  { timestamps: true }
-);
+const userSchema = new mongoose.Schema({
+  name: { type: String },
+  email: { type: String, unique: true, lowercase: true },
+  password: { type: String },
+  role: { type: String, default: "etudiant" },
+}, { timestamps: true });
 
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+userSchema.pre("save", async function() {
+  if (this.isModified("password")) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
 });
 
-UserSchema.methods.comparePassword = function (candidate) {
-  return bcrypt.compare(candidate, this.password);
+userSchema.methods.comparePassword = function(input) {
+  return bcrypt.compare(input, this.password);
 };
 
-module.exports = mongoose.models.User || mongoose.model("User", UserSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
