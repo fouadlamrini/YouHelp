@@ -12,7 +12,13 @@ async function register(req, res) {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
 
-    const user = await User.create({ name, email, password, role });
+    
+    const userCount = await User.countDocuments();
+
+    
+    const finalRole = userCount === 0 ? "admin" : role;
+
+    const user = await User.create({ name, email, password, role: finalRole });
 
     const payload = { id: user._id, role: user.role };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
@@ -22,9 +28,12 @@ async function register(req, res) {
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 }
+
+
 
 async function login(req, res) {
   try {
