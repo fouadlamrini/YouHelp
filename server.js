@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const passport = require("./config/passport");
 const cors = require("cors");
 
 const app = express();
@@ -8,6 +9,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
 // routes
 const authRoutes = require("./src/routes/auth.routes");
