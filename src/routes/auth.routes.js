@@ -9,11 +9,11 @@ router.post("/login", controller.login);
 router.post("/logout", controller.logout);
 
 // Google OAuth
-router.get("/auth/google",
+router.get("/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-router.get("/auth/google/callback",
+router.get("/google/callback",
   passport.authenticate("google", { session: false }),
   controller.googleCallback
 );
