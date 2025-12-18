@@ -4,8 +4,8 @@ const blacklistedTokens = require('../utils/blacklist');
 
 const JWT_SECRET = process.env.JWT_SECRET || "change_me";
 const JWT_EXPIRES = process.env.JWT_EXPIRES || "7d";
-
-async function register(req, res) {
+class AuthController {
+ async register(req, res) {
   try {
     const { name, email, password, role } = req.body;
 
@@ -35,7 +35,7 @@ async function register(req, res) {
 
 
 
-async function login(req, res) {
+async login(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -54,7 +54,7 @@ async function login(req, res) {
   }
 }
 
-async function logout(req, res) {
+async logout(req, res) {
     try {
       const authHeader = req.headers.authorization;
 
@@ -83,5 +83,5 @@ async function logout(req, res) {
       });
     }
   }
-
-module.exports = { register, login , logout};
+}
+module.exports = new AuthController();
