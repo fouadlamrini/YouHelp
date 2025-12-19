@@ -17,5 +17,15 @@ router.get("/google/callback",
   passport.authenticate("google", { session: false }),
   controller.googleCallback
 );
+// ===================== GitHub OAuth =====================
+router.get(
+  "/github",
+  passport.authenticate("github", { scope: ["user:email"] })
+);
 
+router.get(
+  "/github/callback",
+  passport.authenticate("github", { session: false }),
+  controller.githubCallback
+);
 module.exports = router;
