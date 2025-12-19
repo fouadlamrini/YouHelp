@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
      role: { type: String, enum: ["etudiant", "admin", "formateur"] ,default:"etudiant"},
     provider: { type: String, default: "local" },
     googleId: { type: String },
+    githubId: { type: String },
   },
   { timestamps: true }
 );
