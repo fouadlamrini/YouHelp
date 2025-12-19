@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String },
     email: { type: String, unique: true, lowercase: true },
     password: { type: String },
-     role: { type: String, enum: ["etudiant", "admin", "formateur"] ,default:"etudiant"},
+    role: { type: mongoose.Schema.Types.ObjectId, ref: 'Role'},
     provider: { type: String, default: "local" },
     googleId: { type: String },
     githubId: { type: String },
@@ -24,4 +24,4 @@ userSchema.methods.comparePassword = function (input) {
   return bcrypt.compare(input, this.password);
 };
 
-module.exports = mongoose.models.User || mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", userSchema);

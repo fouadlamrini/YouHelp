@@ -8,7 +8,7 @@ router.post("/register", controller.register);
 router.post("/login", controller.login);
 router.post("/logout", controller.logout);
 
-// Google OAuth
+// ==================== Google OAuth ======================
 router.get("/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );

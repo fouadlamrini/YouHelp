@@ -2,6 +2,7 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const GitHubStrategy = require("passport-github2").Strategy;
 const User = require("../models/User");
+const Role = require("../models/Role"); 
 require("dotenv").config();
 
 /* ===================== GOOGLE ===================== */
@@ -17,11 +18,13 @@ passport.use(
         let user = await User.findOne({ email: profile.emails[0].value });
 
         if (!user) {
+          const defaultRole = await Role.findOne({ name: "noRole" });
           user = await User.create({
             name: profile.displayName,
             email: profile.emails[0].value,
             provider: "google",
             googleId: profile.id,
+            role: defaultRole._id, 
           });
         }
 
@@ -40,15 +43,13 @@ passport.use(
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: "http://localhost:3000/api/auth/github/callback",
-      scope: ["user:email"], 
+      scope: ["user:email"],
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        
         const email = profile.emails && profile.emails[0]?.value;
 
         let user = null;
-
         if (email) {
           user = await User.findOne({ email });
         }
@@ -58,11 +59,13 @@ passport.use(
         }
 
         if (!user) {
+          const defaultRole = await Role.findOne({ name: "noRole" });
           user = await User.create({
             name: profile.username,
             email: email || null,
             provider: "github",
             githubId: profile.id,
+            role: defaultRole._id, 
           });
         }
 
