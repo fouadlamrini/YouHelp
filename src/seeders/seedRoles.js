@@ -6,7 +6,7 @@ const roles = [
     { name: "admin" },
      { name: "formateur" },
       { name: "etudiant" }, 
-      { name: "noRole" }];
+      { name: "connected" }];
 
 async function seedRoles() {
   try {
