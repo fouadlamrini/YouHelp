@@ -94,6 +94,33 @@ class AuthController {
       res.status(500).json({ message: "Google login failed" });
     }
   }
+
+  // --------------------- GitHub OAuth Callback ---------------------
+async githubCallback(req, res) {
+  try {
+    // Passport injects user after successful GitHub OAuth
+    const user = req.user;
+
+    // Generate JWT 
+    const payload = { id: user._id, role: user.role };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+
+    res.json({
+      message: "Login with GitHub success",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "GitHub login failed" });
+  }
+}
+
 }
 
 module.exports = new AuthController();
