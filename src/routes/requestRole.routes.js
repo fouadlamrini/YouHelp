@@ -1,9 +1,9 @@
 const router = require("express").Router();
-const controller = require("../controllers/requestRole.controller");
-const auth = require("../middlewares/auth.middleware");
-const { requireRole } = require("../middlewares/role.middleware");
+const controller = require("../controllers/RoleRequestController");
+const auth = require("../middlewares/auth");
+const { requireRole } = require("../middlewares/requireRole");
 
-// user 
+// user connected
 router.post(
   "/request-role",
   auth,
@@ -11,7 +11,14 @@ router.post(
   controller.requestRole
 );
 
-// admin 
+// admin
+router.get(
+  "/role-requests",
+  auth,
+  requireRole(["admin"]),
+  controller.getAllRequests
+);
+
 router.post(
   "/role-requests/:requestId/review",
   auth,
