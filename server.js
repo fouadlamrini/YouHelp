@@ -13,7 +13,9 @@ app.use(passport.initialize());
 
 // routes
 const authRoutes = require("./src/routes/auth.routes");
+const requestRole=require("./src/routes/requestRole.routes");
 app.use("/api/auth", authRoutes);
+app.use("/api/requestRole", requestRole);
 
 async function start() {
   try {

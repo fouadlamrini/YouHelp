@@ -6,11 +6,7 @@ const roleRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-    },
-    requestedRole: {
-      type: String,
-      enum: ["formateur", "etudiant"],
-      required: true,
+      unique: true 
     },
     status: {
       type: String,
@@ -19,7 +15,7 @@ const roleRequestSchema = new mongoose.Schema(
     },
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // admin
+      ref: "User", 
     },
   },
   { timestamps: true }
