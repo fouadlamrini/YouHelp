@@ -74,4 +74,25 @@ async updateSubCategory(req, res) {
     res.status(500).json({ message: "Server error" });
   }
 }
+
+//delete 
+async deleteSubCategory(req, res) {
+  try {
+    const { id } = req.params;
+
+    const subCategory = await SubCategory.findByIdAndDelete(id);
+
+    if (!subCategory) {
+      return res.status(404).json({ message: "SubCategory not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "SubCategory deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
 }
