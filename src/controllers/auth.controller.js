@@ -9,14 +9,14 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES;
 class AuthController {
   async register(req, res) {
     try {
-      const { name, email, password, role } = req.body;
+      const { name, email, password } = req.body;
 
       const existing = await User.findOne({ email });
       if (existing)
         return res.status(400).json({ message: "Email already in use" });
 
       const userCount = await User.countDocuments();
-      const finalRoleName = userCount === 0 ? "admin" : role || "connected";
+      const finalRoleName = userCount === 0 ? "admin" : "connected";
       const roleDoc = await Role.findOne({ name: finalRoleName });
 
       const user = await User.create({
