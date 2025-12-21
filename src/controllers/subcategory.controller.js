@@ -96,3 +96,4 @@ async deleteSubCategory(req, res) {
   }
 }
 }
+module.exports = new SubCategoryController();

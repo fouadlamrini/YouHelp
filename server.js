@@ -15,9 +15,11 @@ app.use(passport.initialize());
 const authRoutes = require("./src/routes/auth.routes");
 const requestRole=require("./src/routes/requestRole.routes");
 const categoryRoutes=require("./src/routes/category.routes");
+const subcategoryRoutes=require("./src/routes/subcategory.routes");
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
 app.use("/api/category", categoryRoutes);
+app.use("/api/subcategory", subcategoryRoutes);
 
 async function start() {
   try {
