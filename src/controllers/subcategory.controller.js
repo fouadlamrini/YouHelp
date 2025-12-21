@@ -39,4 +39,39 @@ async createSubCategory(req, res) {
     res.status(500).json({ message: "Server error" });
   }
 }
+//update
+async updateSubCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, category } = req.body;
+    const existingCategory = await Category.findOne({ name: category });
+    if (!existingCategory) {
+      return res.status(400).json({ message: "Category not found" });
+    }
+    const subCategory = await SubCategory.findByIdAndUpdate(
+      id,
+      {
+        name,
+        category: existingCategory._id,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!subCategory) {
+      return res.status(404).json({ message: "SubCategory not found" });
+    }
+
+    res.json({ success: true, data: subCategory });
+  } catch (err) {
+    console.error(err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: "SubCategory already exists in this category",
+      });
+    }
+
+    res.status(500).json({ message: "Server error" });
+  }
+}
 }
