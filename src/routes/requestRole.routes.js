@@ -1,9 +1,10 @@
 const router = require("express").Router();
-const controller = require("../controllers/RoleRequestController");
-const auth = require("../middlewares/auth");
-const { requireRole } = require("../middlewares/requireRole");
+const controller = require("../controllers/requestRole.controller");
+const auth = require("../middlewares/auth.middleware");
+const { requireRole } = require("../middlewares/role.middleware");
 
-// user connected
+/* ================= USER ================= */
+
 router.post(
   "/request-role",
   auth,
@@ -11,7 +12,8 @@ router.post(
   controller.requestRole
 );
 
-// admin
+/* ================= ADMIN ================= */
+
 router.get(
   "/role-requests",
   auth,
@@ -19,11 +21,28 @@ router.get(
   controller.getAllRequests
 );
 
-router.post(
-  "/role-requests/:requestId/review",
+
+router.put(
+  "/role-requests/:requestId/reject",
   auth,
   requireRole(["admin"]),
-  controller.reviewRequest
+  controller.rejectRequest
+);
+
+
+router.put(
+  "/role-requests/:requestId/accept/formateur",
+  auth,
+  requireRole(["admin"]),
+  controller.acceptAsFormateur
+);
+
+
+router.put(
+  "/role-requests/:requestId/accept/etudiant",
+  auth,
+  requireRole(["admin"]),
+  controller.acceptAsEtudiant
 );
 
 module.exports = router;

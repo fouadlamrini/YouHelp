@@ -13,10 +13,7 @@ const roleRequestSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "rejected"],
       default: "pending",
     },
-    reviewedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
-    },
+    
   },
   { timestamps: true }
 );
