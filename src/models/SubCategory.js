@@ -12,4 +12,6 @@ const subCategorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// // Empêcher les doublons de nom dans une même catégorie
+subCategorySchema.index({ name: 1, category: 1 }, { unique: true });
 module.exports = mongoose.model("SubCategory", subCategorySchema);
