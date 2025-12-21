@@ -26,4 +26,44 @@ class CategoryController {
       res.status(500).json({ message: 'Server error' });
     }
   }
+
+  //update category
+async updateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    const category = await Category.findByIdAndUpdate(
+      id,
+      { name },              
+      { new: true, runValidators: true } 
+    );
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.json({ success: true, data: category });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+//delete category
+async deleteCategory(req, res) {
+  try {
+    const { id } = req.params;
+
+    const category = await Category.findByIdAndDelete(id);
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.json({ success: true, message: 'Category deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }}
 }
