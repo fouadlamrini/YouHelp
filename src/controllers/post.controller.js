@@ -51,6 +51,23 @@ class PostController {
       res.status(500).json({ message: "Server error" });
     }
   }
+
+    /* ================= GET ALL POSTS ================= */
+  async getAllPosts(req, res) {
+    try {
+      const posts = await Post.find()
+        .sort({ createdAt: -1 })
+        .populate("author", "name email")
+        .populate("category", "name")
+        .populate("subCategory", "name")
+        .populate("comments");
+
+      res.json({ success: true, data: posts });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
 }
 
 module.exports = new PostController();
