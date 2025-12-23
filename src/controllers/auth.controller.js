@@ -32,7 +32,6 @@ class AuthController {
       res.status(201).json({
         success: true,
         message: "User registered successfully",
-        token,
         data: {
           user: {
             id: user._id,
@@ -69,7 +68,6 @@ class AuthController {
       res.status(200).json({
         success: true,
         message: "Logged in successfully",
-        token,
         data: {
           user: {
             id: user._id,

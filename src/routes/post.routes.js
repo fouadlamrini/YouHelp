@@ -1,33 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const PostController = require('../controllers/post.controller');
+const PostController = require('../controllers/Post.controller');
 const auth = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const checkOwnerOrAdmin = require("../middlewares/checkOwnerOrAdmin.middleware");
-const upload = require('../middlewares/upload.middleware');
+const upload = require("../middlewares/upload.middleware");
 
 /* ===== READ ===== */
 router.get("/", PostController.getAllPosts);
+router.get("/:id", PostController.getPostById);
 
-
-/* ===== CREATE (NO connected) ===== */
+/* ===== CREATE ===== */
 router.post(
   "/",
   auth,
-  requireRole(["admin","formateur","etudiant"]),
-  upload.array('media', 10), // permet d'ajouter 10 fichier
+  requireRole(["admin", "formateur", "etudiant"]),
+  upload.array('media', 10),
   PostController.createPost
 );
 
-/* ===== UPDATE (admin OR owner) ===== */
+/* ===== UPDATE ===== */
 router.put(
   "/:id",
   auth,
   checkOwnerOrAdmin,
+  upload.array('media', 10),
   PostController.updatePost
 );
 
-/* ===== DELETE (admin OR owner) ===== */
+/* ===== DELETE ===== */
 router.delete(
   "/:id",
   auth,

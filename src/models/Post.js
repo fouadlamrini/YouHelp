@@ -5,7 +5,7 @@ const postSchema = new mongoose.Schema({
   content: { type: String, required: true },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  Reaction: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   partage: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   tags: [{ type: String }],
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
@@ -13,7 +13,7 @@ const postSchema = new mongoose.Schema({
   media: [
     {
       url: { type: String, required: true },
-      type: { type: String, enum: ['image', 'video', 'file'], required: true }
+      type: { type: String, required: true } 
     }
   ]
 }, { timestamps: true });

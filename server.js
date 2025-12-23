@@ -1,31 +1,35 @@
 require("dotenv").config();
-
-
 const express = require("express");
 const mongoose = require("mongoose");
 const passport = require("./src/config/passport");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const port = process.env.PORT;
 
+
+
+// ======== MIDDLEWARES ========
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// routes
+// ======== ROUTES ========
 const authRoutes = require("./src/routes/auth.routes");
-const requestRole=require("./src/routes/requestRole.routes");
-const categoryRoutes=require("./src/routes/category.routes");
-const subcategoryRoutes=require("./src/routes/subcategory.routes");
-const postRoutes=require("./src/routes/post.routes");
+const requestRole = require("./src/routes/requestRole.routes");
+const categoryRoutes = require("./src/routes/category.routes");
+const subcategoryRoutes = require("./src/routes/subcategory.routes");
+const postRoutes = require("./src/routes/post.routes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
 app.use("/api/category", categoryRoutes);
 app.use("/api/subcategory", subcategoryRoutes);
 app.use("/api/post", postRoutes);
 
-
+// ======== START SERVER & CONNECT MONGO ========
 async function start() {
   try {
     if (process.env.MONGO_URI) {
