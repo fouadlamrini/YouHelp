@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const PostController = require('../controllers/Post.controller');
+const PostController = require('../controllers/post.controller');
 const auth = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
+const checkOwnerOrAdmin = require("../middlewares/checkOwnerOrAdmin.middleware");
+
 
 /* ===== READ ===== */
 router.get("/", PostController.getAllPosts);
-router.get("/:id", PostController.getPostById);
+
 
 /* ===== CREATE (NO connected) ===== */
 router.post(

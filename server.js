@@ -18,10 +18,12 @@ const authRoutes = require("./src/routes/auth.routes");
 const requestRole=require("./src/routes/requestRole.routes");
 const categoryRoutes=require("./src/routes/category.routes");
 const subcategoryRoutes=require("./src/routes/subcategory.routes");
+const postRoutes=require("./src/routes/post.routes");
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
 app.use("/api/category", categoryRoutes);
 app.use("/api/subcategory", subcategoryRoutes);
+app.use("/api/post", postRoutes);
 
 
 async function start() {
