@@ -18,6 +18,15 @@ router.post(
   PostController.toggleReaction
 );
 
+/* ===== PARTAGE ===== */
+// Partager / retirer partage d'un post
+router.post(
+  "/:id/share",
+  auth,
+  requireRole(["admin", "formateur", "etudiant"]),
+  PostController.toggleShare
+);
+
 /* ===== CREATE ===== */
 router.post(
   "/",
