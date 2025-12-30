@@ -9,8 +9,6 @@ const path = require("path");
 const app = express();
 const port = process.env.PORT;
 
-
-
 // ======== MIDDLEWARES ========
 app.use(cors());
 app.use(express.json());
@@ -22,12 +20,14 @@ const requestRole = require("./src/routes/requestRole.routes");
 const categoryRoutes = require("./src/routes/category.routes");
 const subcategoryRoutes = require("./src/routes/subcategory.routes");
 const postRoutes = require("./src/routes/post.routes");
+const commentRoutes = require("./src/routes/comment.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
 app.use("/api/category", categoryRoutes);
 app.use("/api/subcategory", subcategoryRoutes);
 app.use("/api/post", postRoutes);
+app.use("/api/comment", commentRoutes);
 
 // ======== START SERVER & CONNECT MONGO ========
 async function start() {
