@@ -174,6 +174,125 @@ class CommentController {
       return res.status(500).json({ message: "Erreur serveur" });
     }
   }
+
+  /**
+   * Met à jour un commentaire ou une réponse.
+   * Autorisé si : auteur du commentaire OR auteur du post OR admin.
+   */
+  async updateComment(req, res) {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+
+      if (!content || !content.trim()) {
+        return res
+          .status(400)
+          .json({ message: "Le contenu du commentaire est requis" });
+      }
+
+      const comment = await Comment.findById(id);
+      if (!comment)
+        return res.status(404).json({ message: "Commentaire non trouvé" });
+
+      const post = await Post.findById(comment.post);
+      if (!post) return res.status(404).json({ message: "Post non trouvé" });
+
+      const userId = req.user && req.user.id;
+      const isAdmin = req.user && req.user.role === "admin";
+      const isCommentAuthor = comment.author.toString() === userId;
+      const isPostAuthor = post.author && post.author.toString() === userId;
+
+      if (!isAdmin && !isCommentAuthor && !isPostAuthor) {
+        return res
+          .status(403)
+          .json({
+            message: "Vous n'êtes pas autorisé à modifier ce commentaire",
+          });
+      }
+
+      // Traiter potentiels nouveaux fichiers (remplace les anciens médias si fournis)
+      if (req.files && req.files.length) {
+        const mediaFiles = req.files.map((file) => {
+          let type = "file";
+          if (file.mimetype.startsWith("image")) type = "image";
+          else if (file.mimetype.startsWith("video")) type = "video";
+          else if (file.mimetype === "application/pdf") type = "pdf";
+          else if (file.mimetype.includes("word")) type = "doc";
+          return { url: `/uploads/${file.filename}`, type };
+        });
+        comment.media = mediaFiles;
+      }
+
+      comment.content = content.trim();
+      await comment.save();
+
+      const populated = await Comment.findById(comment._id).populate(
+        "author",
+        "name email"
+      );
+      return res.json({ success: true, data: populated });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+  }
+
+  /**
+   * Supprime un commentaire (ou réponse) et ses réponses enfants récursivement.
+   * Autorisé si : auteur du commentaire OR auteur du post OR admin.
+   */
+  async deleteComment(req, res) {
+    try {
+      const { id } = req.params;
+
+      const comment = await Comment.findById(id);
+      if (!comment)
+        return res.status(404).json({ message: "Commentaire non trouvé" });
+
+      const post = await Post.findById(comment.post);
+      if (!post) return res.status(404).json({ message: "Post non trouvé" });
+
+      const userId = req.user && req.user.id;
+      const isAdmin = req.user && req.user.role === "admin";
+      const isCommentAuthor = comment.author.toString() === userId;
+      const isPostAuthor = post.author && post.author.toString() === userId;
+
+      if (!isAdmin && !isCommentAuthor && !isPostAuthor) {
+        return res
+          .status(403)
+          .json({
+            message: "Vous n'êtes pas autorisé à supprimer ce commentaire",
+          });
+      }
+
+      // Collecter récursivement tous les ids d'enfants
+      const toDelete = [comment._id.toString()];
+      for (let i = 0; i < toDelete.length; i++) {
+        const parentIds = toDelete.slice(i);
+        const children = await Comment.find(
+          { parentComment: { $in: parentIds } },
+          "_id"
+        );
+        if (children && children.length) {
+          children.forEach((c) => toDelete.push(c._id.toString()));
+        }
+      }
+
+      const result = await Comment.deleteMany({ _id: { $in: toDelete } });
+
+      // Si c'était un commentaire racine, enlever la référence dans le post.comments
+      if (!comment.parentComment) {
+        await Post.findByIdAndUpdate(comment.post, {
+          $pull: { comments: comment._id },
+        });
+      }
+
+      return res.json({ success: true, deletedCount: result.deletedCount });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+  }
 }
 
 module.exports = new CommentController();

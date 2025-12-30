@@ -26,4 +26,15 @@ router.post(
   CommentController.toggleLike
 );
 
+// Mettre à jour un commentaire ou une réponse — auth seulement; controller vérifie owner/post-owner/admin
+router.put(
+  "/:id",
+  auth,
+  upload.array("media", 10),
+  CommentController.updateComment
+);
+
+// Supprimer un commentaire ou une réponse — auth seulement; controller vérifie owner/post-owner/admin
+router.delete("/:id", auth, CommentController.deleteComment);
+
 module.exports = router;
