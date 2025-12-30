@@ -1,7 +1,7 @@
 const Post = require("../models/Post");
 const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
-const Comment = require("../models/Comment"); 
+const Comment = require("../models/Comment");
 class PostController {
   async createPost(req, res) {
     try {
@@ -144,6 +144,45 @@ class PostController {
       res.status(500).json({ message: "Server error" });
     }
   }
+
+  async toggleReaction(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (req.user?.role === "connected") {
+      return res.status(403).json({
+        message: "Access restricted: request admin for reaction access",
+      });
+    }
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const userId = req.user.id;
+    post.Reaction = post.Reaction || [];
+
+    const hasReacted = post.Reaction.includes(userId);
+
+    post.Reaction = hasReacted
+      ? post.Reaction.filter((u) => u.toString() !== userId)
+      : [...post.Reaction, userId];
+
+    await post.save();
+
+    return res.json({
+      success: true,
+      message: hasReacted ? "Reaction removed" : "Reacted to post",
+      totalReactions: post.Reaction.length,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 }
 
 module.exports = new PostController();
