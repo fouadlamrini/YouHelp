@@ -24,20 +24,29 @@ class CommentController {
 
       // Vérifier rôle (middleware requireRole est recommandé, mais double-check ici)
       if (req.user && req.user.role === "connected") {
-        return res
-          .status(403)
-          .json({
-            message:
-              "Accès restreint : demandez l'accès à un administrateur pour commenter",
-          });
+        return res.status(403).json({
+          message:
+            "Accès restreint : demandez l'accès à un administrateur pour commenter",
+        });
       }
 
-      // Créer le commentaire
+      // Traiter les fichiers envoyés (si multipart/form-data)
+      const mediaFiles = (req.files || []).map((file) => {
+        let type = "file";
+        if (file.mimetype.startsWith("image")) type = "image";
+        else if (file.mimetype.startsWith("video")) type = "video";
+        else if (file.mimetype === "application/pdf") type = "pdf";
+        else if (file.mimetype.includes("word")) type = "doc";
+        return { url: `/uploads/${file.filename}`, type };
+      });
+
+      // Créer le commentaire avec éventuels médias
       const comment = await Comment.create({
         content: content.trim(),
         author: req.user.id,
         post: postId,
         parentComment: parentComment || null,
+        media: mediaFiles,
       });
 
       // Si c'est un commentaire racine, on l'ajoute au tableau post.comments pour suivi
@@ -128,12 +137,10 @@ class CommentController {
       const { id } = req.params; // id du commentaire
 
       if (req.user && req.user.role === "connected") {
-        return res
-          .status(403)
-          .json({
-            message:
-              "Accès restreint : demandez l'accès à un administrateur pour liker",
-          });
+        return res.status(403).json({
+          message:
+            "Accès restreint : demandez l'accès à un administrateur pour liker",
+        });
       }
 
       const comment = await Comment.findById(id);
