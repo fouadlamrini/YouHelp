@@ -22,6 +22,7 @@ const subcategoryRoutes = require("./src/routes/subcategory.routes");
 const postRoutes = require("./src/routes/post.routes");
 const commentRoutes = require("./src/routes/comment.routes");
 const solutionRoutes = require("./src/routes/solution.routes");
+const knowledgeRoutes = require("./src/routes/knowledge.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
@@ -30,6 +31,7 @@ app.use("/api/subcategory", subcategoryRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 app.use("/api/solution", solutionRoutes);
+app.use("/api/knowledge", knowledgeRoutes);
 
 // ======== START SERVER & CONNECT MONGO ========
 async function start() {
