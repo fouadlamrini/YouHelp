@@ -9,6 +9,8 @@ const postSchema = new mongoose.Schema({
   partage: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   // Compteur de partages: nombre total de fois que ce post a été partagé
   shareCount: { type: Number, default: 0, min: 0 },
+  // Statut du post: true si le post a une solution, false sinon
+  isSolved: { type: Boolean, default: false },
   tags: [{ type: String }],
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory' },
