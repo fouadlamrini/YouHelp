@@ -2,22 +2,12 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer style={{
-      backgroundColor: '#2c3e50',
-      color: 'white',
-      textAlign: 'center',
-      padding: '2rem 0',
-      marginTop: '3rem'
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 20px'
-      }}>
-        <p style={{ margin: '0 0 0.5rem 0' }}>
+    <footer className="bg-slate-800 text-white text-center py-8 mt-12">
+      <div className="max-w-6xl mx-auto px-5">
+        <p className="mb-2">
           &copy; 2024 YouHelp. Tous droits réservés.
         </p>
-        <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>
+        <p className="text-sm opacity-80">
           Plateforme d'entraide étudiante développée avec ❤️
         </p>
       </div>

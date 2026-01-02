@@ -4,40 +4,19 @@ const Home = () => {
   return (
     <div>
       {/* Section Hero */}
-      <section style={{ 
-        background: 'linear-gradient(135deg, #3498db, #2c3e50)', 
-        color: 'white', 
-        textAlign: 'center', 
-        padding: '80px 20px' 
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '3rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+      <section className="bg-gradient-to-br from-blue-600 to-slate-800 text-white text-center py-20">
+        <div className="max-w-6xl mx-auto px-5">
+          <h1 className="text-5xl font-bold mb-4">
             Bienvenue sur YouHelp
           </h1>
-          <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
+          <p className="text-xl mb-8">
             La plateforme d'entraide étudiante qui connecte les étudiants
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button style={{
-              background: '#27ae60',
-              color: 'white',
-              padding: '12px 24px',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              cursor: 'pointer'
-            }}>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
               Rejoindre maintenant
             </button>
-            <button style={{
-              background: '#3498db',
-              color: 'white',
-              padding: '12px 24px',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              cursor: 'pointer'
-            }}>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
               Se connecter
             </button>
           </div>
@@ -45,113 +24,68 @@ const Home = () => {
       </section>
 
       {/* Section Fonctionnalités */}
-      <section style={{ padding: '60px 20px', backgroundColor: '#f8f9fa' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            marginBottom: '3rem', 
-            fontSize: '2.5rem',
-            color: '#2c3e50' 
-          }}>
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-5">
+          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
             Pourquoi choisir YouHelp ?
           </h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '2rem' 
-          }}>
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤝</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">🤝</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Entraide
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Posez vos questions et aidez d'autres étudiants dans leurs études
               </p>
             </div>
 
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">📚</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Partage de connaissances
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Partagez vos ressources, cours et expériences avec la communauté
               </p>
             </div>
 
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">💬</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Communication
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Échangez via messages et appels vidéo avec d'autres étudiants
               </p>
             </div>
 
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⭐</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">⭐</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Favoris
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Sauvegardez les posts et connaissances qui vous intéressent
               </p>
             </div>
 
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Catégories
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Trouvez facilement l'aide dont vous avez besoin par domaine d'étude
               </p>
             </div>
 
-            <div style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-              <h3 style={{ color: '#3498db', marginBottom: '1rem', fontSize: '1.5rem' }}>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-5xl mb-4">👥</div>
+              <h3 className="text-xl font-bold text-blue-600 mb-4">
                 Communauté
               </h3>
-              <p style={{ color: '#666', lineHeight: '1.6' }}>
+              <p className="text-gray-600 leading-relaxed">
                 Rejoignez une communauté active d'étudiants et de formateurs
               </p>
             </div>
@@ -160,55 +94,31 @@ const Home = () => {
       </section>
 
       {/* Section Statistiques */}
-      <section style={{ padding: '60px 20px', backgroundColor: 'white' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            marginBottom: '3rem', 
-            fontSize: '2.5rem',
-            color: '#2c3e50' 
-          }}>
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-5">
+          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
             YouHelp en chiffres
           </h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '2rem' 
-          }}>
-            <div style={{
-              background: '#e3f2fd',
-              padding: '2rem',
-              borderRadius: '10px',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ fontSize: '3rem', color: '#3498db', marginBottom: '0.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-blue-50 p-8 rounded-lg text-center">
+              <h3 className="text-5xl font-bold text-blue-600 mb-2">
                 1000+
               </h3>
-              <p style={{ color: '#666', fontSize: '1.1rem' }}>Étudiants inscrits</p>
+              <p className="text-gray-600 text-lg">Étudiants inscrits</p>
             </div>
 
-            <div style={{
-              background: '#e8f5e8',
-              padding: '2rem',
-              borderRadius: '10px',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ fontSize: '3rem', color: '#27ae60', marginBottom: '0.5rem' }}>
+            <div className="bg-green-50 p-8 rounded-lg text-center">
+              <h3 className="text-5xl font-bold text-green-600 mb-2">
                 500+
               </h3>
-              <p style={{ color: '#666', fontSize: '1.1rem' }}>Questions résolues</p>
+              <p className="text-gray-600 text-lg">Questions résolues</p>
             </div>
 
-            <div style={{
-              background: '#f3e5f5',
-              padding: '2rem',
-              borderRadius: '10px',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ fontSize: '3rem', color: '#9b59b6', marginBottom: '0.5rem' }}>
+            <div className="bg-purple-50 p-8 rounded-lg text-center">
+              <h3 className="text-5xl font-bold text-purple-600 mb-2">
                 50+
               </h3>
-              <p style={{ color: '#666', fontSize: '1.1rem' }}>Formateurs experts</p>
+              <p className="text-gray-600 text-lg">Formateurs experts</p>
             </div>
           </div>
         </div>
