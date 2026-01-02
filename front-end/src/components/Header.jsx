@@ -64,17 +64,19 @@ const Header = () => {
               </a>
             </li>
             <li>
-              <button style={{
+              <Link to="/register" style={{
                 backgroundColor: '#27ae60',
                 color: 'white',
                 border: 'none',
                 padding: '8px 16px',
                 borderRadius: '5px',
                 cursor: 'pointer',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                display: 'inline-block'
               }}>
                 Inscription
-              </button>
+              </Link>
             </li>
           </ul>
         </nav>
