@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   return (
@@ -16,13 +17,15 @@ const Header = () => {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h1 style={{
+        <Link to="/" style={{
           fontSize: '1.8rem',
           fontWeight: 'bold',
-          margin: 0
+          margin: 0,
+          color: 'white',
+          textDecoration: 'none'
         }}>
           YouHelp
-        </h1>
+        </Link>
         
         <nav>
           <ul style={{
@@ -34,22 +37,22 @@ const Header = () => {
             alignItems: 'center'
           }}>
             <li>
-              <a href="#" style={{
+              <Link to="/" style={{
                 color: 'white',
                 textDecoration: 'none',
                 transition: 'color 0.3s'
               }}>
                 Accueil
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" style={{
+              <Link to="/about" style={{
                 color: 'white',
                 textDecoration: 'none',
                 transition: 'color 0.3s'
               }}>
                 À propos
-              </a>
+              </Link>
             </li>
             <li>
               <a href="#" style={{
