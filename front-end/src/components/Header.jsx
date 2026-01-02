@@ -55,13 +55,13 @@ const Header = () => {
               </Link>
             </li>
             <li>
-              <a href="#" style={{
+              <Link to="/login" style={{
                 color: 'white',
                 textDecoration: 'none',
                 transition: 'color 0.3s'
               }}>
                 Connexion
-              </a>
+              </Link>
             </li>
             <li>
               <Link to="/register" style={{
