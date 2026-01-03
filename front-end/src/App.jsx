@@ -4,7 +4,7 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminPage from "./pages/AdminPage";
+import AdminPage from "./pages/admin/AdminPage";
 import ConnectedPage from "./pages/ConnectedPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
