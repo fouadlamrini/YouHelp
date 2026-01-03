@@ -20,19 +20,27 @@ export const AuthProvider = ({ children }) => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    if (savedToken && savedToken !== 'undefined' && savedUser && savedUser !== 'undefined') {
+      try {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Erreur parsing user:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
   // Connexion
   const login = (userData, userToken) => {
-    setUser(userData);
-    setToken(userToken);
-    localStorage.setItem('token', userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (userData && userToken) {
+      setUser(userData);
+      setToken(userToken);
+      localStorage.setItem('token', userToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
   };
 
   // Déconnexion
