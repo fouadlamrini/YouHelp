@@ -77,9 +77,6 @@ const { user } = useContext(AuthContext);
 
             {/* Reactions */}
             <div className="flex justify-between text-gray-600">
-              <button className="flex items-center gap-1 hover:text-red-500">
-                ❤️ {post.likes}
-              </button>
               <button className="flex items-center gap-1 hover:text-yellow-500">
                 ❓ {post.questions}
               </button>
@@ -88,6 +85,9 @@ const { user } = useContext(AuthContext);
               </button>
               <button className="flex items-center gap-1 hover:text-green-500">
                 🔄 {post.shares}
+              </button>
+              <button className="flex items-center gap-1 hover:text-red-500">
+                ❤️ {post.likes}
               </button>
             </div>
           </div>
