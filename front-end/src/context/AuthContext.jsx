@@ -5,7 +5,6 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  // mlli app t7ell (refresh / open)
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {

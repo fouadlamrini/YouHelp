@@ -1,22 +1,21 @@
 export default function About() {
   return (
     <div className="pt-24 max-w-5xl mx-auto px-4">
-      <h1 className="text-4xl font-bold mb-6 text-center">About YouHelp</h1>
+      <h1 className="text-4xl font-bold mb-6 text-center">À propos de YouHelp</h1>
 
       <p className="text-gray-700 text-lg mb-6">
-        YouHelp hiya plateforme mوجهة l apprenant dyal YouCode campus Nador،
-        bach ytsawlo, yta3awno, w yشاركوا knowledge binathom.
+        YouHelp est une plateforme destinée aux apprenants du campus YouCode à Nador,
+        pour poser des questions, collaborer et partager des connaissances entre eux.
       </p>
 
       <p className="text-gray-700 text-lg mb-6">
-        projet kay3tamed 3la logique dyal communauté:
-        etudiant kayطرح mochkil, collegue expert wla formateur kayjawbo
-        b commentaire, message privé wla appel vidéo.
+        Le projet repose sur une logique communautaire : un étudiant rencontre un problème,
+        un collègue expert ou un formateur peut répondre via des commentaires, un message privé ou un appel vidéo.
       </p>
 
       <p className="text-gray-700 text-lg">
-        مستقبلا, YouHelp t9dr tts3 f campus khrin b7al Youssoufia w Safi,
-        w tzid roles b7al Super Admin w RH.
+        À l'avenir, YouHelp pourra s'étendre à d'autres campus comme Youssoufia et Safi,
+        et ajouter des rôles comme Super Admin ou RH.
       </p>
     </div>
   );
