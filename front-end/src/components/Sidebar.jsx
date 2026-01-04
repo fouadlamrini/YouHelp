@@ -12,6 +12,7 @@ export default function Sidebar() {
     { name: "Posts", path: "/admin/posts" },
     { name: "Favorites", path: "/admin/favorites" },
     { name: "Request Role", path: "/admin/requestrole" },
+    { name: "Solved Posts", path: "/admin/solvedposts" },
   ];
 
   return (

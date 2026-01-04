@@ -12,8 +12,10 @@ import Knowledge from "./pages/admin/Knowledge";
 import Posts from "./pages/admin/Posts";
 import Favorites from "./pages/admin/Favorites";
 import RequestRole from "./pages/admin/RequestRole";
+import SolvedPosts from "./pages/admin/SolvedPosts.jsx";
 import ConnectedPage from "./pages/ConnectedPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
+
 
 function App() {
   return (
@@ -42,6 +44,7 @@ function App() {
           <Route path="posts" element={<Posts />} />
           <Route path="favorites" element={<Favorites />} />
           <Route path="requestrole" element={<RequestRole />} />
+          <Route path="solvedposts" element={<SolvedPosts />} />
         </Route>
 
         {/* Routes protégées connected */}
