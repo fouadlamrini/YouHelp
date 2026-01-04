@@ -2,27 +2,50 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-
+// Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let folder = 'src/uploads/files'; 
-    if(file.mimetype.startsWith('image')) folder = 'src/uploads/images';
-    else if(file.mimetype.startsWith('video')) folder = 'src/uploads/videos';
-    if(!fs.existsSync(folder)){
+    let folder = 'src/uploads/files'; // default folder
+    if (file.mimetype.startsWith('image')) folder = 'src/uploads/images';
+    else if (file.mimetype.startsWith('video')) folder = 'src/uploads/videos';
+
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });
     }
     cb(null, folder);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + Date.now() + ext);
-  }
+    const ext = path.extname(file.originalname); // get extension
+    cb(null, 'media-' + Date.now() + ext); // save as media-timestamp.ext
+  },
 });
-const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|pdf|doc|docx|ppt|pptx|xls|xlsx/;
+
+// Allowed extensions for files
+const allowedExtensions = /\.(jpeg|jpg|png|gif|mp4|mov|avi|pdf|doc|docx|ppt|pptx|xls|xlsx)$/i;
+
+// File filter to check both mimetype and extension
 const fileFilter = (req, file, cb) => {
-  const ext = allowedTypes.test(file.originalname.toLowerCase());
-  const mime = allowedTypes.test(file.mimetype);
-  if(ext && mime) cb(null, true);
-  else cb(new Error('File type not allowed'));
+  const isValidExtension = allowedExtensions.test(file.originalname.toLowerCase());
+
+  // Check mimetype
+  const mimeType = file.mimetype;
+  const isValidMime =
+    mimeType.startsWith('image') ||
+    mimeType.startsWith('video') ||
+    mimeType === 'application/pdf' ||
+    mimeType.includes('word') ||
+    mimeType.includes('sheet') ||
+    mimeType.includes('presentation');
+
+  if (isValidExtension && isValidMime) {
+    cb(null, true);
+  } else {
+    cb(new Error('File type not allowed'));
+  }
 };
-module.exports = multer({ storage, fileFilter });
+
+// Multer instance
+const upload = multer({ storage, fileFilter });
+
+module.exports = upload;

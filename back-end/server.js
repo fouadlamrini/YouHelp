@@ -3,16 +3,19 @@ const express = require("express");
 const mongoose = require("mongoose");
 const passport = require("./src/config/passport");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 // ======== MIDDLEWARES ========
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+
+// ======== STATIC UPLOADS ========
+// serve images, videos, files
+app.use('/uploads', express.static(path.join(__dirname, 'src/uploads')));
 
 // ======== ROUTES ========
 const authRoutes = require("./src/routes/auth.routes");
