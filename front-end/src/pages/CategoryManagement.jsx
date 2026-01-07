@@ -40,3 +40,14 @@ const CategoryManagement = ({ user }) => {
                   <td className="px-6 py-4">{cat.Description}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default CategoryManagement;
