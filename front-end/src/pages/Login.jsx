@@ -15,7 +15,7 @@ const Login = ({ user }) => {
     <div className="bg-gray-50 min-h-screen flex flex-col">
       <Navbar user={user} />
 
-      <div className="flex-grow flex justify-center items-center py-20">
+      <div className="flex justify-center items-center py-20 grow">
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-2xl shadow-md w-full max-w-md">
           <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
 
