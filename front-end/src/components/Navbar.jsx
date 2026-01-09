@@ -2,28 +2,41 @@ import { Link } from "react-router-dom";
 
 function Navbar() {
   return (
-    <nav className="flex items-center justify-between px-6 py-4 bg-blue-600 text-white">
+    <nav className="w-full bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-[100]">
       {/* Logo */}
-      <div className="text-xl font-bold">
-        <Link to="/" className="hover:text-orange-300 transition">
-          YouHelp
+      <div className="flex items-center">
+        <Link to="/" className="text-2xl font-black text-indigo-600 tracking-tighter group">
+          YouHelp<span className="text-slate-900 group-hover:text-indigo-600 transition-colors">.</span>
         </Link>
       </div>
 
       {/* Links */}
-      <div className="flex gap-6 text-sm font-medium">
-        <Link to="/" className="hover:text-orange-300 transition">
+      <div className="flex items-center gap-8">
+        <Link 
+          to="/" 
+          className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+        >
           Home
         </Link>
-        <Link to="/about" className="hover:text-orange-300 transition">
+        <Link 
+          to="/about" 
+          className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+        >
           About
         </Link>
-        <Link to="/login" className="hover:text-orange-300 transition">
+        
+        <div className="h-5 w-[1px] bg-slate-200 mx-1"></div>
+
+        <Link 
+          to="/login" 
+          className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors"
+        >
           Login
         </Link>
+        
         <Link
           to="/register"
-          className="bg-orange-500 px-4 py-1 rounded hover:bg-orange-600 transition"
+          className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-extrabold shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:shadow-indigo-200 transition-all transform active:scale-95"
         >
           Register
         </Link>
