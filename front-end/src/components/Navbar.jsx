@@ -6,7 +6,7 @@ function Navbar() {
       {/* Logo */}
       <div className="flex items-center">
         <Link to="/" className="text-2xl font-black text-indigo-600 tracking-tighter group">
-          YouHelp<span className="text-slate-900 group-hover:text-indigo-600 transition-colors">.</span>
+          YouHelp
         </Link>
       </div>
 
