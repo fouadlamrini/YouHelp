@@ -1,26 +1,17 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+
 
 const dummyReclamations = [
   { Student: "Youssef", Post: "React issue", Status: "Pending" },
   { Student: "Sara", Post: "Node bug", Status: "Accepted" },
 ];
 
-const ReclamationManagement = ({ user }) => {
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar user={user} />
-        <p className="text-center py-20 text-gray-600">Accès refusé. Vous devez être admin.</p>
-        <Footer />
-      </div>
-    );
-  }
+const ReclamationManagement = () => {
+ 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar user={user} />
+     
       <div className="max-w-7xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold mb-6">Reclamation Management</h1>
 
@@ -45,7 +36,6 @@ const ReclamationManagement = ({ user }) => {
           </table>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

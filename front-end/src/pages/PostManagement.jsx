@@ -1,26 +1,16 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+
 
 const dummyPosts = [
   { Title: "Problème React", Author: "Youssef", Status: "non-solved" },
   { Title: "Bug Node.js", Author: "Sara", Status: "solved" },
 ];
 
-const PostManagement = ({ user }) => {
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar user={user} />
-        <p className="text-center py-20 text-gray-600">Accès refusé. Vous devez être admin.</p>
-        <Footer />
-      </div>
-    );
-  }
+const PostManagement = () => {
+ 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar user={user} />
       <div className="max-w-7xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold mb-6">Post Management</h1>
 
@@ -45,7 +35,7 @@ const PostManagement = ({ user }) => {
           </table>
         </div>
       </div>
-      <Footer />
+   
     </div>
   );
 };

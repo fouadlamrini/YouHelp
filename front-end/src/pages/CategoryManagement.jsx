@@ -1,26 +1,17 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+
 
 const dummyCategories = [
   { Name: "Web Development", Description: "Frontend & Backend" },
   { Name: "Data Science", Description: "Python, ML, AI" },
 ];
 
-const CategoryManagement = ({ user }) => {
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar user={user} />
-        <p className="text-center py-20 text-gray-600">Accès refusé. Vous devez être admin.</p>
-        <Footer />
-      </div>
-    );
-  }
+const CategoryManagement = () => {
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar user={user} />
+      
 
       <div className="max-w-7xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold mb-6">Category Management</h1>
@@ -45,7 +36,7 @@ const CategoryManagement = ({ user }) => {
         </div>
       </div>
 
-      <Footer />
+      
     </div>
   );
 };

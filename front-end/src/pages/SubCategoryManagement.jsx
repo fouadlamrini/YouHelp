@@ -1,26 +1,16 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 
 const dummySubCategories = [
   { Name: "React", Category: "Web Development" },
   { Name: "Node.js", Category: "Web Development" },
 ];
 
-const SubCategoryManagement = ({ user }) => {
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar user={user} />
-        <p className="text-center py-20 text-gray-600">Accès refusé. Vous devez être admin.</p>
-        <Footer />
-      </div>
-    );
-  }
+const SubCategoryManagement = () => {
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar user={user} />
+   
       <div className="max-w-7xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold mb-6">SubCategory Management</h1>
 
@@ -43,8 +33,6 @@ const SubCategoryManagement = ({ user }) => {
           </table>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

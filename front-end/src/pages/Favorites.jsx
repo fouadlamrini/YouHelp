@@ -1,31 +1,34 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+
 import PostCard from "../components/PostCard";
 import KnowledgeCard from "../components/KnowledgeCard";
 
 const dummyFavoritePosts = [
-  { title: "Problème React", description: "Cannot use state properly", tags: ["React", "JS"], status: "non-solved" },
+  {
+    title: "Problème React",
+    content: "Cannot use state properly in functional components",
+    author: "Ahmed",
+    isSolved: false,
+    tags: ["React", "JS"],
+    category: "Frontend",
+    subCategory: "React",
+    media: [{ url: "https://via.placeholder.com/300", type: "image" }],
+    reactionCount: 5,
+    shareCount: 2,
+    commentsCount: 3,
+  },
 ];
 
 const dummyFavoriteKnowledge = [
   { title: "React Hooks Guide", description: "UseEffect & UseState explained", author: "Sara", category: "React" },
 ];
 
-const Favorite = ({ user }) => {
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar user={user} />
-        <p className="text-center py-20 text-gray-600">Veuillez vous connecter pour accéder aux favoris.</p>
-        <Footer />
-      </div>
-    );
-  }
+const Favorite = () => {
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar user={user} />
+    
 
       <div className="max-w-7xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold mb-6">Favorites</h1>
@@ -45,7 +48,7 @@ const Favorite = ({ user }) => {
         </div>
       </div>
 
-      <Footer />
+     
     </div>
   );
 };
