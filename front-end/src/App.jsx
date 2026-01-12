@@ -8,16 +8,37 @@ import Home from "./pages/Home";
 import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
+// Importi l-page jdida
+import PostPage from './pages/PostPage'; 
 
 const App = () => {
   return (
     <Router>
-      <Navbar/>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* --- Public Routes (m3a Navbar l-9dima) --- */}
+        <Route 
+          path="/" 
+          element={<><Navbar /><Home /></>} 
+        />
+        <Route 
+          path="/about" 
+          element={<><Navbar /><About /></>} 
+        />
+        <Route 
+          path="/login" 
+          element={<Login />} 
+        />
+        <Route 
+          path="/register" 
+          element={<Register />} 
+        />
+
+        {/* --- Private/App Routes (Sidebar + NavbarLogged dakhliyan) --- */}
+        <Route path="/posts" element={<PostPage />} />
+        
+        {/* Ila bghiti t-zad dima routes khrin 3ndhom nefs l-layout 
+          bhal /knowledge, t9der t-khedem bihom hna بنفس l-manhaj.
+        */}
       </Routes>
     </Router>
   );
