@@ -16,7 +16,7 @@ const Home = () => {
 
         <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-8 animate-bounce">
-            🚀 Exclusive for YouCoders
+             Exclusive for YouCoders
           </div>
           
           <h1 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] mb-8">
@@ -45,62 +45,77 @@ const Home = () => {
           </div>
 
           {/* Mini Search Mockup */}
-          <div className="mt-20 max-w-3xl mx-auto p-4 bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2.5rem] flex items-center gap-4">
-             <div className="pl-4 text-slate-400">
-               <FiSearch size={24} />
-             </div>
-             <input 
-               type="text" 
-               placeholder="Search for solutions (e.g. 'React useEffect help')..." 
-               className="w-full py-4 outline-none text-slate-600 font-medium"
-               disabled
-             />
-             <button className="bg-slate-900 text-white px-8 py-4 rounded-[2rem] font-bold hidden md:block">
-               Search
-             </button>
-          </div>
+       
         </div>
       </section>
 
       {/* --- Features Grid --- */}
-      <section className="py-24 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                <FiMessageCircle size={28} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-4">Smart Q&A</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">
-                Post your technical issues with attachments and get structured answers from peers and mentors.
-              </p>
-            </div>
+    <section className="py-24 bg-slate-50/50">
+  <div className="max-w-7xl mx-auto px-6">
+    {/* Heading dyal section bach t-fesser chno l-faida */}
+    <div className="text-center mb-16">
+      <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Everything you need to succeed</h2>
+      <p className="text-slate-500 font-medium mt-4">Discover the powerful features built for YouCoders.</p>
+    </div>
 
-            {/* Feature 2 */}
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
-              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <FiVideo size={28} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-4">Live Assistance</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">
-                Start instant video calls with helpers to debug your code in real-time using WebRTC technology.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
-              <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <FiCheckCircle size={28} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-4">Workshops</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">
-                Request and manage group workshops for complex subjects led by experienced trainers.
-              </p>
-            </div>
-          </div>
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Feature 1: Smart Q&A (Modified) */}
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
+        <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+          <FiMessageCircle size={28} />
         </div>
-      </section>
+        <h3 className="text-2xl font-black text-slate-900 mb-4">Smart Q&A</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">
+          Post technical issues and engage with the community through <strong>detailed comments and threaded replies</strong> to find the best solutions.
+        </p>
+      </div>
+
+      {/* Feature 2: Private Messaging (New) */}
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
+        <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+          <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="28" width="28"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 mb-4">Private Messaging</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">
+          Need 1-on-1 help? Connect directly with mentors or classmates through <strong>secure private messages</strong> for personalized guidance.
+        </p>
+      </div>
+
+      {/* Feature 3: Share Knowledge (New) */}
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
+        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+          <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="28" width="28"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 mb-4">Share Knowledge</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">
+          Contribute to the community by <strong>sharing your expertise</strong>, tutorials, and tips to help other YouCoders grow.
+        </p>
+      </div>
+
+      {/* Feature 4: Live Assistance */}
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
+        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+          <FiVideo size={28} />
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 mb-4">Live Assistance</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">
+          Start instant video calls to debug code in real-time. Fast, efficient, and direct support when you're stuck.
+        </p>
+      </div>
+
+      {/* Feature 5: Workshops */}
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-5px] transition-all group">
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+          <FiCheckCircle size={28} />
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 mb-4">Workshops</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">
+          Join or request group workshops led by experienced trainers to master complex technical subjects together.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* --- Stats Section --- */}
       <section className="py-20 border-t border-slate-100">
