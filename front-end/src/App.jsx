@@ -26,11 +26,11 @@ const App = () => {
         />
         <Route 
           path="/login" 
-          element={<Login />} 
+          element={<><Navbar /><Login /></>} 
         />
         <Route 
           path="/register" 
-          element={<Register />} 
+          element={<><Navbar /><Register /></>} 
         />
 
         {/* --- Private/App Routes (Sidebar + NavbarLogged dakhliyan) --- */}

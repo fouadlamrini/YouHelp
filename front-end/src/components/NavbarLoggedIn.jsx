@@ -75,16 +75,27 @@ function NavbarLoggedIn() {
         </Link>
 
         {/* Profile Dropdown Simulation */}
-        <button className="flex items-center gap-3 pl-2 pr-1 py-1 bg-slate-50 hover:bg-indigo-50 rounded-2xl border border-slate-100 transition-all group">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xs font-black">
-            YC
-          </div>
-          <div className="hidden sm:block text-left">
-            <p className="text-[11px] font-black text-slate-900 leading-none">YouCoder</p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Pro Member</p>
-          </div>
-          <FiChevronDown className="text-slate-400 group-hover:text-indigo-600 transition-colors mr-1" size={14} />
-        </button>
+      <button className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 transition-all group shadow-sm">
+  {/* 1. Profile Icon (Avatar) */}
+  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-100 flex-shrink-0">
+    <img 
+      src="https://i.pravatar.cc/150?u=youcoder" 
+      alt="profile" 
+      className="w-full h-full object-cover"
+    />
+  </div>
+
+  {/* 2. Username Section */}
+  <div className="hidden md:block text-left mr-1">
+    <p className="text-[12px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">
+      Fouad Lamrini
+    </p>
+   
+  </div>
+
+  {/* 3. Chevron Icon */}
+  
+</button>
 
       </div>
     </nav>
