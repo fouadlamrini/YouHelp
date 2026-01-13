@@ -11,7 +11,7 @@ class KnowledgeController {
   // - Médias, ressource et snippet optionnels
   async createKnowledge(req, res) {
     try {
-      const { title, content, category, subCategory, tags, resource, snippet } = req.body;
+      const { content, category, subCategory, resource, snippet } = req.body;
 
       // Vérifier que le titre et le contenu sont fournis
       if (!title || title.trim() === "") {
@@ -40,16 +40,6 @@ class KnowledgeController {
         subCategoryId = subCategoryDoc._id;
       }
 
-      // Traiter les tags (extraire les hashtags)
-      let tagsArray = [];
-      if (tags) {
-        tagsArray = tags
-          .split(" ")
-          .filter((tag) => tag.startsWith("#"))
-          .map((tag) => tag.slice(1).trim())
-          .filter((tag) => tag.length > 0);
-      }
-
       // Traiter les médias uploadés
       const mediaFiles = req.files ? req.files.map((file) => {
         let type = "file";
@@ -62,12 +52,11 @@ class KnowledgeController {
 
       // Créer la connaissance
       const knowledge = await Knowledge.create({
-        title,
+      
         content,
         author: req.user.id,
         category: categoryDoc._id,
         subCategory: subCategoryId,
-        tags: tagsArray,
         media: mediaFiles,
         resource: resource || null,
         snippet: snippet ? {
@@ -141,7 +130,7 @@ class KnowledgeController {
   async updateKnowledge(req, res) {
     try {
       const { id } = req.params;
-      const { category, subCategory, tags, resource, snippet, ...rest } = req.body;
+      const { category, subCategory, resource, snippet, ...rest } = req.body;
 
       // Vérifier que la connaissance existe
       const knowledge = await Knowledge.findById(id);
@@ -183,14 +172,7 @@ class KnowledgeController {
         }
       }
 
-      // Mettre à jour les tags si fournis
-      if (tags) {
-        updateData.tags = tags
-          .split(" ")
-          .filter((tag) => tag.startsWith("#"))
-          .map((tag) => tag.slice(1).trim())
-          .filter((tag) => tag.length > 0);
-      }
+     
 
       // Mettre à jour la ressource si fournie
       if (resource) {

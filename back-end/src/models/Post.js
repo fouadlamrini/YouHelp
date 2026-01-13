@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
-  title: { type: String, required: true },
   content: { type: String, required: true },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
@@ -11,7 +10,6 @@ const postSchema = new mongoose.Schema({
   shareCount: { type: Number, default: 0, min: 0 },
   // Statut du post: true si le post a une solution, false sinon
   isSolved: { type: Boolean, default: false },
-  tags: [{ type: String }],
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory' },
   media: [

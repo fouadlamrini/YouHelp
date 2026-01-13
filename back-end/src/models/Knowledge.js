@@ -6,8 +6,7 @@ const mongoose = require("mongoose");
 // - Supporte les commentaires, réactions et partages
 const knowledgeSchema = new mongoose.Schema(
   {
-    // Titre de la connaissance
-    title: { type: String, required: true },
+  
     
     // Contenu/description de la connaissance
     content: { type: String, required: true },
@@ -38,8 +37,6 @@ const knowledgeSchema = new mongoose.Schema(
       language: { type: String }, // Langage de programmation (javascript, python, etc.)
     },
     
-    // Tags pour catégoriser la connaissance
-    tags: [{ type: String }],
     
     // Commentaires sur la connaissance
     comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],

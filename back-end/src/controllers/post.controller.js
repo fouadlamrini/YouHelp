@@ -7,7 +7,7 @@ const Partage = require("../models/Partage");
 class PostController {
   async createPost(req, res) {
     try {
-      const { title, content, category, subCategory, tags } = req.body;
+      const { content, category, subCategory } = req.body;
 
       const categoryDoc = await Category.findOne({ name: category });
       if (!categoryDoc)
@@ -24,15 +24,7 @@ class PostController {
         subCategoryId = subCategoryDoc._id;
       }
 
-      // ===== Tags processing =====
-      let tagsArray = [];
-      if (tags) {
-        tagsArray = tags
-          .split(" ")
-          .filter((tag) => tag.startsWith("#"))
-          .map((tag) => tag.slice(1).trim())
-          .filter((tag) => tag.length > 0);
-      }
+      
 
       // ===== Media processing =====
       const mediaFiles = req.files.map((file) => {
@@ -51,12 +43,10 @@ class PostController {
       });
 
       const post = await Post.create({
-        title,
         content,
         author: req.user.id,
         category: categoryDoc._id,
         subCategory: subCategoryId,
-        tags: tagsArray,
         media: mediaFiles,
       });
 
@@ -101,7 +91,7 @@ class PostController {
   async updatePost(req, res) {
     try {
       const { id } = req.params;
-      const { category, subCategory, tags, ...rest } = req.body;
+      const { category, subCategory, ...rest } = req.body;
       let updateData = { ...rest };
 
       if (category) {
@@ -120,13 +110,6 @@ class PostController {
         }
       }
 
-      if (tags) {
-        updateData.tags = tags
-          .split(" ")
-          .filter((tag) => tag.startsWith("#"))
-          .map((tag) => tag.slice(1).trim())
-          .filter((tag) => tag.length > 0);
-      }
 
       const post = await Post.findByIdAndUpdate(id, updateData, {
         new: true,
