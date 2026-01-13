@@ -11,6 +11,7 @@ import Register from './pages/Register';
 // Importi l-page jdida
 import PostPage from './pages/PostPage'; 
 import CategoryManager from "./pages/CategoryManager";
+import KnowledgePage from "./pages/KnowledgePage.jsx";
 
 const App = () => {
   return (
@@ -37,6 +38,7 @@ const App = () => {
         {/* --- Private/App Routes (Sidebar + NavbarLogged dakhliyan) --- */}
         <Route path="/posts" element={<PostPage />} />
         <Route path="/categories" element={<CategoryManager />} />
+        <Route path="/knowledge" element={<KnowledgePage />} />
         
         {/* Ila bghiti t-zad dima routes khrin 3ndhom nefs l-layout 
           bhal /knowledge, t9der t-khedem bihom hna بنفس l-manhaj.
