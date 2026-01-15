@@ -27,7 +27,7 @@ function NavbarLoggedIn() {
           <Link to="/my-posts" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiEdit3 size={18} /> My Posts
           </Link>
-          <Link to="/my-solved" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+          <Link to="/solved" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiCheckCircle size={18} /> My Solved
           </Link>
           <Link to="/my-favourites" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">

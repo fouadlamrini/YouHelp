@@ -9,37 +9,39 @@ const PostPage = () => {
   const [postContent, setPostContent] = useState("");
   const [category, setCategory] = useState("");
 
-  const samplePosts = [
-    {
-      id: 1,
-      user: { name: "fouad lamrini", avatar: "https://i.pravatar.cc/150?u=1" },
-      time: "22h",
-      category: "Development",
-      subCategory: "React.js",
-      content: "j'ai probleme au niveau de hooks dans react",
-      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
-      comments: [
-        { 
-          id: 101, 
-          userName: "MOUSTAFA OUTERGA", 
-          userRole: "Technicien Spécialisé", 
-          text: "Try checking the dependency array in useEffect!", 
-          time: "1h", 
-          avatar: "https://i.pravatar.cc/150?u=5" 
-        }
-      ]
-    },
-    {
-      id: 2,
-      user: { name: "ibrahim lmlilas", avatar: "https://i.pravatar.cc/150?u=2" },
-      time: "2h",
-      category: "Backend",
-      subCategory: "Node.js",
-      content: "Salam l-khout, wach kayna chi tari9a sahla ndir biha deployement dial Node.js f VPS?",
-      image: null,
-      comments: []
-    }
-  ];
+ const samplePosts = [
+  {
+    id: 1,
+    user: { name: "fouad lamrini", avatar: "https://i.pravatar.cc/150?u=1" },
+    time: "22h",
+    isSolved: true, // ✅ Had l-post ghadi t-ban fih "Voir Detail"
+    category: "Development",
+    subCategory: "React.js",
+    content: "j'ai probleme au niveau de hooks dans react",
+    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
+    comments: [
+      { 
+        id: 101, 
+        userName: "MOUSTAFA OUTERGA", 
+        userRole: "Technicien Spécialisé", 
+        text: "Try checking the dependency array in useEffect!", 
+        time: "1h", 
+        avatar: "https://i.pravatar.cc/150?u=5" 
+      }
+    ]
+  },
+  {
+    id: 2,
+    user: { name: "ibrahim lmlilas", avatar: "https://i.pravatar.cc/150?u=2" },
+    time: "2h",
+    isSolved: false, // 🔴 Had l-post ghadi i-ban fih "Not Solved"
+    category: "Backend",
+    subCategory: "Node.js",
+    content: "Salam l-khout, wach kayna chi tari9a sahla ndir biha deployement dial Node.js f VPS?",
+    image: null,
+    comments: []
+  }
+];
 
  return (
     <div className="flex min-h-screen bg-slate-50/50 font-sans overflow-hidden relative">
