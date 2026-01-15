@@ -14,7 +14,7 @@ const PostPage = () => {
     id: 1,
     user: { name: "fouad lamrini", avatar: "https://i.pravatar.cc/150?u=1" },
     time: "22h",
-    isSolved: true, // ✅ Had l-post ghadi t-ban fih "Voir Detail"
+    isSolved: true, 
     category: "Development",
     subCategory: "React.js",
     content: "j'ai probleme au niveau de hooks dans react",
