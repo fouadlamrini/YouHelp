@@ -4,7 +4,7 @@ import HeaderProfile from "../components/HeaderProfile";
 import PostCard from "../components/PostCard";
 import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
-import Sidebar from "../components/Sidebar"; // Import dyal l-sidebar dyalk
+import Sidebar from "../components/Sidebar"; 
 import { FiSearch, FiStar, FiTrendingUp } from "react-icons/fi";
 
 const MyFavorites = () => {

@@ -1,37 +1,40 @@
 import React from "react";
-import { FiShield } from "react-icons/fi";
+import { useNavigate } from "react-router-dom"; 
+import { FiStar } from "react-icons/fi";
 
 const Welcome = ({ userName }) => {
-  const handleAdminRequest = () => {
-    // Logic dyal s-sifit l-demande l-admin
-    alert("Votre demande d'accès avancé a été envoyée à l'administrateur.");
+  const navigate = useNavigate();
+
+  const handleRedirect = () => {
+    // Redirection vers la page du formulaire
+    navigate("/complete-profile"); 
   };
 
   return (
     <div className="bg-gradient-to-r from-indigo-50 to-white rounded-[2.5rem] p-6 border border-indigo-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
       <div className="flex items-center gap-4">
         {/* Icon Box */}
-        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50 flex-shrink-0">
-          <FiShield size={24} />
+        <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 flex-shrink-0">
+          <FiStar size={28} className="animate-pulse" />
         </div>
         
         {/* Text Area */}
         <div>
-          <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">
-            Bienvenue, {userName} !
+          <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">
+            Bienvenue {userName} sur <span className="text-indigo-600">YouHelp</span> !
           </h2>
-          <p className="text-[11px] text-slate-500 font-medium max-w-sm">
-            Vos fonctionnalités sont actuellement limitées. Demandez l'accès complet pour débloquer tous les outils avancés.
+          <p className="text-[11px] text-slate-500 font-bold leading-relaxed max-w-md">
+            Vos accès sont actuellement limités. Pour profiter de toutes nos fonctionnalités, <span className="text-indigo-600">rejoignez-nous</span> et devenez un membre officiel de <span className="font-black underline">Youcoders</span> !
           </p>
         </div>
       </div>
 
       {/* Button Action */}
       <button 
-        onClick={handleAdminRequest}
-        className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 whitespace-nowrap"
+        onClick={handleRedirect}
+        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95 whitespace-nowrap"
       >
-        Envoyer demande à l'admin
+        Compléter mon profil
       </button>
     </div>
   );
