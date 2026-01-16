@@ -18,6 +18,7 @@ import MyKnowledge from "./pages/MyKnowledge.jsx";
 import MyFavorites from "./pages/MyFavorites.jsx";
 import InfoComplet from "./pages/InfoComplet.jsx";
 import Stats from "./pages/Stats.jsx";
+import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
 
 
 const App = () => {
@@ -52,6 +53,7 @@ const App = () => {
         <Route path="/my-favourites" element={<MyFavorites/>} />
         <Route path="/complete-profile" element={<InfoComplet/>} />
         <Route path="/statistics" element={<Stats/>} />
+        <Route path="/Shedule" element={<WorkshopSchedule/>} />
         
         
         

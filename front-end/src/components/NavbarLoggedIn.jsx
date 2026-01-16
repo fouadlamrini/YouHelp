@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
-  FiUser, FiSettings, FiBell, FiMail, FiUserPlus, 
-  FiHeart, FiEdit3, FiBookOpen, FiCheck, FiX, FiLogOut,
-  FiEdit // Had l-icon fiha Notebook + Stylo
+  FiUser, FiSettings, FiBell, FiMail, FiUserPlus,  FiBookOpen, FiLogOut,
+  FiEdit ,FiCalendar
 } from "react-icons/fi";
 
 function NavbarLoggedIn() {
@@ -40,6 +39,10 @@ function NavbarLoggedIn() {
           {/* Knowledge - Icon: FiBookOpen */}
           <Link to="/knowledge" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiBookOpen size={18} /> Knowledge
+          </Link>
+          {/* Knowledge - Icon: FiBookOpen */}
+          <Link to="/Shedule" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+            <FiCalendar size={18} /> Workchop Shedule
           </Link>
 
           {/* Vertical Divider */}
