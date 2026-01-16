@@ -16,6 +16,7 @@ import RoleRequestsPage from "./pages/RoleRequestsPage.jsx";
 import MyPost from "./pages/MyPosts.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import MyKnowledge from "./pages/MyKnowledge.jsx";
+import MyFavorites from "./pages/MyFavorites.jsx";
 
 
 const App = () => {
@@ -47,6 +48,7 @@ const App = () => {
         <Route path="/role-request" element={<RoleRequestsPage />} />
         <Route path="/my-posts" element={<MyPost />} />
         <Route path="/my-knowledge" element={<MyKnowledge />} />
+        <Route path="/my-favourites" element={<MyFavorites/>} />
         <Route path="/profile" element={<MyPost/>} />
         
         
