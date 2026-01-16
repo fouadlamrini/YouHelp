@@ -14,6 +14,8 @@ import CategoryManager from "./pages/CategoryManager";
 import KnowledgePage from "./pages/KnowledgePage.jsx";
 import RoleRequestsPage from "./pages/RoleRequestsPage.jsx";
 import MyPost from "./pages/MyPosts.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import MyKnowledge from "./pages/MyKnowledge.jsx";
 
 
 const App = () => {
@@ -44,11 +46,11 @@ const App = () => {
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/role-request" element={<RoleRequestsPage />} />
         <Route path="/my-posts" element={<MyPost />} />
+        <Route path="/my-knowledge" element={<MyKnowledge />} />
+        <Route path="/profile" element={<MyPost/>} />
         
         
-        {/* Ila bghiti t-zad dima routes khrin 3ndhom nefs l-layout 
-          bhal /knowledge, t9der t-khedem bihom hna بنفس l-manhaj.
-        */}
+        
       </Routes>
     </Router>
   );
