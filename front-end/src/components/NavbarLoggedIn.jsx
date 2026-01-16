@@ -5,7 +5,6 @@ import {
   FiBell, 
   FiMail, 
   FiUserPlus, 
-  FiCheckCircle, 
   FiHeart, 
   FiEdit3, 
   FiBookOpen,
@@ -18,18 +17,14 @@ function NavbarLoggedIn() {
       
       {/* 1. Logo & Main Links */}
       <div className="flex items-center gap-10">
-        <Link to="/" className="text-2xl font-black text-indigo-600 tracking-tighter">
-          YouHelp<span className="text-slate-900">.</span>
-        </Link>
+      
 
         {/* Links: My Posts, Knowledge, etc. */}
         <div className="hidden lg:flex items-center gap-6">
           <Link to="/my-posts" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiEdit3 size={18} /> My Posts
           </Link>
-          <Link to="/solved" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-            <FiCheckCircle size={18} /> My Solved
-          </Link>
+          
           <Link to="/my-favourites" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiHeart size={18} /> My Favourites
           </Link>

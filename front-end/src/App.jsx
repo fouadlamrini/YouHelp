@@ -13,6 +13,7 @@ import PostPage from './pages/PostPage';
 import CategoryManager from "./pages/CategoryManager";
 import KnowledgePage from "./pages/KnowledgePage.jsx";
 import RoleRequestsPage from "./pages/RoleRequestsPage.jsx";
+import MyPost from "./pages/MyPosts.jsx";
 
 const App = () => {
   return (
@@ -41,6 +42,7 @@ const App = () => {
         <Route path="/categories" element={<CategoryManager />} />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/role-request" element={<RoleRequestsPage />} />
+        <Route path="/my-posts" element={<MyPost />} />
         
         {/* Ila bghiti t-zad dima routes khrin 3ndhom nefs l-layout 
           bhal /knowledge, t9der t-khedem bihom hna بنفس l-manhaj.
