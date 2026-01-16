@@ -45,18 +45,7 @@ function NavbarLoggedIn() {
           {/* Vertical Divider */}
           <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
 
-          {/* User Links */}
-          <Link to="/my-posts" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-            <FiEdit3 size={18} /> My Posts
-          </Link>
           
-          <Link to="/my-favourites" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-            <FiHeart size={18} /> My Favourites
-          </Link>
-
-          <Link to="/my-knowledge" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-            <FiBookOpen size={18} /> My Knowledge
-          </Link>
         </div>
       </div>
 
@@ -121,7 +110,7 @@ function NavbarLoggedIn() {
           {activeDropdown === 'settings' && (
             <div className={`${dropdownStyles} w-56`}>
               <div className="px-2 space-y-1">
-                <Link to="/profile" className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all">
+                <Link to="/my-posts" className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all">
                   <FiUser size={16} /> Mon Profil
                 </Link>
                 <Link to="/settings" className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all">

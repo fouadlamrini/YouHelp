@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { 
   FiCode, FiGlobe, FiX, FiZoomIn, FiHeart, 
-  FiMessageCircle, FiShare2, FiSmile, FiMoreHorizontal, FiSend 
+  FiMessageCircle, FiShare2, FiMoreHorizontal, FiSend,
+  FiEdit2, FiTrash2 // Zadna had l-icons
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 
@@ -10,6 +11,9 @@ const KnowledgeCard = ({ data }) => {
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const [commentText, setCommentText] = useState("");
+  
+  // State dyal l-Menu (Update/Delete)
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSendComment = () => {
     if (commentText.trim()) {
@@ -30,7 +34,6 @@ const KnowledgeCard = ({ data }) => {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="text-[15px] font-black text-slate-900 leading-none">{data.userName}</h4>
-                
                 <div className="flex gap-1.5 items-center ml-1">
                   <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter shadow-sm shadow-indigo-100">
                     {data.category}
@@ -45,14 +48,42 @@ const KnowledgeCard = ({ data }) => {
               </p>
             </div>
           </div>
-          <button className="text-slate-300 hover:text-slate-600 transition-colors">
-            <FiMoreHorizontal size={20}/>
-          </button>
+
+          {/* DROPDOWN MENU (Update / Delete) */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowDropdown(!showDropdown)}
+              className={`p-2 rounded-xl transition-all ${showDropdown ? 'bg-slate-100 text-indigo-600' : 'text-slate-300 hover:text-slate-600'}`}
+            >
+              <FiMoreHorizontal size={20}/>
+            </button>
+
+            {showDropdown && (
+              <>
+                {/* Backdrop bach t-ssed menu ila cliquiti outdoor */}
+                <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
+                
+                <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <button 
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
+                    onClick={() => { console.log("Update"); setShowDropdown(false); }}
+                  >
+                    <FiEdit2 size={14} className="text-indigo-500" /> Update Knowlegde
+                  </button>
+                  <button 
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
+                    onClick={() => { console.log("Delete"); setShowDropdown(false); }}
+                  >
+                    <FiTrash2 size={14} className="text-rose-500" /> Delete Knowlegde
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* CONTENT */}
         <div className="px-6 pb-4 flex flex-col md:flex-row gap-4">
-          {/* HNA FIN REJJA3NA L-CLICK */}
           <div 
             onClick={() => setIsImageOpen(true)} 
             className="w-full md:w-48 h-44 rounded-[1.5rem] overflow-hidden bg-slate-100 relative cursor-pointer group/img flex-shrink-0 border border-slate-50"
@@ -121,7 +152,7 @@ const KnowledgeCard = ({ data }) => {
         )}
       </div>
 
-      {/* MODAL IMAGE - HNA FIN FIN KATKON L-MODAL KBIRA */}
+      {/* MODAL IMAGE */}
       {isImageOpen && (
         <div 
           className="fixed inset-0 z-[999] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4" 

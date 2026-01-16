@@ -4,12 +4,12 @@ import HeaderProfile from "../components/HeaderProfile";
 import PostCard from "../components/PostCard";
 import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
-import { FiSearch } from "react-icons/fi";
+import Sidebar from "../components/Sidebar"; // Import dyal l-sidebar dyalk
+import { FiSearch, FiStar, FiTrendingUp } from "react-icons/fi";
 
 const MyFavorites = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 1. Data dyal les Posts (Problems/Questions)
   const dataPosts = [
     {
       id: "p1",
@@ -24,7 +24,6 @@ const MyFavorites = () => {
     }
   ];
 
-  // 2. Data dyal Knowledge (Snippets/Tutos)
   const dataKnowledge = [
     {
       id: "k1",
@@ -40,7 +39,6 @@ const MyFavorites = () => {
     }
   ];
 
-  // 3. Logic dyal l-Filtrage (ghadi n-filtriw kol list bohdha)
   const filteredPosts = dataPosts.filter(post => 
     post.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -50,10 +48,16 @@ const MyFavorites = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] font-sans overflow-hidden relative">
-      <NavbarLoggedIn />
+    <div className="flex h-screen bg-[#f0f2f5] font-sans overflow-hidden">
+      {/* 1. Sidebar on the left */}
+      <Sidebar />
 
-      <div className="flex flex-col h-screen overflow-hidden">
+      {/* 2. Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Navbar inside the content area to stay aligned */}
+        <NavbarLoggedIn />
+
+        {/* Scrollable Content */}
         <div className="flex-grow overflow-y-auto custom-scrollbar">
           <HeaderProfile />
 
@@ -74,24 +78,26 @@ const MyFavorites = () => {
                 </div>
               </div>
 
-              {/* --- SECTION 1: KNOWLEDGE (Snippets) --- */}
+              {/* --- KNOWLEDGE SECTION --- */}
               {filteredKnowledge.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="px-4 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Snippets & Knowledge
-                  </h2>
+                  <div className="flex items-center gap-2 px-4">
+                    <FiStar className="text-amber-400 fill-amber-400" size={16} />
+                    <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Snippets & Knowledge</h2>
+                  </div>
                   {filteredKnowledge.map((item) => (
                     <KnowledgeCard key={item.id} data={item} />
                   ))}
                 </div>
               )}
 
-              {/* --- SECTION 2: POSTS (Questions) --- */}
+              {/* --- POSTS SECTION --- */}
               {filteredPosts.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="px-4 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Questions & Problems
-                  </h2>
+                  <div className="flex items-center gap-2 px-4">
+                    <FiTrendingUp className="text-indigo-500" size={16} />
+                    <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Questions & Problems</h2>
+                  </div>
                   {filteredPosts.map((post) => (
                     <PostCard key={post.id} post={post} />
                   ))}
@@ -101,12 +107,9 @@ const MyFavorites = () => {
               {/* --- EMPTY STATE --- */}
               {filteredPosts.length === 0 && filteredKnowledge.length === 0 && (
                 <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
-                  <p className="text-slate-400 font-black uppercase text-xs tracking-widest">
-                    Aucun favori trouvé
-                  </p>
+                  <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Aucun favori trouvé</p>
                 </div>
               )}
-
             </div>
           </main>
         </div>
