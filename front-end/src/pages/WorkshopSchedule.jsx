@@ -30,7 +30,6 @@ const WorkshopSchedule = () => {
     { 
       id: 1, 
       student: "Amine Rhazali", 
-      postTitle: "Kifach n-configuri Redux Toolkit?", 
       postContent: "Salam, 3ndi mochkil f l-store dyal Redux, bghit chi workshop i-fhemna hadchi mzyan...",
       postLink: "/post/1", 
       avatar: "https://i.pravatar.cc/150?u=11" 
@@ -52,8 +51,7 @@ const WorkshopSchedule = () => {
   const handleOpenProgrammer = (req) => {
     setSelectedRequest(req);
     setShowProgramPanel(true);
-    // Auto-fill l-input b title dyal l-post
-    setScheduleData(prev => ({ ...prev, customSubject: req.postTitle }));
+    
   };
 
   const handleDateClick = (arg) => {
@@ -212,7 +210,6 @@ const WorkshopSchedule = () => {
             </div>
             
             <div className="space-y-6">
-               <h4 className="font-black text-slate-800 text-md italic leading-snug">"{selectedRequest.postTitle}"</h4>
                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                   <p className="text-xs text-slate-500 leading-relaxed font-medium">{selectedRequest.postContent}</p>
                </div>
