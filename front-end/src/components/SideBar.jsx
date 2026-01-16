@@ -4,12 +4,9 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiGrid,
-  FiBook,
-  FiEdit,
   FiUserCheck,
-  FiCheckSquare,
   FiUsers,
-  FiLogOut,
+  FiBarChart2, // Icon mnasba l-Statistiques
 } from "react-icons/fi";
 
 /* ------------------ NavItem Component ------------------ */
@@ -60,48 +57,36 @@ const Sidebar = () => {
         {isOpen ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
       </button>
 
-      {/* Header */}
+      {/* Header - Logo redirection to /posts */}
       <div className="p-6 mb-4">
-        <div className="flex items-center gap-3 overflow-hidden">
+        <Link to="/posts" className="flex items-center gap-3 overflow-hidden group">
           <div className="min-w-[32px] h-8 bg-indigo-600 rounded-xl flex items-center justify-center
-          text-white font-black text-xs shadow-lg shadow-indigo-200">
+          text-white font-black text-xs shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform">
             YH
           </div>
           {isOpen && (
-            <span className="text-xl font-black text-slate-900 tracking-tighter">
+            <span className="text-xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
               YouHelp.
             </span>
           )}
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}
       <div className="flex-grow px-3 overflow-y-auto overflow-x-hidden">
+        {/* Categories */}
         <NavItem icon={FiGrid} label="Categories" to="/categories" isOpen={isOpen} />
+
+        {/* Statistiques (Zidna hna b-hal l-khrin) */}
+        <NavItem icon={FiBarChart2} label="Statistiques" to="/statistics" isOpen={isOpen} />
 
         <div className="my-4 border-t border-slate-50"></div>
 
-        <NavItem icon={FiBook} label="Knowledge" to="/knowledge" isOpen={isOpen} />
-        <NavItem icon={FiEdit} label="All Posts" to="/posts" isOpen={isOpen} />
+        {/* Roles & Users */}
         <NavItem icon={FiUserCheck} label="Request Role" to="/role-request" isOpen={isOpen} />
         <NavItem icon={FiUsers} label="Users List" to="/users" isOpen={isOpen} />
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-slate-50">
-        <button
-          onClick={() => console.log("logout")}
-          className="flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl
-          text-red-500 hover:bg-red-50 transition-all"
-        >
-          <FiLogOut size={20} />
-          {isOpen && (
-            <span className="font-bold text-sm tracking-tight">
-              Logout
-            </span>
-          )}
-        </button>
-      </div>
     </div>
   );
 };
