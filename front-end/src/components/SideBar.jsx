@@ -83,7 +83,7 @@ const Sidebar = () => {
 
         <NavItem icon={FiBook} label="Knowledge" to="/knowledge" isOpen={isOpen} />
         <NavItem icon={FiEdit} label="All Posts" to="/posts" isOpen={isOpen} />
-        <NavItem icon={FiUserCheck} label="Request Role" to="/request-role" isOpen={isOpen} />
+        <NavItem icon={FiUserCheck} label="Request Role" to="/role-request" isOpen={isOpen} />
         <NavItem icon={FiCheckSquare} label="Solutions" to="/solutions" isOpen={isOpen} />
         <NavItem icon={FiUsers} label="Users List" to="/users" isOpen={isOpen} />
       </div>
