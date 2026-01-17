@@ -9,13 +9,21 @@ const userSchema = new mongoose.Schema(
     campus: { type: mongoose.Schema.Types.ObjectId, ref: "Campus" },
     class: { type: mongoose.Schema.Types.ObjectId, ref: "Class" },
     level: { type: mongoose.Schema.Types.ObjectId, ref: "Level" },
-    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role", default: null },
     provider: { type: String, default: "local" },
     googleId: { type: String },
     githubId: { type: String },
+
+    status: {
+      type: String,
+      enum: ['pending', 'active', 'rejected'],
+      default: 'pending'
+    }
+
   },
   { timestamps: true },
 );
+
 
 userSchema.pre("save", async function () {
   if (this.isModified("password")) {
