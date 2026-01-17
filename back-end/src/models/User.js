@@ -6,12 +6,15 @@ const userSchema = new mongoose.Schema(
     name: { type: String },
     email: { type: String, unique: true, lowercase: true },
     password: { type: String },
-    role: { type: mongoose.Schema.Types.ObjectId, ref: 'Role'},
+    campus: { type: mongoose.Schema.Types.ObjectId, ref: "Campus" },
+    class: { type: mongoose.Schema.Types.ObjectId, ref: "Class" },
+    level: { type: mongoose.Schema.Types.ObjectId, ref: "Level" },
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     provider: { type: String, default: "local" },
     googleId: { type: String },
     githubId: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 userSchema.pre("save", async function () {
