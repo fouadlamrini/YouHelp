@@ -3,10 +3,11 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const roles = [
+    { name: "super_admin" },
     { name: "admin" },
      { name: "formateur" },
       { name: "etudiant" }, 
-      { name: "connected" }];
+      { name: "visiteur" }];
 
 async function seedRoles() {
   try {
