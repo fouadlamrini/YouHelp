@@ -7,7 +7,11 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seedCategory": "node src/seeders/seedCategories.js",
-    "seedRole": "node src/seeders/seedRoles.js"
+    "seedRole": "node src/seeders/seedRoles.js",
+    "seedCampus": "node src/seeders/seedCampus.js",
+    "seedClass": "node src/seeders/seedClass.js",
+    "seedLevel": "node src/seeders/seedLevel.js",
+    "seed": "node src/seeders/seedAll.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

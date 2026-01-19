@@ -22,6 +22,7 @@ import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
 import UserManagement from "./pages/UserManagement.jsx";
 import FriendsList from "./pages/FriendsList.jsx";
 import Info from "./pages/info.jsx";
+import WaitingPage from "./pages/WaitingPage.jsx";
 
 
 const App = () => {
@@ -60,6 +61,7 @@ const App = () => {
         <Route path="/users" element={<UserManagement/>} />
         <Route path="/profile/friends" element={<FriendsList/>} />
         <Route path="/profile/info" element={<Info/>} />
+        <Route path="/pending" element={<WaitingPage/>} />
         
         
         

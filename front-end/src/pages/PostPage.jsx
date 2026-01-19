@@ -3,7 +3,6 @@ import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import PostCard from "../components/PostCard";
 import Messaging from "../components/Messaging";
-import Welcome from "../components/Welcome";
 import { 
   FiImage, FiVideo, FiSmile, FiSend, 
   FiChevronDown, FiSearch, FiCheckCircle, FiClock, FiGrid
@@ -16,7 +15,7 @@ const PostPage = () => {
 
   // --- States dyal l-Filtre ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // "all", "solved", "notSolved"
+  const [statusFilter, setStatusFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [subCatFilter, setSubCatFilter] = useState("all");
 
@@ -67,10 +66,9 @@ const PostPage = () => {
         <main className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-3xl mx-auto space-y-6 pb-20">
             
-            {/* 1. SECTION WELCOME */}
-            <Welcome userName="Fouad" />
+      
 
-            {/* 2. SECTION FILTERS (Mabin Welcome o Creation) */}
+        
             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Search Input */}
