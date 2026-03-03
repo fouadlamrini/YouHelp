@@ -43,22 +43,18 @@ const NavItem = ({ icon: Icon, label, to, isOpen }) => {
   );
 };
 
-const isSuperAdmin = (user) => {
-  const roleName = user?.role?.name ?? user?.role;
-  return roleName === "super_admin";
-};
-
 /* ------------------ Sidebar Component ------------------ */
 const Sidebar = () => {
   const [isOpen, setIsOpen] = React.useState(true);
   const { user } = useAuth();
-  const showSuperAdmin = isSuperAdmin(user);
+  const isSuperAdmin = user?.role === "super_admin" || user?.role?.name === "super_admin";
 
   return (
     <div
       className={`relative h-screen bg-white border-r border-slate-100 transition-all duration-300 flex flex-col
         ${isOpen ? "w-72" : "w-24"}`}
     >
+      {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="absolute -right-3 top-10 w-7 h-7 bg-white border border-slate-100 rounded-full
@@ -67,6 +63,7 @@ const Sidebar = () => {
         {isOpen ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
       </button>
 
+      {/* Header - Logo redirection to /posts */}
       <div className="p-6 mb-4">
         <Link to="/posts" className="flex items-center gap-3 overflow-hidden group">
           <div className="min-w-[32px] h-8 bg-indigo-600 rounded-xl flex items-center justify-center
@@ -81,29 +78,31 @@ const Sidebar = () => {
         </Link>
       </div>
 
+      {/* Navigation */}
       <div className="flex-grow px-3 overflow-y-auto overflow-x-hidden">
+        {/* Categories */}
         <NavItem icon={FiGrid} label="Categories" to="/categories" isOpen={isOpen} />
+
+        {/* Statistiques */}
         <NavItem icon={FiBarChart2} label="Statistiques" to="/statistics" isOpen={isOpen} />
 
-        {showSuperAdmin && (
+        {/* Super Admin: Campus / Level / Class */}
+        {isSuperAdmin && (
           <>
-            <div className="my-4 border-t border-slate-50" />
-            <span className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              Super Admin
-            </span>
+            <div className="my-4 border-t border-slate-50"></div>
             <NavItem icon={FiMapPin} label="Campus" to="/admin/campus" isOpen={isOpen} />
             <NavItem icon={FiLayers} label="Level" to="/admin/level" isOpen={isOpen} />
             <NavItem icon={FiBook} label="Class" to="/admin/class" isOpen={isOpen} />
-            <NavItem icon={FiUsers} label="Create User" to="/users" isOpen={isOpen} />
           </>
         )}
 
-        <div className="my-4 border-t border-slate-50" />
+        <div className="my-4 border-t border-slate-50"></div>
+
+        {/* Roles & Users */}
         <NavItem icon={FiUserCheck} label="Request Role" to="/role-request" isOpen={isOpen} />
-        {!showSuperAdmin && (
-          <NavItem icon={FiUsers} label="Users List" to="/users" isOpen={isOpen} />
-        )}
+        <NavItem icon={FiUsers} label="Users List" to="/users" isOpen={isOpen} />
       </div>
+
     </div>
   );
 };

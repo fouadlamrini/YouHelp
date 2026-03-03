@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiCheckCircle } from "react-icons/fi";
+import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
 export default function RegisterYouHelp() {
   const [formData, setFormData] = useState({ fullName: "", email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { register } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -16,11 +22,32 @@ export default function RegisterYouHelp() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) setErrors(validationErrors);
-    else console.log("Form Submitted:", formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await register({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (response.data?.success) {
+        navigate('/login');
+      } else {
+        setErrors({ general: response.data?.message || 'Registration failed' });
+      }
+    } catch (error) {
+      setErrors({ general: error.response?.data?.message || 'Registration failed' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,8 +136,16 @@ export default function RegisterYouHelp() {
               </div>
             ))}
 
-            <button type="submit" className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-2xl shadow-indigo-200 transition-all transform active:scale-[0.97] flex items-center justify-center gap-3 mt-4">
-              CREATE ACCOUNT <FiArrowRight size={20} />
+            {errors.general && (
+              <p className="text-[11px] text-red-500 font-bold mt-2 ml-2 tracking-wide italic leading-none">{errors.general}</p>
+            )}
+            
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-2xl shadow-indigo-200 transition-all transform active:scale-[0.97] flex items-center justify-center gap-3 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"} <FiArrowRight size={20} />
             </button>
           </form>
 
@@ -123,17 +158,23 @@ export default function RegisterYouHelp() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-6">
-              <button className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700">
+              <button 
+                onClick={() => window.open('http://localhost:3000/api/auth/google', '_self')}
+                className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
+              >
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="" /> Google
               </button>
-              <button className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700">
+              <button 
+                onClick={() => window.open('http://localhost:3000/api/auth/github', '_self')}
+                className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
+              >
                 <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="" /> GitHub
               </button>
             </div>
           </div>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">
-            Already have an account? <a href="/login" className="text-indigo-600 font-black hover:underline underline-offset-8">Log in</a>
+            Already have an account? <Link to="/login" className="text-indigo-600 font-black hover:underline underline-offset-8">Log in</Link>
           </p>
         </div>
       </div>

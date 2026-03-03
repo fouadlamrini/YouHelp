@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUserPlus, FiLogOut, FiCheckCircle, FiHeart } from 'react-icons/fi';
+import { AuthContext } from '../context/AuthContext';
 
 const WaitingPage = () => {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
 
-  const handleLogout = () => {
-    // Logic dyal logout hna (e.g., clear localStorage)
-    console.log("Deconnexion...");
-    navigate('/login');
+  useEffect(() => {
+    console.log('WaitingPage - User:', user);
+    console.log('WaitingPage - User role:', user?.role);
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Logout error:", error);
+      navigate('/login');
+    }
   };
 
   const handleCompleteInfo = () => {
@@ -39,12 +50,15 @@ const WaitingPage = () => {
 
         {/* Message de Bienvenue */}
         <div className="text-center space-y-4">
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight">
-            Bienvenue sur <span className="text-indigo-600">YouHelp</span> !
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            Bienvenue <span className="text-indigo-600">{user?.name}</span> sur <span className="text-indigo-600">YouHelp</span> !
           </h1>
           <p className="text-slate-500 font-medium leading-relaxed max-w-md mx-auto">
             Nous sommes ravis de vous avoir parmi nous. Pour rejoindre pleinement notre communauté d'entraide, nous avons besoin d'en savoir un peu plus sur vous.
           </p>
+          
+          
+     
         </div>
 
         {/* Action Buttons */}

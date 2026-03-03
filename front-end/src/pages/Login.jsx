@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FiMail,
   FiLock,
@@ -8,11 +8,16 @@ import {
   FiArrowRight,
   FiShield
 } from "react-icons/fi";
+import { AuthContext } from "../context/AuthContext";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,13 +31,22 @@ const Login = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-    } else {
-      console.log("Login submitted:", formData);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await login(formData.email, formData.password);
+      navigate('/posts');
+    } catch (error) {
+      setErrors({ general: "Invalid email or password" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,11 +159,18 @@ const Login = () => {
               </Link>
             </div>
 
+            {errors.general && (
+              <p className="text-[11px] text-red-500 mt-2 ml-2 font-bold uppercase tracking-wider">
+                {errors.general}
+              </p>
+            )}
+            
             <button
               type="submit"
-              className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all transform active:scale-[0.97] flex items-center justify-center gap-3"
+              disabled={loading}
+              className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all transform active:scale-[0.97] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              SIGN IN <FiArrowRight size={20} />
+              {loading ? "SIGNING IN..." : "SIGN IN"} <FiArrowRight size={20} />
             </button>
           </form>
 
@@ -165,15 +186,24 @@ const Login = () => {
 
           {/* Social Logins Buttons */}
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95">
+            <button 
+              onClick={() => window.open('http://localhost:3000/api/auth/google', '_self')}
+              className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
+            >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
               Google
             </button>
-            <button className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95">
+            <button 
+              onClick={() => window.open('http://localhost:3000/api/auth/github', '_self')}
+              className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
+            >
               <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="GitHub" />
               GitHub
             </button>
           </div>
+
+          {/* Hidden OAuth callback handler */}
+          <div id="oauth-callback" style={{display: 'none'}}></div>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">
             New here?{" "}
