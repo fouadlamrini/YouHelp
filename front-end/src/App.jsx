@@ -25,6 +25,7 @@ import FriendsList from "./pages/FriendsList.jsx";
 import Info from "./pages/Info.jsx";
 import WaitingPage from "./pages/WaitingPage.jsx";
 import OAuthCallback from "./pages/OAuthCallback.jsx";
+import VideoCallPage from "./pages/VideoCallPage.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 const App = () => {
@@ -172,9 +173,14 @@ const App = () => {
             path="/pending"
             element={<WaitingPage />}
           />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route
-            path="/oauth/callback"
-            element={<OAuthCallback />}
+            path="/video-call"
+            element={
+              <ProtectedRoute>
+                <VideoCallPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </AuthProvider>

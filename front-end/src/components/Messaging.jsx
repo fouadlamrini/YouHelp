@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend,
 } from "react-icons/fi";
@@ -7,6 +8,7 @@ import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 
 const Messaging = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isMinimized, setIsMinimized] = useState(true);
   const [activeChat, setActiveChat] = useState(null);
@@ -167,7 +169,17 @@ const Messaging = () => {
             </div>
             <div className="flex items-center gap-2 text-indigo-600">
               <FiPhone size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
-              <FiVideo size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
+              <FiVideo
+                size={14}
+                className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
+                onClick={() => {
+                  const otherId = activeChat?.user?._id;
+                  if (user?.id && otherId) {
+                    const room = [String(user.id), String(otherId)].sort().join("-");
+                    window.open(`/video-call?room=${encodeURIComponent(room)}`, "_blank", "noopener");
+                  }
+                }}
+              />
               <FiMinus onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
               <FiX onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
             </div>
