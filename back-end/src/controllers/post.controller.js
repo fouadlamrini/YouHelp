@@ -80,6 +80,21 @@ class PostController {
     return { _id: -1 };
   }
 
+  async _sameContextReactionCount(postId, authorId) {
+    const author = await User.findById(authorId).select("campus class level");
+    if (!author || (!author.campus && !author.class && !author.level)) return 0;
+    const filter = {};
+    if (author.campus) filter.campus = author.campus;
+    if (author.class) filter.class = author.class;
+    if (author.level) filter.level = author.level;
+    const userIds = await User.find(filter).distinct("_id");
+    return Engagement.countDocuments({
+      type: "reaction",
+      post: postId,
+      user: { $in: userIds },
+    });
+  }
+
   async getAllPosts(req, res) {
     try {
       const authorFilter = await this._postsAuthorFilter(req);
@@ -89,7 +104,13 @@ class PostController {
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
-      res.json({ success: true, data: posts });
+      const withSameContextReactions = await Promise.all(
+        posts.map(async (p) => {
+          const sameContextReactionCount = await this._sameContextReactionCount(p._id, p.author?._id || p.author);
+          return { ...p.toObject(), sameContextReactionCount };
+        })
+      );
+      res.json({ success: true, data: withSameContextReactions });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });
@@ -111,7 +132,8 @@ class PostController {
         const allowed = authorFilter.author.$in.some(id => id.toString() === authorId);
         if (!allowed) return res.status(403).json({ message: "Forbidden" });
       }
-      res.json({ success: true, data: post });
+      const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
+      res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount } });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });
