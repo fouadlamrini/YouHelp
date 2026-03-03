@@ -3,7 +3,7 @@ const User = require("../models/User");
 const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
-const Partage = require("../models/Partage");
+const Engagement = require("../models/Engagement");
 
 class PostController {
   async createPost(req, res) {
@@ -170,31 +170,30 @@ class PostController {
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
-
       if (req.user?.role == null) {
         return res.status(403).json({
           message: "Access restricted: request admin for reaction access",
         });
       }
-
       const post = await Post.findById(id);
       if (!post) return res.status(404).json({ message: "Post not found" });
-
       const userId = req.user.id;
-      post.Reaction = post.Reaction || [];
-
-      const hasReacted = post.Reaction.includes(userId);
-
-      post.Reaction = hasReacted
-        ? post.Reaction.filter((u) => u.toString() !== userId)
-        : [...post.Reaction, userId];
-
-      await post.save();
-
+      const existing = await Engagement.findOne({ type: "reaction", user: userId, post: id });
+      if (existing) {
+        await Engagement.deleteOne({ _id: existing._id });
+        await Post.findByIdAndUpdate(id, { $inc: { reactionCount: -1 } });
+        return res.json({
+          success: true,
+          message: "Reaction removed",
+          totalReactions: Math.max(0, (post.reactionCount || 0) - 1),
+        });
+      }
+      await Engagement.create({ type: "reaction", user: userId, post: id });
+      await Post.findByIdAndUpdate(id, { $inc: { reactionCount: 1 } });
       return res.json({
         success: true,
-        message: hasReacted ? "Reaction removed" : "Reacted to post",
-        totalReactions: post.Reaction.length,
+        message: "Reacted to post",
+        totalReactions: (post.reactionCount || 0) + 1,
       });
     } catch (err) {
       console.error(err);
@@ -205,33 +204,26 @@ class PostController {
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
-
       if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour partager",
         });
       }
-
       const post = await Post.findById(id);
       if (!post) return res.status(404).json({ message: "Post introuvable" });
-
       if (post.author.toString() === req.user.id) {
         return res.status(400).json({ message: "Vous ne pouvez pas partager votre propre post" });
       }
-
       const userId = req.user.id;
-
-      const existing = await Partage.findOne({ post: id, sharedBy: userId });
-
+      const existing = await Engagement.findOne({ type: "share", user: userId, post: id });
       if (existing) {
-        await Partage.deleteOne({ _id: existing._id });
+        await Engagement.deleteOne({ _id: existing._id });
         await Post.findByIdAndUpdate(id, { $inc: { shareCount: -1 } });
         return res.json({ success: true, message: "Partage retiré" });
-      } else {
-        await Partage.create({ post: id, sharedBy: userId });
-        await Post.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
-        return res.status(201).json({ success: true, message: "Post partagé" });
       }
+      await Engagement.create({ type: "share", user: userId, post: id });
+      await Post.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
+      return res.status(201).json({ success: true, message: "Post partagé" });
     } catch (err) {
       console.error(err);
       if (err.code === 11000) {

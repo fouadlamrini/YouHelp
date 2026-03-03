@@ -4,9 +4,7 @@ const postSchema = new mongoose.Schema({
   content: { type: String, required: true },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
-  Reaction: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  partage: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  // Compteur de partages: nombre total de fois que ce post a été partagé
+  reactionCount: { type: Number, default: 0, min: 0 },
   shareCount: { type: Number, default: 0, min: 0 },
   // Statut du post: true si le post a une solution, false sinon
   isSolved: { type: Boolean, default: false },

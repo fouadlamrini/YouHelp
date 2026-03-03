@@ -41,16 +41,7 @@ const knowledgeSchema = new mongoose.Schema(
     // Commentaires sur la connaissance
     comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
     
-    // Utilisateurs qui ont réagi (like) à la connaissance
-    reactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    
-    // Compteur de réactions
     reactionCount: { type: Number, default: 0, min: 0 },
-    
-    // Utilisateurs qui ont partagé la connaissance
-    shares: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    
-    // Compteur de partages
     shareCount: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }

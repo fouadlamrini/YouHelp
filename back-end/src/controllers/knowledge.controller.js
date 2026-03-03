@@ -2,6 +2,7 @@ const Knowledge = require("../models/Knowledge");
 const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const User = require("../models/User");
+const Engagement = require("../models/Engagement");
 
 class KnowledgeController {
   // ===== CREATE =====
@@ -87,9 +88,7 @@ class KnowledgeController {
         .populate("author", "name email role")
         .populate("category", "name")
         .populate("subCategory", "name")
-        .populate("comments")
-        .populate("reactions", "name email")
-        .populate("shares", "name email");
+        .populate("comments");
 
       res.json({ success: true, data: knowledge });
     } catch (err) {
@@ -108,9 +107,7 @@ class KnowledgeController {
         .populate("author", "name email role")
         .populate("category", "name")
         .populate("subCategory", "name")
-        .populate("comments")
-        .populate("reactions", "name email")
-        .populate("shares", "name email");
+        .populate("comments");
 
       if (!knowledge) {
         return res.status(404).json({ message: "Connaissance introuvable" });
@@ -248,40 +245,30 @@ class KnowledgeController {
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
-
       if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour réagir",
         });
       }
-
-      // Vérifier que la connaissance existe
       const knowledge = await Knowledge.findById(id);
-      if (!knowledge) {
-        return res.status(404).json({ message: "Connaissance introuvable" });
-      }
-
+      if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;
-      const hasReacted = knowledge.reactions.includes(userId);
-
-      if (hasReacted) {
-        // Retirer la réaction
-        knowledge.reactions = knowledge.reactions.filter(
-          (u) => u.toString() !== userId
-        );
-        knowledge.reactionCount = Math.max(0, knowledge.reactionCount - 1);
-      } else {
-        // Ajouter la réaction
-        knowledge.reactions.push(userId);
-        knowledge.reactionCount += 1;
+      const existing = await Engagement.findOne({ type: "reaction", user: userId, knowledge: id });
+      if (existing) {
+        await Engagement.deleteOne({ _id: existing._id });
+        await Knowledge.findByIdAndUpdate(id, { $inc: { reactionCount: -1 } });
+        return res.json({
+          success: true,
+          message: "Réaction retirée",
+          reactionCount: Math.max(0, (knowledge.reactionCount || 0) - 1),
+        });
       }
-
-      await knowledge.save();
-
-      res.json({
+      await Engagement.create({ type: "reaction", user: userId, knowledge: id });
+      await Knowledge.findByIdAndUpdate(id, { $inc: { reactionCount: 1 } });
+      return res.json({
         success: true,
-        message: hasReacted ? "Réaction retirée" : "Réaction ajoutée",
-        reactionCount: knowledge.reactionCount,
+        message: "Réaction ajoutée",
+        reactionCount: (knowledge.reactionCount || 0) + 1,
       });
     } catch (err) {
       console.error(err);
@@ -296,48 +283,28 @@ class KnowledgeController {
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
-
       if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour partager",
         });
       }
-
-      // Vérifier que la connaissance existe
       const knowledge = await Knowledge.findById(id);
-      if (!knowledge) {
-        return res.status(404).json({ message: "Connaissance introuvable" });
-      }
-
-      // Empêcher de partager sa propre connaissance
+      if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       if (knowledge.author.toString() === req.user.id) {
         return res.status(400).json({
           message: "Vous ne pouvez pas partager votre propre connaissance",
         });
       }
-
       const userId = req.user.id;
-      const hasShared = knowledge.shares.includes(userId);
-
-      if (hasShared) {
-        // Retirer le partage
-        knowledge.shares = knowledge.shares.filter(
-          (u) => u.toString() !== userId
-        );
-        knowledge.shareCount = Math.max(0, knowledge.shareCount - 1);
-      } else {
-        // Ajouter le partage
-        knowledge.shares.push(userId);
-        knowledge.shareCount += 1;
+      const existing = await Engagement.findOne({ type: "share", user: userId, knowledge: id });
+      if (existing) {
+        await Engagement.deleteOne({ _id: existing._id });
+        await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: -1 } });
+        return res.json({ success: true, message: "Partage retiré", shareCount: Math.max(0, (knowledge.shareCount || 0) - 1) });
       }
-
-      await knowledge.save();
-
-      res.json({
-        success: true,
-        message: hasShared ? "Partage retiré" : "Connaissance partagée",
-        shareCount: knowledge.shareCount,
-      });
+      await Engagement.create({ type: "share", user: userId, knowledge: id });
+      await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
+      return res.json({ success: true, message: "Connaissance partagée", shareCount: (knowledge.shareCount || 0) + 1 });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
