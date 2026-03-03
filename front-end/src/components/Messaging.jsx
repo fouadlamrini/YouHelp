@@ -1,31 +1,111 @@
-import React, { useState } from "react";
-import { FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip } from "react-icons/fi";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend,
+} from "react-icons/fi";
+import { messagesApi } from "../services/api";
+import { getSocket } from "../services/socket";
+import { useAuth } from "../context/AuthContext";
 
 const Messaging = () => {
+  const { user } = useAuth();
   const [isMinimized, setIsMinimized] = useState(true);
-  const [activeChat, setActiveChat] = useState(null); // User li k-nhdro m3ah
+  const [activeChat, setActiveChat] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const contacts = [
-    { id: 1, name: "Issam Mahtaj", lastMsg: "Allh irdi 3lik", time: "10:26 AM", avatar: "https://i.pravatar.cc/150?u=1", online: true },
-    { id: 2, name: "Ibrahim CHEMLAL", lastMsg: "16 dhs li 9t3olk dak nhar", time: "Jul 30", avatar: "https://i.pravatar.cc/150?u=2", online: false },
-    { id: 3, name: "Chaymae Bouyaoumad", lastMsg: "Thanks, fouad", time: "Jul 25", avatar: "https://i.pravatar.cc/150?u=3", online: true },
-    { id: 4, name: "Fatima ezzahra", lastMsg: "Happy birthday", time: "Jul 22", avatar: "https://i.pravatar.cc/150?u=4", online: false },
-  ];
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    messagesApi
+      .getConversations()
+      .then((res) => setConversations(res.data.data || []))
+      .catch(() => setConversations([]))
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!activeChat?.user?._id) {
+      setMessages([]);
+      return;
+    }
+    setLoading(true);
+    messagesApi
+      .getConversation(activeChat.user._id)
+      .then((res) => setMessages(res.data.data || []))
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
+  }, [activeChat?.user?._id]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onMessage = (msg) => {
+      if (activeChat?.user?._id === msg.sender?._id) {
+        setMessages((prev) => [...prev, msg]);
+      }
+      setConversations((prev) => {
+        const list = prev.map((c) => {
+          if (c.user._id === msg.sender?._id || c.user._id === msg.receiver?._id) {
+            return { ...c, lastMessage: { content: msg.content, createdAt: msg.createdAt } };
+          }
+          return c;
+        });
+        return list;
+      });
+    };
+    socket.on("message", onMessage);
+    return () => socket.off("message", onMessage);
+  }, [activeChat?.user?._id]);
+
+  const handleSelectChat = (conv) => {
+    setActiveChat(conv);
+  };
+
+  const handleSend = async () => {
+    const text = inputText.trim();
+    if (!text || !activeChat?.user?._id || sending) return;
+    setSending(true);
+    try {
+      const res = await messagesApi.send({ receiverId: activeChat.user._id, content: text });
+      setMessages((prev) => [...prev, res.data.data]);
+      setInputText("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString();
+  };
 
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
-      
-      {/* 1. MESSAGING LIST (Image 1 & 2) */}
-      <div className={`w-80 bg-white shadow-2xl rounded-t-xl border border-slate-200 transition-all duration-300 ${isMinimized ? 'h-12' : 'h-[500px]'}`}>
-        {/* Header (Image 2) */}
-        <div 
+      <div
+        className={`w-80 bg-white shadow-2xl rounded-t-xl border border-slate-200 transition-all duration-300 ${isMinimized ? "h-12" : "h-[500px]"}`}
+      >
+        <div
           onClick={() => setIsMinimized(!isMinimized)}
           className="p-3 flex items-center justify-between cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors rounded-t-xl"
         >
           <div className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200">
-              <img src="https://i.pravatar.cc/150?u=fouad" alt="me" />
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
+              {user?.name?.[0] && <span className="flex items-center justify-center h-full text-sm font-bold text-indigo-600">{user.name[0]}</span>}
             </div>
             <span className="text-sm font-black text-slate-800 tracking-tight">Messaging</span>
           </div>
@@ -36,7 +116,6 @@ const Messaging = () => {
           </div>
         </div>
 
-        {/* List Content (Image 1) */}
         {!isMinimized && (
           <div className="flex flex-col h-[452px]">
             <div className="p-2 border-b border-slate-100">
@@ -45,50 +124,46 @@ const Messaging = () => {
                 <input type="text" placeholder="Search messages" className="w-full bg-slate-100 border-none rounded-lg py-2 pl-9 pr-8 text-xs focus:ring-2 focus:ring-indigo-500" />
                 <FiSliders className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               </div>
-              <div className="flex gap-4 mt-3 px-2 border-b border-slate-50">
-                <button className="text-xs font-black text-emerald-700 border-b-2 border-emerald-700 pb-2">Focused</button>
-                <button className="text-xs font-black text-slate-400 pb-2">Other</button>
-              </div>
             </div>
-
             <div className="flex-grow overflow-y-auto custom-scrollbar">
-              {contacts.map((user) => (
-                <div 
-                  key={user.id}
-                  onClick={() => setActiveChat(user)}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50"
-                >
-                  <div className="relative flex-shrink-0">
-                    <img src={user.avatar} className="w-12 h-12 rounded-full border border-slate-100" alt={user.name} />
-                    {user.online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>}
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="flex justify-between items-baseline">
-                      <h4 className="text-[13px] font-black text-slate-800 truncate">{user.name}</h4>
-                      <span className="text-[10px] text-slate-400 font-bold">{user.time}</span>
+              {loading && !activeChat ? (
+                <p className="p-3 text-xs text-slate-500">Loading...</p>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.user._id}
+                    onClick={() => handleSelectChat(conv)}
+                    className={`flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50 ${activeChat?.user?._id === conv.user._id ? "bg-indigo-50" : ""}`}
+                  >
+                    <div className="relative flex-shrink-0 w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+                      {conv.user.name?.[0] || "?"}
                     </div>
-                    <p className="text-xs text-slate-500 truncate font-medium">
-                      {user.lastMsg}
-                    </p>
+                    <div className="flex-grow min-w-0">
+                      <div className="flex justify-between items-baseline">
+                        <h4 className="text-[13px] font-black text-slate-800 truncate">{conv.user.name || conv.user.email}</h4>
+                        <span className="text-[10px] text-slate-400 font-bold">{formatTime(conv.lastMessage?.createdAt)}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate font-medium">{conv.lastMessage?.content || "No messages"}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* 2. CHAT WINDOW (Image 3) */}
       {activeChat && (
         <div className="w-80 h-[450px] bg-white shadow-2xl rounded-t-xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
-          {/* Chat Header */}
           <div className="p-2.5 flex items-center justify-between border-b border-slate-100 bg-white rounded-t-xl">
             <div className="flex items-center gap-2">
-               <img src={activeChat.avatar} className="w-8 h-8 rounded-full" alt="user" />
-               <div>
-                  <h4 className="text-xs font-black text-slate-800 leading-none">{activeChat.name}</h4>
-                  <p className="text-[9px] text-emerald-500 font-bold mt-1">Active now</p>
-               </div>
+              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
+                {activeChat.user.name?.[0] || "?"}
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-800 leading-none">{activeChat.user.name || activeChat.user.email}</h4>
+                <p className="text-[9px] text-emerald-500 font-bold mt-1">Active</p>
+              </div>
             </div>
             <div className="flex items-center gap-2 text-indigo-600">
               <FiPhone size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
@@ -98,26 +173,40 @@ const Messaging = () => {
             </div>
           </div>
 
-          {/* Messages Area */}
           <div className="flex-grow p-4 bg-slate-50/50 overflow-y-auto custom-scrollbar flex flex-col gap-3">
-             <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-100 max-w-[85%] shadow-sm">
-                <p className="text-xs font-medium text-slate-700 leading-relaxed">Salam Fouad! Ki dayr m3a l-code?</p>
-             </div>
-             <div className="bg-indigo-600 p-3 rounded-2xl rounded-tr-none text-white max-w-[85%] self-end shadow-md">
-                <p className="text-xs font-medium leading-relaxed italic">Hamdulilah, kolchi ghadi mzyan 🚀</p>
-             </div>
+            {messages.map((msg) => {
+              const senderId = msg.sender?._id || msg.sender;
+              const isMe = user?.id && String(senderId) === String(user.id);
+              return (
+                <div
+                  key={msg._id}
+                  className={`p-3 rounded-2xl max-w-[85%] shadow-sm ${isMe ? "bg-indigo-600 text-white rounded-tr-none self-end" : "bg-white border border-slate-100 rounded-tl-none"}`}
+                >
+                  <p className="text-xs font-medium leading-relaxed">{msg.content}</p>
+                  <p className={`text-[9px] mt-1 ${isMe ? "text-indigo-200" : "text-slate-400"}`}>{formatTime(msg.createdAt)}</p>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area (Image 3 Bottom) */}
           <div className="p-3 bg-white border-t border-slate-100">
-             <div className="flex items-center gap-2 bg-slate-100 rounded-2xl px-3 py-2">
-                <input type="text" placeholder="Aa" className="flex-grow bg-transparent border-none focus:ring-0 text-xs py-1" />
-                <div className="flex gap-2 text-indigo-500">
-                   <FiSmile size={18} className="cursor-pointer" />
-                   <FiImage size={18} className="cursor-pointer" />
-                   <FiPaperclip size={18} className="cursor-pointer" />
-                </div>
-             </div>
+            <div className="flex items-center gap-2 bg-slate-100 rounded-2xl px-3 py-2">
+              <input
+                type="text"
+                placeholder="Message..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                className="flex-grow bg-transparent border-none focus:ring-0 text-xs py-1"
+              />
+              <button onClick={handleSend} disabled={sending || !inputText.trim()} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
+                <FiSend size={18} />
+              </button>
+              <FiSmile size={18} className="cursor-pointer text-slate-400" />
+              <FiImage size={18} className="cursor-pointer text-slate-400" />
+              <FiPaperclip size={18} className="cursor-pointer text-slate-400" />
+            </div>
           </div>
         </div>
       )}
