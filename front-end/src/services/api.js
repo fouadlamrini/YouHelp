@@ -119,7 +119,10 @@ export const postApi = {
   getAll: (params) => api.get("/post", { params }),
   getById: (id, params) => api.get(`/post/${id}`, { params }),
   create: (formData) => api.post("/post", formData, { headers: { "Content-Type": "multipart/form-data" } }),
-  update: (id, formData) => api.put(`/post/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  update: (id, data) =>
+    data instanceof FormData
+      ? api.put(`/post/${id}`, data, { headers: { "Content-Type": "multipart/form-data" } })
+      : api.put(`/post/${id}`, data),
   delete: (id) => api.delete(`/post/${id}`),
   reaction: (id) => api.post(`/post/${id}/reaction`),
   share: (id) => api.post(`/post/${id}/share`),

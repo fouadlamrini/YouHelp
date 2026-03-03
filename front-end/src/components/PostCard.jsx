@@ -47,12 +47,15 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showSolutionSection, setShowSolutionSection] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
   const [solution, setSolution] = useState(null);
   const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
   const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editContent, setEditContent] = useState(post?.content || "");
 
   useEffect(() => {
     setReactionCount(rawPost?.reactionCount ?? 0);
@@ -113,6 +116,28 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
       })
       .catch(() => {})
       .finally(() => setDeleting(false));
+  };
+
+  const openEditModal = () => {
+    if (!post?.id) return;
+    setEditContent(post.content || "");
+    setShowOptions(false);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = () => {
+    if (!post?.id || saving) return;
+    const trimmed = (editContent || "").trim();
+    if (!trimmed) return;
+    setSaving(true);
+    postApi
+      .update(post.id, { content: trimmed })
+      .then(() => {
+        setShowEditModal(false);
+        onRefresh?.();
+      })
+      .catch(() => {})
+      .finally(() => setSaving(false));
   };
 
   const handleSendComment = () => {
@@ -188,7 +213,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
                 <button
                   type="button"
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"
-                  // TODO: open update modal
+                  onClick={openEditModal}
                 >
                   <FiEdit3 className="text-indigo-500" /> Update Post
                 </button>
@@ -343,6 +368,51 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black uppercase text-slate-900 tracking-tight">
+                Modifier le post
+              </h3>
+              <button
+                type="button"
+                onClick={() => !saving && setShowEditModal(false)}
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-500"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full min-h-[120px] rounded-2xl border border-slate-200 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                placeholder="Mettre à jour le contenu du post..."
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => !saving && setShowEditModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  disabled={saving}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdate}
+                  disabled={saving || !editContent.trim()}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {saving ? "Enregistrement..." : "Enregistrer"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
