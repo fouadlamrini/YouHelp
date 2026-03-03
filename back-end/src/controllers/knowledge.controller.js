@@ -78,7 +78,7 @@ class KnowledgeController {
 
   // ===== READ =====
   // Récupérer toutes les connaissances
-  // - Accessible à tous (y compris les utilisateurs "connected" en lecture seule)
+  // - Accessible à tous (y compris utilisateurs sans role en lecture seule)
   // - Retourne les connaissances avec les détails de l'auteur, catégorie, etc.
   async getAllKnowledge(req, res) {
     try {
@@ -99,7 +99,7 @@ class KnowledgeController {
   }
 
   // Récupérer une connaissance par ID
-  // - Accessible à tous (y compris les utilisateurs "connected" en lecture seule)
+  // - Accessible à tous (y compris utilisateurs sans role en lecture seule)
   async getKnowledgeById(req, res) {
     try {
       const { id } = req.params;
@@ -243,14 +243,13 @@ class KnowledgeController {
 
   // ===== REACTIONS =====
   // Ajouter/retirer une réaction (like) sur une connaissance
-  // - Seuls les utilisateurs authentifiés (sauf "connected") peuvent réagir
+  // - Seuls les utilisateurs avec role peuvent réagir
   // - Toggle: si l'utilisateur a déjà réagi, on retire la réaction, sinon on l'ajoute
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
 
-      // Vérifier que l'utilisateur n'est pas "connected"
-      if (req.user?.role === "connected") {
+      if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour réagir",
         });
@@ -292,14 +291,13 @@ class KnowledgeController {
 
   // ===== SHARES =====
   // Ajouter/retirer un partage sur une connaissance
-  // - Seuls les utilisateurs authentifiés (sauf "connected") peuvent partager
+  // - Seuls les utilisateurs avec role peuvent partager
   // - Toggle: si l'utilisateur a déjà partagé, on retire le partage, sinon on l'ajoute
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
 
-      // Vérifier que l'utilisateur n'est pas "connected"
-      if (req.user?.role === "connected") {
+      if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour partager",
         });

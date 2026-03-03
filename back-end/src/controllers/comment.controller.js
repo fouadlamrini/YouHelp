@@ -4,7 +4,7 @@ const Post = require("../models/Post");
 class CommentController {
   /**
    * Crée un commentaire pour un post (ou une réponse si parentComment fourni).
-   * Règles : les users avec role "connected" ne peuvent pas créer de commentaire.
+   * Règles : les users sans role (role=null) ne peuvent pas créer de commentaire.
    */
   async createComment(req, res) {
     try {
@@ -23,7 +23,7 @@ class CommentController {
       if (!post) return res.status(404).json({ message: "Post non trouvé" });
 
       // Vérifier rôle (middleware requireRole est recommandé, mais double-check ici)
-      if (req.user && req.user.role === "connected") {
+      if (req.user && req.user.role == null) {
         return res.status(403).json({
           message:
             "Accès restreint : demandez l'accès à un administrateur pour commenter",
@@ -71,7 +71,7 @@ class CommentController {
   /**
    * Récupère tous les commentaires d'un post et construit une structure imbriquée
    * Trie les commentaires (et leurs réponses) par nombre de likes décroissant.
-   * Lecture autorisée à tous (même `connected`).
+   * Lecture autorisée à tous (même sans role).
    */
   async getCommentsByPost(req, res) {
     try {
@@ -130,13 +130,13 @@ class CommentController {
 
   /**
    * Toggle like pour un commentaire : si l'utilisateur a déjà liké, on enlève le like, sinon on l'ajoute.
-   * Les users `connected` ne peuvent pas liker.
+   * Les users sans role ne peuvent pas liker.
    */
   async toggleLike(req, res) {
     try {
       const { id } = req.params; // id du commentaire
 
-      if (req.user && req.user.role === "connected") {
+      if (req.user && req.user.role == null) {
         return res.status(403).json({
           message:
             "Accès restreint : demandez l'accès à un administrateur pour liker",

@@ -111,10 +111,10 @@ async requestRole(req, res) {
         return res.status(400).json({ message: "Request already reviewed" });
       }
 
-      if (request.user.role.name !== "connected") {
+      if (request.user.role != null) {
         return res
           .status(400)
-          .json({ message: "User is no longer connected" });
+          .json({ message: "User already has a role" });
       }
 
       const roleDoc = await Role.findOne({ name: "formateur" });
@@ -153,10 +153,10 @@ async requestRole(req, res) {
         return res.status(400).json({ message: "Request already reviewed" });
       }
 
-      if (request.user.role.name !== "connected") {
+      if (request.user.role != null) {
         return res
           .status(400)
-          .json({ message: "User is no longer connected" });
+          .json({ message: "User already has a role" });
       }
 
       const roleDoc = await Role.findOne({ name: "etudiant" });

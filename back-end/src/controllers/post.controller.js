@@ -141,7 +141,7 @@ class PostController {
     try {
       const { id } = req.params;
 
-      if (req.user?.role === "connected") {
+      if (req.user?.role == null) {
         return res.status(403).json({
           message: "Access restricted: request admin for reaction access",
         });
@@ -176,7 +176,7 @@ class PostController {
     try {
       const { id } = req.params;
 
-      if (req.user?.role === "connected") {
+      if (req.user?.role == null) {
         return res.status(403).json({
           message: "Accès refusé: demander le rôle approprié pour partager",
         });

@@ -6,10 +6,10 @@ const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
 
 /* ===== READ ===== */
-// Récupérer toutes les connaissances (accessible à tous, y compris "connected")
+// Récupérer toutes les connaissances (accessible à tous)
 router.get("/", KnowledgeController.getAllKnowledge);
 
-// Récupérer une connaissance par ID (accessible à tous, y compris "connected")
+// Récupérer une connaissance par ID (accessible à tous)
 router.get("/:id", KnowledgeController.getKnowledgeById);
 
 /* ===== CREATE ===== */
@@ -52,7 +52,7 @@ router.delete(
 /* ===== REACTIONS ===== */
 // Ajouter/retirer une réaction (like) sur une connaissance
 // - Authentification requise
-// - Rôles autorisés: admin, formateur, etudiant (pas "connected")
+// - Rôles autorisés: admin, formateur, etudiant
 router.post(
   "/:id/reaction",
   auth,
@@ -63,7 +63,7 @@ router.post(
 /* ===== SHARES ===== */
 // Ajouter/retirer un partage sur une connaissance
 // - Authentification requise
-// - Rôles autorisés: admin, formateur, etudiant (pas "connected")
+// - Rôles autorisés: admin, formateur, etudiant
 router.post(
   "/:id/share",
   auth,
