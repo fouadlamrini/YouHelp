@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave } from "react-icons/fi";
-import { usersApi, campusApi, classApi, levelApi, rolesApi } from "../services/api";
+import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../services/api";
 
 const roleBadgeClass = (roleName) => {
   const r = roleName?.toLowerCase?.() ?? "";
@@ -30,9 +30,30 @@ const UserManagement = () => {
     class: "",
     level: "",
     role: "",
+    profilePicture: "",
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [availableAvatars, setAvailableAvatars] = useState([]);
+  const fileInputRef = useRef(null);
+  const editFileInputRef = useRef(null);
+
+  const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "");
+
+  const resolveAvatarUrl = (src) => {
+    if (!src) return null;
+    if (src.startsWith("http://") || src.startsWith("https://")) return src;
+    // handle stored relative paths (/uploads/... or /avatars/...)
+    if (src.startsWith("/uploads") || src.startsWith("/avatars")) {
+      return `${API_ORIGIN}${src}`;
+    }
+    // legacy default name from older docs
+    if (src === "default-avatar.png") {
+      return `${API_ORIGIN}/avatars/default-avatar.jpg`;
+    }
+    // default: treat as file inside /avatars
+    return `${API_ORIGIN}/avatars/${src}`;
+  };
 
   const fetchUsers = () => {
     usersApi
@@ -49,12 +70,43 @@ const UserManagement = () => {
       classApi.getAll().then((r) => setClasses(r.data?.data ?? [])).catch(() => setClasses([])),
       levelApi.getAll().then((r) => setLevels(r.data?.data ?? [])).catch(() => setLevels([])),
       rolesApi.getAll().then((r) => setRoles(r.data?.data ?? [])).catch(() => setRoles([])),
+      avatarsApi
+        .getAll()
+        .then((r) => setAvailableAvatars(r.data?.data ?? []))
+        .catch(() => setAvailableAvatars([])),
     ]).finally(() => setLoading(false));
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLocalAvatarChange = async (event, mode = "create") => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setSubmitLoading(true);
+      const res = await avatarsApi.upload(file);
+      const url = res.data?.data?.url;
+      if (url) {
+        if (mode === "edit") {
+          setEditingUser((prev) => ({ ...prev, profilePicture: url }));
+        } else {
+          setFormData((prev) => ({ ...prev, profilePicture: url }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setFormError("Upload de la photo impossible");
+    } finally {
+      setSubmitLoading(false);
+      if (mode === "edit") {
+        if (editFileInputRef.current) editFileInputRef.current.value = "";
+      } else if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleCreateUser = (e) => {
@@ -73,11 +125,12 @@ const UserManagement = () => {
       campus: formData.campus || undefined,
       class: formData.class || undefined,
       level: formData.level || undefined,
+      profilePicture: formData.profilePicture || undefined,
     };
     usersApi
       .create(payload)
       .then(() => {
-        setFormData({ name: "", email: "", password: "", campus: "", class: "", level: "", role: "" });
+        setFormData({ name: "", email: "", password: "", campus: "", class: "", level: "", role: "", profilePicture: "" });
         fetchUsers();
       })
       .catch((err) => setFormError(err.response?.data?.message || "Erreur"))
@@ -114,6 +167,7 @@ const UserManagement = () => {
       campus: editingUser.campus || undefined,
       class: editingUser.class || undefined,
       level: editingUser.level || undefined,
+      profilePicture: editingUser.profilePicture || undefined,
     };
     usersApi
       .update(editingUser._id, payload)
@@ -260,6 +314,51 @@ const UserManagement = () => {
                       </select>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 block">
+                      Photo de profil / Avatar
+                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      {availableAvatars.map((av) => {
+                        const url = resolveAvatarUrl(av.url || av);
+                        const selected = formData.profilePicture === url;
+                        return (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, profilePicture: url }))}
+                            className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
+                              selected ? "border-indigo-500 ring-2 ring-indigo-300" : "border-transparent hover:border-slate-200"
+                            }`}
+                          >
+                            <img src={url} alt="avatar" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+                      >
+                        Depuis mon PC
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLocalAvatarChange}
+                      />
+                      <input
+                        type="text"
+                        name="profilePicture"
+                        value={formData.profilePicture}
+                        onChange={handleInputChange}
+                        placeholder="URL photo personnelle"
+                        className="flex-1 min-w-[140px] p-3 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
                   {formError && <p className="text-red-500 text-xs">{formError}</p>}
                   <button
                     type="submit"
@@ -313,9 +412,17 @@ const UserManagement = () => {
                             <tr key={user._id} className="hover:bg-slate-50/20 transition-colors">
                               <td className="p-6">
                                 <div className="flex items-center gap-4">
-                                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">
-                                    {(user.name || "?").charAt(0)}
-                                  </div>
+                                  {user.profilePicture ? (
+                                    <img
+                                      src={resolveAvatarUrl(user.profilePicture)}
+                                      alt={user.name}
+                                      className="w-12 h-12 rounded-2xl object-cover border border-slate-100"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">
+                                      {(user.name || "?").charAt(0)}
+                                    </div>
+                                  )}
                                   <div>
                                     <p className="text-sm font-black text-slate-800">{user.name}</p>
                                     <span
@@ -435,6 +542,68 @@ const UserManagement = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">
+                  Photo de profil / Avatar
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    {editingUser.profilePicture && (
+                      <img
+                        src={resolveAvatarUrl(editingUser.profilePicture)}
+                        alt={editingUser.name}
+                        className="w-12 h-12 rounded-2xl object-cover border border-slate-100"
+                      />
+                    )}
+                    <input
+                      type="text"
+                      value={editingUser.profilePicture || ""}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, profilePicture: e.target.value })
+                      }
+                      placeholder="URL photo personnelle ou avatar"
+                      className="flex-1 p-3 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {availableAvatars.map((av) => {
+                      const url = av.url || av;
+                      const selected = editingUser.profilePicture === url;
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() =>
+                            setEditingUser((prev) => ({ ...prev, profilePicture: url }))
+                          }
+                          className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${
+                            selected
+                              ? "border-indigo-500 ring-2 ring-indigo-300"
+                              : "border-transparent hover:border-slate-200"
+                          }`}
+                        >
+                          <img src={url} alt="avatar" className="w-full h-full object-cover" />
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+                    >
+                      Depuis mon PC
+                    </button>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleLocalAvatarChange(e, "edit")}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

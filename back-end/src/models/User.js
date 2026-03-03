@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
     githubId: { type: String },
     profilePicture: { 
       type: String, 
-      default: "default-avatar.png" 
+      default: "default-avatar.jpg" 
     },
     coverPicture: { 
       type: String, 

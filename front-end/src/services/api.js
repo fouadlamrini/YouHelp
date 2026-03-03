@@ -44,6 +44,18 @@ export const usersApi = {
   delete: (id) => api.delete(`/users/${id}`),
 };
 
+// —— Avatars (built-in + upload) ——
+export const avatarsApi = {
+  getAll: () => api.get("/avatars"),
+  upload: (file) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return api.post("/avatars/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
 // —— Roles (for super_admin / admin / formateur dropdowns) ——
 export const rolesApi = {
   getAll: () => api.get("/roles"),

@@ -145,13 +145,14 @@ class UserController {
       if (!current) return res.status(401).json({ message: "Unauthorized" });
       const allowed = await canManage(current, req.params.id);
       if (!allowed) return res.status(403).json({ message: "Forbidden" });
-      const { name, email, role, campus, class: classId, level } = req.body;
+      const { name, email, role, campus, class: classId, level, profilePicture } = req.body;
       const updateData = {};
       if (name !== undefined) updateData.name = name;
       if (email !== undefined) updateData.email = email.toLowerCase();
       if (campus !== undefined) updateData.campus = campus || null;
       if (classId !== undefined) updateData.class = classId || null;
       if (level !== undefined) updateData.level = level || null;
+      if (profilePicture !== undefined) updateData.profilePicture = profilePicture || null;
       if (role !== undefined) {
         const roleDoc = await Role.findById(role);
         if (!roleDoc) return res.status(400).json({ message: "Role not found" });
@@ -205,7 +206,7 @@ class UserController {
       if (roleName !== "super_admin" && roleName !== "admin" && roleName !== "formateur") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const { name, email, password, role: roleId, campus, class: classId, level } = req.body;
+      const { name, email, password, role: roleId, campus, class: classId, level, profilePicture } = req.body;
       if (!email || !name) return res.status(400).json({ message: "Name and email required" });
       const existing = await User.findOne({ email: email.toLowerCase() });
       if (existing) return res.status(400).json({ message: "Email already in use" });
@@ -223,6 +224,7 @@ class UserController {
         campus: campus || null,
         class: classId || null,
         level: level || null,
+        profilePicture: profilePicture || undefined,
       });
       const populated = await User.findById(user._id)
         .populate("role", "name")

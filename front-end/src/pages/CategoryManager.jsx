@@ -61,6 +61,7 @@ const CategoryManager = () => {
   });
 
   const [targetCategoryId, setTargetCategoryId] = useState(null);
+  const [editingSubId, setEditingSubId] = useState(null);
   const [subForm, setSubForm] = useState({
     name: "",
     icon: "",
@@ -129,6 +130,7 @@ const CategoryManager = () => {
 
   const resetSubForm = () => {
     setTargetCategoryId(null);
+    setEditingSubId(null);
     setSubForm({ name: "", icon: "", color: "" });
   };
 
@@ -138,12 +140,21 @@ const CategoryManager = () => {
     const targetCategory = categories.find((c) => c._id === targetCategoryId);
     if (!targetCategory) return;
     try {
-      await subcategoryApi.create({
-        name: subForm.name,
-        category: targetCategory.name, // backend expects category name
-        icon: subForm.icon,
-        color: subForm.color,
-      });
+      if (editingSubId) {
+        await subcategoryApi.update(editingSubId, {
+          name: subForm.name,
+          category: targetCategory.name,
+          icon: subForm.icon,
+          color: subForm.color,
+        });
+      } else {
+        await subcategoryApi.create({
+          name: subForm.name,
+          category: targetCategory.name, // backend expects category name
+          icon: subForm.icon,
+          color: subForm.color,
+        });
+      }
       resetSubForm();
       await loadData();
     } catch (err) {
@@ -159,6 +170,16 @@ const CategoryManager = () => {
     } catch (err) {
       console.error("Failed to delete subcategory", err);
     }
+  };
+
+  const handleSubEdit = (sub, parentCategoryId) => {
+    setTargetCategoryId(parentCategoryId);
+    setEditingSubId(sub._id);
+    setSubForm({
+      name: sub.name || "",
+      icon: sub.icon || "",
+      color: sub.color || "",
+    });
   };
 
   const isHexColor = (v) => typeof v === "string" && v.startsWith("#");
@@ -368,7 +389,13 @@ const CategoryManager = () => {
                             <div className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 group-hover/item:border-indigo-200 group-hover/item:bg-white transition-all flex items-center gap-2">
                               {sub.name}
                               <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                {/* Edit subcategory (optional, later) */}
+                                <button
+                                  className="text-slate-300 hover:text-indigo-500"
+                                  onClick={() => handleSubEdit(sub, cat._id)}
+                                  type="button"
+                                >
+                                  <FiEdit3 size={10} />
+                                </button>
                                 <button
                                   className="text-slate-300 hover:text-rose-500"
                                   onClick={() => handleSubDelete(sub._id)}

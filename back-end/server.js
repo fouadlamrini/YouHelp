@@ -16,9 +16,11 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// ======== STATIC UPLOADS ========
-// serve images, videos, files
-app.use('/uploads', express.static(path.join(__dirname, 'src/uploads')));
+// ======== STATIC FILES ========
+// serve uploaded media (images, videos, files)
+app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
+// serve built-in avatar images
+app.use("/avatars", express.static(path.join(__dirname, "src/photo-avatar")));
 
 // ======== ROUTES ========
 const authRoutes = require("./src/routes/auth.routes");
@@ -39,6 +41,7 @@ const commentRoutes = require("./src/routes/comment.routes");
 const solutionRoutes = require("./src/routes/solution.routes");
 const knowledgeRoutes = require("./src/routes/knowledge.routes");
 const favoriteRoutes = require("./src/routes/favorite.routes");
+const avatarRoutes = require("./src/routes/avatar.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
@@ -58,6 +61,7 @@ app.use("/api/comment", commentRoutes);
 app.use("/api/solution", solutionRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/favorites", favoriteRoutes);
+app.use("/api/avatars", avatarRoutes);
 
 // ======== SOCKET.IO (real-time messages) ========
 const { io, emitToUser } = setupSocket(server);
