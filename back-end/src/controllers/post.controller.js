@@ -4,6 +4,7 @@ const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
 const Engagement = require("../models/Engagement");
+const { areFriends } = require("./friend.controller");
 
 class PostController {
   async createPost(req, res) {
@@ -62,6 +63,12 @@ class PostController {
     if (!req.user) return { _id: -1 };
     const role = req.user.role;
     if (role === "super_admin") return {};
+    if (role == null) {
+      const campusId = req.query.campus;
+      if (!campusId) return { _id: -1 };
+      const authorIds = await User.find({ campus: campusId }).distinct("_id");
+      return { author: { $in: authorIds } };
+    }
     const current = await User.findById(req.user.id).populate("campus class level");
     if (!current) return { _id: -1 };
     if (role === "admin") {
@@ -197,9 +204,23 @@ class PostController {
           message: "Access restricted: request admin for reaction access",
         });
       }
-      const post = await Post.findById(id);
+      const post = await Post.findById(id).populate("author");
       if (!post) return res.status(404).json({ message: "Post not found" });
       const userId = req.user.id;
+      if (req.user.role === "etudiant") {
+        const author = await User.findById(post.author._id || post.author).populate("campus class level");
+        const me = await User.findById(userId).populate("campus class level");
+        const sameCampus = me.campus && author.campus && me.campus._id.toString() === author.campus._id.toString();
+        const sameClass = me.class && author.class && me.class._id.toString() === author.class._id.toString();
+        const sameLevel = me.level && author.level && me.level._id.toString() === author.level._id.toString();
+        const sameContext = sameCampus && sameClass && sameLevel;
+        const friend = await areFriends(userId, post.author._id || post.author);
+        if (!sameContext && !friend) {
+          return res.status(403).json({
+            message: "You can only react to posts from same campus/class/level or from friends",
+          });
+        }
+      }
       const existing = await Engagement.findOne({ type: "reaction", user: userId, post: id });
       if (existing) {
         await Engagement.deleteOne({ _id: existing._id });

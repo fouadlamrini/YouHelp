@@ -6,9 +6,9 @@ const { requireRole } = require("../middlewares/role.middleware");
 const checkOwnerOrAdmin = require("../middlewares/checkOwnerOrAdmin.middleware");
 const upload = require("../middlewares/upload.middleware");
 
-/* ===== READ ===== */
-router.get("/", PostController.getAllPosts);
-router.get("/:id", PostController.getPostById);
+/* ===== READ ===== (auth required for visibility filter; role null = campus filter read-only) */
+router.get("/", auth, PostController.getAllPosts);
+router.get("/:id", auth, PostController.getPostById);
 
 /* ===== REACTION ===== */
 router.post(
