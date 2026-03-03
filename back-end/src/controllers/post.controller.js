@@ -107,7 +107,7 @@ class PostController {
       const authorFilter = await this._postsAuthorFilter(req);
       const posts = await Post.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email campus class level")
+        .populate("author", "name email campus class level profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -127,7 +127,7 @@ class PostController {
   async getPostById(req, res) {
     try {
       const post = await Post.findById(req.params.id)
-        .populate("author", "name email campus class level")
+        .populate("author", "name email campus class level profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -167,6 +167,39 @@ class PostController {
             return res.status(400).json({ message: "SubCategory not found" });
           updateData.subCategory = subCategoryDoc._id;
         }
+      }
+
+      // ===== Media update (existing + new uploads) =====
+      try {
+        const existingMediaRaw = req.body.existingMedia;
+        let existingMedia = [];
+        if (existingMediaRaw) {
+          if (Array.isArray(existingMediaRaw)) {
+            existingMedia = existingMediaRaw;
+          } else if (typeof existingMediaRaw === "string") {
+            existingMedia = JSON.parse(existingMediaRaw || "[]");
+          }
+        }
+
+        const uploadedMedia = (req.files || []).map((file) => {
+          let type = "file";
+          if (file.mimetype.startsWith("image")) type = "image";
+          else if (file.mimetype.startsWith("video")) type = "video";
+          else if (file.mimetype === "application/pdf") type = "pdf";
+          else if (file.mimetype.includes("word")) type = "doc";
+
+          let folder = "files";
+          if (type === "image") folder = "images";
+          else if (type === "video") folder = "videos";
+
+          return { url: `/uploads/${folder}/${file.filename}`, type };
+        });
+
+        if (existingMedia.length || uploadedMedia.length) {
+          updateData.media = [...existingMedia, ...uploadedMedia];
+        }
+      } catch (e) {
+        console.error("Error parsing existingMedia for post update:", e);
       }
 
 

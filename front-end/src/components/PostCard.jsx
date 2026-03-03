@@ -1,19 +1,40 @@
 import React, { useState, useEffect } from "react";
 import {
-  FiHeart, FiMessageCircle, FiHelpCircle, FiShare2,
-  FiMoreHorizontal, FiCheckCircle, FiSend, FiTool, FiEdit3, FiTrash2, FiX, FiPlus,
+  FiHeart,
+  FiMessageCircle,
+  FiHelpCircle,
+  FiShare2,
+  FiMoreHorizontal,
+  FiCheckCircle,
+  FiSend,
+  FiTool,
+  FiEdit3,
+  FiTrash2,
+  FiX,
+  FiPlus,
+  FiPlay,
+  FiFileText,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 import { postApi, commentApi, solutionApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
 
+const resolveAvatarUrl = (src) => {
+  if (!src) return null;
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+};
+
 const normalizePost = (post) => {
   if (!post) return null;
   const author = post.author || post.user;
+  const originalMedia = Array.isArray(post.media) ? post.media : [];
   const cat = post.category?.name || post.category;
   const sub = post.subCategory?.name || post.subCategory;
-  const media = (post.media || []).map((m) => {
+  const media = originalMedia.map((m) => {
     const url = m.url?.startsWith("http") ? m.url : `${API_BASE}${m.url}`;
     return { ...m, url };
   });
@@ -21,16 +42,16 @@ const normalizePost = (post) => {
     media.find((m) => m.type === "image")?.url ||
     media[0]?.url ||
     post.image;
+  const avatarUrl = author
+    ? (author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"))
+    : null;
   return {
     ...post,
+    originalMedia,
     user: author
       ? {
           name: author.name || author.email,
-          avatar: author.profilePicture
-            ? (author.profilePicture.startsWith("http")
-                ? author.profilePicture
-                : `${API_BASE}${author.profilePicture}`)
-            : null,
+          avatar: avatarUrl,
           email: author.email,
         }
       : { name: "?", avatar: null },
@@ -56,6 +77,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState(post?.content || "");
+  const [editedMedia, setEditedMedia] = useState(post?.originalMedia || []);
+  const [newFiles, setNewFiles] = useState([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [zoomedMediaUrl, setZoomedMediaUrl] = useState(null);
 
   useEffect(() => {
     setReactionCount(rawPost?.reactionCount ?? 0);
@@ -66,6 +91,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [reacting, setReacting] = useState(false);
 
   if (!post || !post.user) return null;
+
+  useEffect(() => {
+    setEditContent(post?.content || "");
+    setEditedMedia(post?.originalMedia || []);
+    setNewFiles([]);
+    setActiveImageIndex(0);
+  }, [post?.id]);
 
   useEffect(() => {
     if (post.isSolved && post.id) {
@@ -121,8 +153,25 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const openEditModal = () => {
     if (!post?.id) return;
     setEditContent(post.content || "");
+    setEditedMedia(post.originalMedia || []);
+    setNewFiles([]);
     setShowOptions(false);
     setShowEditModal(true);
+  };
+
+  const handleRemoveExistingMedia = (index) => {
+    setEditedMedia((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleNewMediaChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setNewFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const handleRemoveNewFile = (index) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpdate = () => {
@@ -130,8 +179,17 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
     const trimmed = (editContent || "").trim();
     if (!trimmed) return;
     setSaving(true);
+    const formData = new FormData();
+    formData.append("content", trimmed);
+    if (editedMedia.length) {
+      formData.append("existingMedia", JSON.stringify(editedMedia));
+    } else {
+      formData.append("existingMedia", JSON.stringify([]));
+    }
+    newFiles.forEach((file) => formData.append("media", file));
+
     postApi
-      .update(post.id, { content: trimmed })
+      .update(post.id, formData)
       .then(() => {
         setShowEditModal(false);
         onRefresh?.();
@@ -235,66 +293,153 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
         <p className="text-slate-700 leading-relaxed font-medium">{post.content}</p>
       </div>
 
-      {/* Media block: images / videos / pdf */}
+      {/* Media block: large viewer + unified thumbnails (images / videos / pdf) */}
       {!!post.media?.length && (
         <div className="border-y border-slate-50 bg-slate-900/95">
-          {/* Images */}
-          {post.media.some((m) => m.type === "image") && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-              {post.media
-                .filter((m) => m.type === "image")
-                .slice(0, 4)
-                .map((m, idx) => (
-                  <div key={m.url + idx} className="aspect-video overflow-hidden">
+          {(() => {
+            const mediaItems = post.media;
+            const safeIndex = Math.min(activeImageIndex, mediaItems.length - 1);
+            const current = mediaItems[safeIndex] || mediaItems[0];
+            if (!current) return null;
+
+            const handlePrev = (e) => {
+              e.stopPropagation();
+              setActiveImageIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+            };
+            const handleNext = (e) => {
+              e.stopPropagation();
+              setActiveImageIndex((prev) => (prev + 1) % mediaItems.length);
+            };
+
+            const filename = current.url?.split("/").pop();
+
+            return (
+              <div className="p-3 space-y-3">
+                <div
+                  className="relative aspect-video overflow-hidden rounded-2xl border border-slate-800 bg-black flex items-center justify-center cursor-pointer"
+                  onClick={() => current.type === "image" && setZoomedMediaUrl(current.url)}
+                  role={current.type === "image" ? "button" : undefined}
+                  tabIndex={current.type === "image" ? 0 : undefined}
+                  onKeyDown={(e) => current.type === "image" && (e.key === "Enter" || e.key === " ") && setZoomedMediaUrl(current.url)}
+                >
+                  {current.type === "image" && (
                     <img
-                      src={m.url}
+                      src={current.url}
                       alt="post-media"
                       className="w-full h-full object-cover"
                     />
-                  </div>
-                ))}
-            </div>
-          )}
+                  )}
+                  {current.type === "video" && (
+                    <video
+                      src={current.url}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  )}
+                  {(current.type === "pdf" ||
+                    current.type === "file" ||
+                    current.type === "doc") && (
+                    <div className="text-center px-4">
+                      <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-800/80 text-slate-50 text-xs font-bold">
+                        <FiFileText />
+                        <span className="truncate max-w-[220px]">{filename}</span>
+                      </div>
+                      <a
+                        href={current.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-block text-[11px] text-indigo-100 underline"
+                      >
+                        Ouvrir le fichier
+                      </a>
+                    </div>
+                  )}
 
-          {/* Videos */}
-          {post.media.some((m) => m.type === "video") && (
-            <div className="p-4 space-y-3">
-              {post.media
-                .filter((m) => m.type === "video")
-                .map((m, idx) => (
-                  <video
-                    key={m.url + idx}
-                    src={m.url}
-                    controls
-                    className="w-full rounded-2xl border border-slate-800 bg-black"
-                  />
-                ))}
-            </div>
-          )}
+                  {mediaItems.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handlePrev}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full px-2 py-1 text-xs"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNext}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full px-2 py-1 text-xs"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
 
-          {/* PDFs / other files */}
-          {post.media.some((m) => m.type === "pdf" || m.type === "file" || m.type === "doc") && (
-            <div className="p-4 bg-slate-900 text-left">
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2">
-                Pièces jointes
-              </p>
-              <div className="space-y-1">
-                {post.media
-                  .filter((m) => m.type === "pdf" || m.type === "file" || m.type === "doc")
-                  .map((m, idx) => (
-                    <a
-                      key={m.url + idx}
-                      href={m.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block text-xs text-indigo-100 hover:text-white underline break-all"
+                {zoomedMediaUrl && (
+                  <div
+                    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 p-4"
+                    onClick={() => setZoomedMediaUrl(null)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Escape" && setZoomedMediaUrl(null)}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setZoomedMediaUrl(null); }}
+                      className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 z-10"
+                      aria-label="Fermer"
                     >
-                      {m.url.split("/").pop()}
-                    </a>
-                  ))}
+                      <FiX size={28} />
+                    </button>
+                    <img
+                      src={zoomedMediaUrl}
+                      alt="Zoom"
+                      className="max-w-full max-h-full object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                )}
+
+                {mediaItems.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {mediaItems.map((m, idx) => (
+                      <button
+                        key={m.url + idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative w-16 h-12 rounded-xl overflow-hidden border ${
+                          idx === safeIndex
+                            ? "border-indigo-400 ring-2 ring-indigo-300"
+                            : "border-slate-700"
+                        } flex-shrink-0 bg-slate-900`}
+                      >
+                        {m.type === "image" && (
+                          <img
+                            src={m.url}
+                            alt="thumb"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        {m.type === "video" && (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-100">
+                            <FiPlay />
+                          </div>
+                        )}
+                        {(m.type === "pdf" || m.type === "file" || m.type === "doc") && (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-800 text-[9px] text-slate-100 px-1 text-center">
+                            <span className="truncate w-full">
+                              {(m.url || "").split("/").pop()?.split(".").pop()?.toUpperCase() ||
+                                "FILE"}
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
@@ -394,6 +539,91 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
                 className="w-full min-h-[120px] rounded-2xl border border-slate-200 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
                 placeholder="Mettre à jour le contenu du post..."
               />
+              {!!editedMedia.length && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.18em]">
+                    Médias existants
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {editedMedia.map((m, idx) => {
+                      const resolvedUrl = m.url?.startsWith("http")
+                        ? m.url
+                        : `${API_BASE}${m.url}`;
+                      const label =
+                        m.type === "image"
+                          ? "Image"
+                          : m.type === "video"
+                          ? "Vidéo"
+                          : m.type === "pdf"
+                          ? "PDF"
+                          : "Fichier";
+                      return (
+                        <div
+                          key={`${m.url}-${idx}`}
+                          className="flex items-center gap-2 px-2 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[10px]"
+                        >
+                          {m.type === "image" ? (
+                            <img
+                              src={resolvedUrl}
+                              alt="media"
+                              className="w-10 h-10 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <span className="px-2 py-1 rounded-lg bg-slate-200 text-slate-700">
+                              {label}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingMedia(idx)}
+                            className="text-slate-400 hover:text-red-500"
+                          >
+                            <FiX size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.18em]">
+                  Ajouter des médias
+                </p>
+                <div className="flex items-center gap-3">
+                  <label
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-slate-50"
+                  >
+                    <FiPlus size={14} /> Images / Vidéos / PDF
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,application/pdf"
+                      className="hidden"
+                      onChange={handleNewMediaChange}
+                    />
+                  </label>
+                </div>
+                {!!newFiles.length && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {newFiles.map((file, idx) => (
+                      <span
+                        key={`${file.name}-${file.size}-${idx}`}
+                        className="px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-1.5 text-[10px]"
+                      >
+                        <span className="max-w-[120px] truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewFile(idx)}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <FiX size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
