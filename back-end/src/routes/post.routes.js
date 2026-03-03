@@ -7,24 +7,23 @@ const checkOwnerOrAdmin = require("../middlewares/checkOwnerOrAdmin.middleware")
 const upload = require("../middlewares/upload.middleware");
 
 /* ===== READ ===== (auth required for visibility filter; role null = campus filter read-only) */
-router.get("/", auth, PostController.getAllPosts);
-router.get("/:id", auth, PostController.getPostById);
+router.get("/", auth, PostController.getAllPosts.bind(PostController));
+router.get("/:id", auth, PostController.getPostById.bind(PostController));
 
 /* ===== REACTION ===== */
 router.post(
   "/:id/reaction",
   auth,
   requireRole(["admin", "formateur", "etudiant"]),
-  PostController.toggleReaction
+  PostController.toggleReaction.bind(PostController)
 );
 
 /* ===== PARTAGE ===== */
-// Partager / retirer partage d'un post
 router.post(
   "/:id/share",
   auth,
   requireRole(["admin", "formateur", "etudiant"]),
-  PostController.toggleShare
+  PostController.toggleShare.bind(PostController)
 );
 
 /* ===== CREATE ===== */
@@ -33,7 +32,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
-  PostController.createPost
+  PostController.createPost.bind(PostController)
 );
 
 /* ===== UPDATE ===== */
@@ -42,10 +41,10 @@ router.put(
   auth,
   checkOwnerOrAdmin,
   upload.array("media", 10),
-  PostController.updatePost
+  PostController.updatePost.bind(PostController)
 );
 
 /* ===== DELETE ===== */
-router.delete("/:id", auth, checkOwnerOrAdmin, PostController.deletePost);
+router.delete("/:id", auth, checkOwnerOrAdmin, PostController.deletePost.bind(PostController));
 
 module.exports = router;
