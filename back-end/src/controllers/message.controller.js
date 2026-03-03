@@ -21,6 +21,8 @@ class MessageController {
       const populated = await Message.findById(message._id)
         .populate("sender", "name email")
         .populate("receiver", "name email");
+      const emitToUser = req.app.get("emitToUser");
+      if (emitToUser) emitToUser(receiverId, "message", populated);
       res.status(201).json({ success: true, data: populated });
     } catch (err) {
       console.error(err);

@@ -1,11 +1,14 @@
 require("dotenv").config();
+const http = require("http");
 const express = require("express");
 const mongoose = require("mongoose");
 const passport = require("./src/config/passport");
 const cors = require("cors");
 const path = require("path");
+const { setupSocket } = require("./src/config/socket");
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 3000;
 
 // ======== MIDDLEWARES ========
@@ -52,19 +55,22 @@ app.use("/api/solution", solutionRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/favorites", favoriteRoutes);
 
+// ======== SOCKET.IO (real-time messages) ========
+const { io, emitToUser } = setupSocket(server);
+app.set("io", io);
+app.set("emitToUser", emitToUser);
+
 // ======== START SERVER & CONNECT MONGO ========
 async function start() {
   try {
     if (process.env.MONGO_URI) {
-      
       await mongoose.connect(process.env.MONGO_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
       console.log("MongoDB connected");
     }
-
-    app.listen(port, () => console.log(`Server running on port ${port}`));
+    server.listen(port, () => console.log(`Server running on port ${port}`));
   } catch (err) {
     console.error("Failed to start server", err);
     process.exit(1);
