@@ -50,128 +50,158 @@ async requestRole(req, res) {
 
 
 
-  // ================= ADMIN: GET ALL REQUESTS =================
+  // ================= GET ALL REQUESTS (filtered by role) =================
+  // super_admin: all; admin: same campus (requesting user); formateur: same campus + same class
   async getAllRequests(req, res) {
     try {
-      const requests = await RoleRequest.find()
-        .populate("user", "name email")
+      const currentUser = await User.findById(req.user.id)
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name");
+      if (!currentUser) return res.status(401).json({ message: "Unauthorized" });
+
+      let query = RoleRequest.find()
+        .populate({
+          path: "user",
+          select: "name email campus class",
+          populate: [
+            { path: "campus", select: "name" },
+            { path: "class", select: "name" },
+          ],
+        })
         .sort({ createdAt: -1 });
 
-      return res.json({
-        success: true,
-        data: requests,
-      });
+      const roleName = currentUser.role?.name || null;
+      if (roleName === "admin" && currentUser.campus) {
+        query = query.where("user").in(
+          await User.find({ campus: currentUser.campus._id }).distinct("_id")
+        );
+      } else if (roleName === "formateur") {
+        if (currentUser.campus && currentUser.class) {
+          query = query.where("user").in(
+            await User.find({
+              campus: currentUser.campus._id,
+              class: currentUser.class._id,
+            }).distinct("_id")
+          );
+        } else {
+          query = query.where("_id", -1);
+        }
+      }
+
+      const requests = await query;
+      return res.json({ success: true, data: requests });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Server error" });
     }
   }
 
+  async _canManageRequest(currentUser, requestUser) {
+    const roleName = currentUser.role?.name || null;
+    if (roleName === "super_admin") return true;
+    if (roleName === "admin") {
+      if (!currentUser.campus) return true;
+      return requestUser.campus && requestUser.campus.toString() === currentUser.campus._id.toString();
+    }
+    if (roleName === "formateur") {
+      if (!currentUser.campus || !currentUser.class) return false;
+      return (
+        requestUser.campus && requestUser.class &&
+        requestUser.campus.toString() === currentUser.campus._id.toString() &&
+        requestUser.class.toString() === currentUser.class._id.toString()
+      );
+    }
+    return false;
+  }
+
   // ================= REJECT =================
   async rejectRequest(req, res) {
     try {
       const { requestId } = req.params;
-
-      const request = await RoleRequest.findById(requestId);
-      if (!request) {
-        return res.status(404).json({ message: "Request not found" });
-      }
-
+      const request = await RoleRequest.findById(requestId).populate({
+        path: "user",
+        populate: [{ path: "campus" }, { path: "class" }],
+      });
+      if (!request) return res.status(404).json({ message: "Request not found" });
       if (request.status !== "pending") {
         return res.status(400).json({ message: "Request already reviewed" });
       }
-
+      const currentUser = await User.findById(req.user.id)
+        .populate("role", "name")
+        .populate("campus")
+        .populate("class");
+      const can = await this._canManageRequest(currentUser, request.user);
+      if (!can) return res.status(403).json({ message: "Forbidden" });
       request.status = "rejected";
       await request.save();
-
-      res.json({
-        success: true,
-        message: "Role request rejected",
-      });
+      res.json({ success: true, message: "Role request rejected" });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }
   }
 
-  // ================= ACCEPT FORMATEUR =================
+  // ================= ACCEPT FORMATEUR (admin + super_admin only) =================
   async acceptAsFormateur(req, res) {
     try {
       const { requestId } = req.params;
-
       const request = await RoleRequest.findById(requestId).populate({
         path: "user",
-        populate: { path: "role" },
+        populate: [{ path: "role" }, { path: "campus" }, { path: "class" }],
       });
-
-      if (!request) {
-        return res.status(404).json({ message: "Request not found" });
-      }
-
+      if (!request) return res.status(404).json({ message: "Request not found" });
       if (request.status !== "pending") {
         return res.status(400).json({ message: "Request already reviewed" });
       }
-
       if (request.user.role != null) {
-        return res
-          .status(400)
-          .json({ message: "User already has a role" });
+        return res.status(400).json({ message: "User already has a role" });
       }
-
+      const currentUser = await User.findById(req.user.id)
+        .populate("role", "name")
+        .populate("campus")
+        .populate("class");
+      const roleName = currentUser.role?.name || null;
+      if (roleName !== "super_admin" && roleName !== "admin") {
+        return res.status(403).json({ message: "Only admin or super_admin can accept as formateur" });
+      }
+      const can = await this._canManageRequest(currentUser, request.user);
+      if (!can) return res.status(403).json({ message: "Forbidden" });
       const roleDoc = await Role.findOne({ name: "formateur" });
-
-      await User.findByIdAndUpdate(request.user._id, {
-        role: roleDoc._id,
-      });
-
+      await User.findByIdAndUpdate(request.user._id, { role: roleDoc._id });
       request.status = "accepted";
       await request.save();
-
-      res.json({
-        success: true,
-        message: "User role changed to formateur",
-      });
+      res.json({ success: true, message: "User role changed to formateur" });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }
   }
 
-  // ================= ACCEPT ETUDIANT =================
+  // ================= ACCEPT ETUDIANT (admin, super_admin, formateur) =================
   async acceptAsEtudiant(req, res) {
     try {
       const { requestId } = req.params;
-
       const request = await RoleRequest.findById(requestId).populate({
         path: "user",
-        populate: { path: "role" },
+        populate: [{ path: "role" }, { path: "campus" }, { path: "class" }],
       });
-
-      if (!request) {
-        return res.status(404).json({ message: "Request not found" });
-      }
-
+      if (!request) return res.status(404).json({ message: "Request not found" });
       if (request.status !== "pending") {
         return res.status(400).json({ message: "Request already reviewed" });
       }
-
       if (request.user.role != null) {
-        return res
-          .status(400)
-          .json({ message: "User already has a role" });
+        return res.status(400).json({ message: "User already has a role" });
       }
-
+      const currentUser = await User.findById(req.user.id)
+        .populate("role", "name")
+        .populate("campus")
+        .populate("class");
+      const can = await this._canManageRequest(currentUser, request.user);
+      if (!can) return res.status(403).json({ message: "Forbidden" });
       const roleDoc = await Role.findOne({ name: "etudiant" });
-
-      await User.findByIdAndUpdate(request.user._id, {
-        role: roleDoc._id,
-      });
-
+      await User.findByIdAndUpdate(request.user._id, { role: roleDoc._id });
       request.status = "accepted";
       await request.save();
-
-      res.json({
-        success: true,
-        message: "User role changed to etudiant",
-      });
+      res.json({ success: true, message: "User role changed to etudiant" });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }

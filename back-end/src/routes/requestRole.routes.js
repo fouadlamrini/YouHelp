@@ -13,36 +13,33 @@ router.post(
   controller.requestRole
 );
 
-/* ================= ADMIN ================= */
+/* ================= ROLE REQUESTS: super_admin all, admin same campus, formateur same campus+class ================= */
 
 router.get(
   "/role-requests",
   auth,
-  requireRole(["admin"]),
+  requireRole(["super_admin", "admin", "formateur"]),
   controller.getAllRequests
 );
-
 
 router.put(
   "/role-requests/:requestId/reject",
   auth,
-  requireRole(["admin"]),
+  requireRole(["super_admin", "admin", "formateur"]),
   controller.rejectRequest
 );
-
 
 router.put(
   "/role-requests/:requestId/accept/formateur",
   auth,
-  requireRole(["admin"]),
+  requireRole(["super_admin", "admin"]),
   controller.acceptAsFormateur
 );
-
 
 router.put(
   "/role-requests/:requestId/accept/etudiant",
   auth,
-  requireRole(["admin"]),
+  requireRole(["super_admin", "admin", "formateur"]),
   controller.acceptAsEtudiant
 );
 
