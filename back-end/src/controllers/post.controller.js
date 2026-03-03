@@ -1,4 +1,5 @@
 const Post = require("../models/Post");
+const User = require("../models/User");
 const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
@@ -57,11 +58,34 @@ class PostController {
     }
   }
 
+  async _postsAuthorFilter(req) {
+    if (!req.user) return { _id: -1 };
+    const role = req.user.role;
+    if (role === "super_admin") return {};
+    const current = await User.findById(req.user.id).populate("campus class level");
+    if (!current) return { _id: -1 };
+    if (role === "admin") {
+      if (!current.campus) return {};
+      const authorIds = await User.find({ campus: current.campus._id }).distinct("_id");
+      return { author: { $in: authorIds } };
+    }
+    if (role === "formateur" || role === "etudiant") {
+      const filter = {};
+      if (current.campus) filter.campus = current.campus._id;
+      if (current.class) filter.class = current.class._id;
+      if (current.level) filter.level = current.level._id;
+      const authorIds = await User.find(filter).distinct("_id");
+      return { author: { $in: authorIds } };
+    }
+    return { _id: -1 };
+  }
+
   async getAllPosts(req, res) {
     try {
-      const posts = await Post.find()
+      const authorFilter = await this._postsAuthorFilter(req);
+      const posts = await Post.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email")
+        .populate("author", "name email campus class level")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -75,12 +99,18 @@ class PostController {
   async getPostById(req, res) {
     try {
       const post = await Post.findById(req.params.id)
-        .populate("author", "name email")
+        .populate("author", "name email campus class level")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
       if (!post) return res.status(404).json({ message: "Post not found" });
-
+      const authorFilter = await this._postsAuthorFilter(req);
+      if (authorFilter._id === -1) return res.status(403).json({ message: "Forbidden" });
+      if (authorFilter.author && authorFilter.author.$in) {
+        const authorId = post.author?._id?.toString() || post.author?.toString();
+        const allowed = authorFilter.author.$in.some(id => id.toString() === authorId);
+        if (!allowed) return res.status(403).json({ message: "Forbidden" });
+      }
       res.json({ success: true, data: post });
     } catch (err) {
       console.error(err);
