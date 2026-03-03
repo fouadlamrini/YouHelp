@@ -21,6 +21,9 @@ import InfoComplet from "./pages/InfoComplet.jsx";
 import Stats from "./pages/Stats.jsx";
 import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
 import UserManagement from "./pages/UserManagement.jsx";
+import CampusManager from "./pages/CampusManager.jsx";
+import LevelManager from "./pages/LevelManager.jsx";
+import ClassManager from "./pages/ClassManager.jsx";
 import FriendsList from "./pages/FriendsList.jsx";
 import Info from "./pages/Info.jsx";
 import WaitingPage from "./pages/WaitingPage.jsx";
@@ -150,6 +153,30 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/campus"
+            element={
+              <ProtectedRoute>
+                <CampusManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/level"
+            element={
+              <ProtectedRoute>
+                <LevelManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/class"
+            element={
+              <ProtectedRoute>
+                <ClassManager />
               </ProtectedRoute>
             }
           />

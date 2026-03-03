@@ -44,6 +44,11 @@ export const usersApi = {
   delete: (id) => api.delete(`/users/${id}`),
 };
 
+// —— Roles (for super_admin / admin / formateur dropdowns) ——
+export const rolesApi = {
+  getAll: () => api.get("/roles"),
+};
+
 // —— Request Role ——
 export const requestRoleApi = {
   send: () => api.post("/requestRole/request-role"),
@@ -99,8 +104,8 @@ export const subcategoryApi = {
 
 // —— Post ——
 export const postApi = {
-  getAll: () => api.get("/post"),
-  getById: (id) => api.get(`/post/${id}`),
+  getAll: (params) => api.get("/post", { params }),
+  getById: (id, params) => api.get(`/post/${id}`, { params }),
   create: (formData) => api.post("/post", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   update: (id, formData) => api.put(`/post/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
   delete: (id) => api.delete(`/post/${id}`),
@@ -174,6 +179,13 @@ export const workshopsApi = {
   create: (data) => api.post("/workshops", data),
   request: (workshopId) => api.post(`/workshops/${workshopId}/request`),
   myRequests: () => api.get("/workshops/my-requests"),
+};
+
+// —— Friends ——
+export const friendsApi = {
+  list: () => api.get("/friends"),
+  add: (userId) => api.post("/friends", { userId }),
+  remove: (userId) => api.delete(`/friends/${userId}`),
 };
 
 // —— Class Join Request ——
