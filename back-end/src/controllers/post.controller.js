@@ -29,7 +29,7 @@ class PostController {
       
 
       // ===== Media processing =====
-      const mediaFiles = req.files.map((file) => {
+      const mediaFiles = (req.files || []).map((file) => {
         let type = "file";
         if (file.mimetype.startsWith("image")) type = "image";
         else if (file.mimetype.startsWith("video")) type = "video";

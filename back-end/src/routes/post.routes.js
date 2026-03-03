@@ -31,7 +31,7 @@ router.post(
 router.post(
   "/",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   PostController.createPost
 );

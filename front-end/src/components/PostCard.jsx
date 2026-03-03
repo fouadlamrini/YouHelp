@@ -6,18 +6,38 @@ import {
 import CommentItem from "./CommentItem";
 import { postApi, commentApi, solutionApi } from "../services/api";
 
+const API_BASE = "http://localhost:3000";
+
 const normalizePost = (post) => {
   if (!post) return null;
   const author = post.author || post.user;
   const cat = post.category?.name || post.category;
   const sub = post.subCategory?.name || post.subCategory;
-  const firstImage = post.media?.find((m) => m.type === "image")?.url || post.media?.[0]?.url || post.image;
+  const media = (post.media || []).map((m) => {
+    const url = m.url?.startsWith("http") ? m.url : `${API_BASE}${m.url}`;
+    return { ...m, url };
+  });
+  const firstImage =
+    media.find((m) => m.type === "image")?.url ||
+    media[0]?.url ||
+    post.image;
   return {
     ...post,
-    user: author ? { name: author.name || author.email, avatar: author.profilePicture, email: author.email } : { name: "?", avatar: null },
+    user: author
+      ? {
+          name: author.name || author.email,
+          avatar: author.profilePicture
+            ? (author.profilePicture.startsWith("http")
+                ? author.profilePicture
+                : `${API_BASE}${author.profilePicture}`)
+            : null,
+          email: author.email,
+        }
+      : { name: "?", avatar: null },
     category: cat,
     subCategory: sub,
-    image: firstImage ? (firstImage.startsWith("http") ? firstImage : `http://localhost:3000${firstImage}`) : null,
+    image: firstImage,
+    media,
     id: post._id || post.id,
   };
 };
@@ -32,6 +52,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [solution, setSolution] = useState(null);
   const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
   const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setReactionCount(rawPost?.reactionCount ?? 0);
@@ -79,6 +100,19 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const handleShare = () => {
     if (readOnly || !post.id) return;
     postApi.share(post.id).then(() => onRefresh?.()).catch(() => {});
+  };
+
+  const handleDelete = () => {
+    if (readOnly || deleting || !post.id) return;
+    if (!window.confirm("Supprimer ce post ?")) return;
+    setDeleting(true);
+    postApi
+      .delete(post.id)
+      .then(() => {
+        onRefresh?.();
+      })
+      .catch(() => {})
+      .finally(() => setDeleting(false));
   };
 
   const handleSendComment = () => {
@@ -151,8 +185,21 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)} aria-hidden />
               <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
-                <button type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"><FiEdit3 className="text-indigo-500" /> Update Post</button>
-                <button type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50"><FiTrash2 /> Delete Post</button>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"
+                  // TODO: open update modal
+                >
+                  <FiEdit3 className="text-indigo-500" /> Update Post
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50 disabled:opacity-50"
+                  disabled={deleting}
+                >
+                  <FiTrash2 /> Delete Post
+                </button>
               </div>
             </>
           )}
@@ -163,9 +210,66 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
         <p className="text-slate-700 leading-relaxed font-medium">{post.content}</p>
       </div>
 
-      {post.image && (
-        <div className="w-full aspect-video bg-slate-900 border-y border-slate-50 overflow-hidden">
-          <img src={post.image} className="w-full h-full object-cover opacity-90" alt="post" />
+      {/* Media block: images / videos / pdf */}
+      {!!post.media?.length && (
+        <div className="border-y border-slate-50 bg-slate-900/95">
+          {/* Images */}
+          {post.media.some((m) => m.type === "image") && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+              {post.media
+                .filter((m) => m.type === "image")
+                .slice(0, 4)
+                .map((m, idx) => (
+                  <div key={m.url + idx} className="aspect-video overflow-hidden">
+                    <img
+                      src={m.url}
+                      alt="post-media"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Videos */}
+          {post.media.some((m) => m.type === "video") && (
+            <div className="p-4 space-y-3">
+              {post.media
+                .filter((m) => m.type === "video")
+                .map((m, idx) => (
+                  <video
+                    key={m.url + idx}
+                    src={m.url}
+                    controls
+                    className="w-full rounded-2xl border border-slate-800 bg-black"
+                  />
+                ))}
+            </div>
+          )}
+
+          {/* PDFs / other files */}
+          {post.media.some((m) => m.type === "pdf" || m.type === "file" || m.type === "doc") && (
+            <div className="p-4 bg-slate-900 text-left">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2">
+                Pièces jointes
+              </p>
+              <div className="space-y-1">
+                {post.media
+                  .filter((m) => m.type === "pdf" || m.type === "file" || m.type === "doc")
+                  .map((m, idx) => (
+                    <a
+                      key={m.url + idx}
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xs text-indigo-100 hover:text-white underline break-all"
+                    >
+                      {m.url.split("/").pop()}
+                    </a>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

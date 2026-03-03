@@ -1,40 +1,51 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
 import PostCard from "../components/PostCard";
 import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar"; 
-import { 
-  FiSearch, FiChevronDown, FiCheckCircle, FiXCircle 
-} from "react-icons/fi";
+import { FiSearch, FiChevronDown, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { postApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const MyPost = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSolved, setFilterSolved] = useState("all"); 
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterSubCategory, setFilterSubCategory] = useState("all");
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const samplePosts = [
-    {
-      id: 1,
-      user: { name: "fouad lamrini", avatar: "https://i.pravatar.cc/150?u=1" },
-      time: "22h",
-      isSolved: true,
-      category: "Development",
-      subCategory: "React.js",
-      content: "j'ai probleme au niveau de hooks dans react",
-      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
-      comments: [{ id: 101, userName: "fouad lamrini", text: "Try checking dependencies!", avatar: "https://i.pravatar.cc/150?u=5" }]
+  const loadPosts = async () => {
+    try {
+      setLoading(true);
+      const res = await postApi.getAll();
+      const all = res.data?.data ?? [];
+      const myId = user?.id || user?._id;
+      const mine = myId ? all.filter((p) => (p.author?._id || p.author)?.toString() === myId.toString()) : [];
+      setPosts(mine);
+    } catch {
+      setPosts([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const filteredPosts = samplePosts.filter((post) => {
-    const matchesSearch = post.content.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const filteredPosts = posts.filter((post) => {
+    const content = (post.content || "").toLowerCase();
+    const matchesSearch = content.includes(searchTerm.toLowerCase());
     const matchesSolved = 
       filterSolved === "all" ? true : 
       filterSolved === "solved" ? post.isSolved : !post.isSolved;
-    const matchesCat = filterCategory === "all" ? true : post.category === filterCategory;
-    const matchesSubCat = filterSubCategory === "all" ? true : post.subCategory === filterSubCategory;
+    const catName = post.category?.name || post.category;
+    const subName = post.subCategory?.name || post.subCategory;
+    const matchesCat = filterCategory === "all" ? true : catName === filterCategory;
+    const matchesSubCat = filterSubCategory === "all" ? true : subName === filterSubCategory;
     return matchesSearch && matchesSolved && matchesCat && matchesSubCat;
   });
 
@@ -125,9 +136,13 @@ const MyPost = () => {
 
               {/* --- POSTS LIST --- */}
               <div className="space-y-6">
-                {filteredPosts.length > 0 ? (
+                {loading ? (
+                  <div className="py-20 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm text-[10px] font-black text-slate-400 tracking-[0.2em]">
+                    Chargement de mes posts...
+                  </div>
+                ) : filteredPosts.length > 0 ? (
                   filteredPosts.map((singlePost) => (
-                    <PostCard key={singlePost.id} post={singlePost} />
+                    <PostCard key={singlePost._id || singlePost.id} post={singlePost} onRefresh={loadPosts} />
                   ))
                 ) : (
                   <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200 shadow-sm">
