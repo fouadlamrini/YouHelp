@@ -1,45 +1,102 @@
-import React, { useState } from "react";
-import { 
-  FiHeart, FiMessageCircle, FiHelpCircle, FiShare2, 
-  FiMoreHorizontal, FiSmile, FiImage, FiCheckCircle, 
-  FiSend, FiTool, FiEdit3, FiTrash2, FiExternalLink, FiX, FiPlus 
+import React, { useState, useEffect } from "react";
+import {
+  FiHeart, FiMessageCircle, FiHelpCircle, FiShare2,
+  FiMoreHorizontal, FiCheckCircle, FiSend, FiTool, FiEdit3, FiTrash2, FiX, FiPlus,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
+import { postApi, commentApi, solutionApi } from "../services/api";
 
-const PostCard = ({ post }) => {
-  // States dyal Visibility
+const normalizePost = (post) => {
+  if (!post) return null;
+  const author = post.author || post.user;
+  const cat = post.category?.name || post.category;
+  const sub = post.subCategory?.name || post.subCategory;
+  const firstImage = post.media?.find((m) => m.type === "image")?.url || post.media?.[0]?.url || post.image;
+  return {
+    ...post,
+    user: author ? { name: author.name || author.email, avatar: author.profilePicture, email: author.email } : { name: "?", avatar: null },
+    category: cat,
+    subCategory: sub,
+    image: firstImage ? (firstImage.startsWith("http") ? firstImage : `http://localhost:3000${firstImage}`) : null,
+    id: post._id || post.id,
+  };
+};
+
+const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
+  const post = normalizePost(rawPost);
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showSolutionSection, setShowSolutionSection] = useState(false);
-  const [showSolActions, setShowSolActions] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
-  
-  // States dyal Data o Interaction
   const [commentText, setCommentText] = useState("");
-  const [solutionText, setSolutionText] = useState("");
-  const [liked, setLiked] = useState(false); // <--- State dyal Favorite
+  const [comments, setComments] = useState([]);
+  const [solution, setSolution] = useState(null);
+  const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
+  const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
+
+  useEffect(() => {
+    setReactionCount(rawPost?.reactionCount ?? 0);
+    setSameContextCount(rawPost?.sameContextReactionCount ?? 0);
+  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+  const [reacting, setReacting] = useState(false);
 
   if (!post || !post.user) return null;
 
-  const handleSendComment = () => {
-    if (commentText.trim()) {
-      setCommentText("");
+  useEffect(() => {
+    if (post.isSolved && post.id) {
+      solutionApi.getByPost(post.id).then((r) => setSolution(r.data?.data ?? r.data)).catch(() => setSolution(null));
+    } else {
+      setSolution(null);
     }
+  }, [post.id, post.isSolved]);
+
+  const flattenComments = (roots) => {
+    const out = [];
+    (roots || []).forEach((c) => {
+      out.push(c);
+      if (c.replies?.length) out.push(...flattenComments(c.replies));
+    });
+    return out;
   };
 
-  const handleAddSolution = () => {
-    setIsAdding(false);
-    setSolutionText("");
+  useEffect(() => {
+    if (showComments && post.id) {
+      setLoadingComments(true);
+      commentApi.getByPost(post.id).then((r) => setComments(flattenComments(r.data?.data ?? r.data ?? []))).catch(() => setComments([])).finally(() => setLoadingComments(false));
+    }
+  }, [showComments, post.id]);
+
+  const handleReaction = () => {
+    if (readOnly || reacting || !post.id) return;
+    setReacting(true);
+    postApi.reaction(post.id).then((r) => {
+      setReactionCount(r.data.totalReactions ?? reactionCount + (r.data.message?.includes("Reacted") ? 1 : -1));
+      onRefresh?.();
+    }).catch(() => {}).finally(() => setReacting(false));
   };
+
+  const handleShare = () => {
+    if (readOnly || !post.id) return;
+    postApi.share(post.id).then(() => onRefresh?.()).catch(() => {});
+  };
+
+  const handleSendComment = () => {
+    if (!commentText.trim() || readOnly || sendingComment || !post.id) return;
+    setSendingComment(true);
+    commentApi.createOnPost(post.id, { content: commentText.trim() }).then(() => {
+      setCommentText("");
+      commentApi.getByPost(post.id).then((r) => setComments(r.data.data || []));
+      onRefresh?.();
+    }).catch(() => {}).finally(() => setSendingComment(false));
+  };
+
+  const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative">
-      
-      {/* ==========================================
-          SECTION SOLUTION (OVERLAY)
-          ========================================== */}
       {showSolutionSection && (
-        <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 animate-in fade-in slide-in-from-bottom-4 duration-300 overflow-y-auto">
+        <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shadow-sm">
@@ -47,78 +104,20 @@ const PostCard = ({ post }) => {
               </div>
               <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">Espace Solution</h3>
             </div>
-            <button 
-              onClick={() => {
-                setShowSolutionSection(false);
-                setIsAdding(false);
-              }}
-              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-400 transition-all"
-            >
+            <button type="button" onClick={() => setShowSolutionSection(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-400 transition-all">
               <FiX size={24} />
             </button>
           </div>
-
-          <div className="space-y-4">
-            <div className="bg-slate-50 border border-slate-100 rounded-[1.5rem] p-5 relative group">
-              <div className="flex justify-between items-start mb-3">
-                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest italic bg-indigo-50 px-2 py-0.5 rounded-md">
-                  Solution Validée
-                </span>
-                <div className="relative">
-                  <button 
-                    onClick={() => setShowSolActions(!showSolActions)}
-                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-white transition-all"
-                  >
-                    <FiMoreHorizontal size={20} />
-                  </button>
-                  {showSolActions && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowSolActions(false)}></div>
-                      <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in zoom-in-95 duration-200">
-                        <button className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                          <FiEdit3 className="text-indigo-500" /> Update Solution
-                        </button>
-                        <button className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors border-t border-slate-50">
-                          <FiTrash2 /> Delete Solution
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              <p className="text-slate-700 text-sm leading-relaxed">
-                {post.solution || "Aucune description détaillée n'a encore été ajoutée."}
-              </p>
-            </div>
-
-            {isAdding ? (
-              <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                <textarea 
-                  autoFocus
-                  value={solutionText}
-                  onChange={(e) => setSolutionText(e.target.value)}
-                  placeholder="Expliquez votre solution..."
-                  className="w-full bg-slate-50 border-2 border-indigo-100 rounded-[1.5rem] p-5 text-sm outline-none min-h-[120px]"
-                />
-                <div className="flex gap-2">
-                  <button onClick={() => setIsAdding(false)} className="flex-1 py-3 bg-slate-100 rounded-2xl font-black text-[10px] uppercase">Annuler</button>
-                  <button onClick={handleAddSolution} className="flex-[2] py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-indigo-200">Enregistrer</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => setIsAdding(true)} className="w-full py-5 border-2 border-dashed border-slate-200 rounded-[1.5rem] text-slate-400 flex items-center justify-center gap-3 font-black text-[10px] uppercase">
-                <FiPlus size={16} /> Ajouter la solution
-              </button>
-            )}
+          <div className="bg-slate-50 border border-slate-100 rounded-[1.5rem] p-5">
+            <p className="text-slate-700 text-sm leading-relaxed">{displaySolution}</p>
           </div>
         </div>
       )}
 
-      {/* HEADER */}
       <div className="p-6 flex items-start justify-between relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm flex-shrink-0">
-            <img src={post.user.avatar} alt="avatar" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm flex-shrink-0 flex items-center justify-center text-slate-600 font-bold">
+            {post.user.avatar ? <img src={post.user.avatar} alt="avatar" className="w-full h-full object-cover" /> : (post.user.name?.[0] || "?")}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -126,13 +125,15 @@ const PostCard = ({ post }) => {
               {post.isSolved ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase">
-                    <FiCheckCircle size={10} className="fill-emerald-100" /> Solved
+                    <FiCheckCircle size={10} /> Solved
                   </div>
-                  <button onClick={() => setShowSolutionSection(true)} className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">Voir Detail</button>
+                  <button type="button" onClick={() => setShowSolutionSection(true)} className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">
+                    Voir détail
+                  </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-full text-[9px] font-black uppercase">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div> Not Solved
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Not Solved
                 </div>
               )}
             </div>
@@ -142,24 +143,19 @@ const PostCard = ({ post }) => {
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-black text-[10px] uppercase group">
-            <FiTool size={14} className="group-hover:rotate-45 transition-transform" />
-            <span className="hidden sm:inline">Workshop</span>
+        <div className="relative">
+          <button type="button" onClick={() => setShowOptions(!showOptions)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all">
+            <FiMoreHorizontal size={22} />
           </button>
-          <div className="relative">
-            <button onClick={() => setShowOptions(!showOptions)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"><FiMoreHorizontal size={22}/></button>
-            {showOptions && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)}></div>
-                <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"><FiEdit3 className="text-indigo-500" /> Update Post</button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50"><FiTrash2 /> Delete Post</button>
-                </div>
-              </>
-            )}
-          </div>
+          {showOptions && !readOnly && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)} aria-hidden />
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
+                <button type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"><FiEdit3 className="text-indigo-500" /> Update Post</button>
+                <button type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50"><FiTrash2 /> Delete Post</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -173,39 +169,75 @@ const PostCard = ({ post }) => {
         </div>
       )}
 
-      {/* --- INTERACTION BAR --- */}
       <div className="p-2 grid grid-cols-4 gap-1 border-t border-slate-50 bg-white">
-        {/* FAVORITE BUTTON M-UPDATE */}
-        <button 
-          onClick={() => setLiked(!liked)} 
-          className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl transition-all font-black text-[10px] sm:text-xs
-            ${liked ? 'bg-rose-50 text-rose-600' : 'text-slate-600 hover:bg-rose-50 hover:text-rose-600'}`}
+        <button
+          type="button"
+          disabled={readOnly}
+          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiHeart 
-            size={18} 
-            className={`transition-all duration-300 ${liked ? 'fill-rose-600 scale-110 text-rose-600' : ''}`} 
-          /> 
-          Favorite
+          <FiHeart size={18} /> Favorite
         </button>
-
-        <button onClick={() => setShowComments(!showComments)} className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-black text-[10px] sm:text-xs">
+        <button
+          type="button"
+          onClick={() => setShowComments(!showComments)}
+          disabled={readOnly}
+          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
+        >
           <FiMessageCircle size={18} /> Commenter
         </button>
-        <button className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs">
-          <FiHelpCircle size={18} /> Même prob
+        <button
+          type="button"
+          onClick={handleReaction}
+          disabled={readOnly}
+          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
+        >
+          <FiHelpCircle size={18} /> Même prob <span className="text-amber-600">({reactionCount})</span>
         </button>
-        <button className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all font-black text-[10px] sm:text-xs">
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={readOnly}
+          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
+        >
           <FiShare2 size={18} /> Partager
         </button>
       </div>
 
+      {readOnly && (
+        <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500">
+          Lecture seule — Réactions (même contexte) : {sameContextCount}
+        </div>
+      )}
+
       {showComments && (
-        <div className="bg-slate-50/40 border-t border-slate-100 py-4 animate-in slide-in-from-top-4 duration-500">
+        <div className="bg-slate-50/40 border-t border-slate-100 py-4">
           <div className="space-y-4 px-6">
-            {post.comments?.length > 0 ? (
-              post.comments.map(comment => <CommentItem key={comment.id} comment={comment} />)
+            {loadingComments ? (
+              <p className="text-[10px] text-slate-400">Chargement...</p>
+            ) : Array.isArray(comments) && comments.length > 0 ? (
+              comments.map((c) => <CommentItem key={c._id || c.id} comment={c} />)
             ) : (
-              <div className="text-center py-4 text-[10px] text-slate-400 font-bold uppercase">No comments yet</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase">No comments yet</div>
+            )}
+            {!readOnly && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Écrire un commentaire..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
+                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendComment}
+                  disabled={sendingComment || !commentText.trim()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs disabled:opacity-50"
+                >
+                  <FiSend size={16} />
+                </button>
+              </div>
             )}
           </div>
         </div>
