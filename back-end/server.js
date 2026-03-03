@@ -20,6 +20,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'src/uploads')));
 // ======== ROUTES ========
 const authRoutes = require("./src/routes/auth.routes");
 const requestRole = require("./src/routes/requestRole.routes");
+const campusRoutes = require("./src/routes/campus.routes");
 const categoryRoutes = require("./src/routes/category.routes");
 const subcategoryRoutes = require("./src/routes/subcategory.routes");
 const postRoutes = require("./src/routes/post.routes");
@@ -30,6 +31,7 @@ const favoriteRoutes = require("./src/routes/favorite.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requestRole", requestRole);
+app.use("/api/campus", campusRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/subcategory", subcategoryRoutes);
 app.use("/api/post", postRoutes);
@@ -42,6 +44,7 @@ app.use("/api/favorites", favoriteRoutes);
 async function start() {
   try {
     if (process.env.MONGO_URI) {
+      
       await mongoose.connect(process.env.MONGO_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
