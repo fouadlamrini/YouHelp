@@ -8,7 +8,8 @@ const commentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
+    post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: null },
+    knowledge: { type: mongoose.Schema.Types.ObjectId, ref: "Knowledge", default: null },
     parentComment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",
@@ -24,5 +25,13 @@ const commentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+commentSchema.pre("validate", function (next) {
+  if (!this.post && !this.knowledge) {
+    next(new Error("Comment must have either post or knowledge"));
+  } else {
+    next();
+  }
+});
 
 module.exports = mongoose.model("Comment", commentSchema);

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const KnowledgeController = require("../controllers/knowledge.controller");
+const CommentController = require("../controllers/comment.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
@@ -8,6 +9,16 @@ const upload = require("../middlewares/upload.middleware");
 /* ===== READ ===== */
 // Récupérer toutes les connaissances (accessible à tous)
 router.get("/", KnowledgeController.getAllKnowledge);
+
+// Commentaires sur une connaissance (avant /:id pour que :id ne capture pas "comments")
+router.get("/:knowledgeId/comments", CommentController.getCommentsByKnowledge);
+router.post(
+  "/:knowledgeId/comments",
+  auth,
+  requireRole(["admin", "formateur", "etudiant"]),
+  upload.array("media", 10),
+  CommentController.createCommentForKnowledge
+);
 
 // Récupérer une connaissance par ID (accessible à tous)
 router.get("/:id", KnowledgeController.getKnowledgeById);

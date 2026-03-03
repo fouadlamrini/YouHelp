@@ -1,5 +1,6 @@
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
+const Knowledge = require("../models/Knowledge");
 
 class CommentController {
   /**
@@ -194,20 +195,24 @@ class CommentController {
       if (!comment)
         return res.status(404).json({ message: "Commentaire non trouvé" });
 
-      const post = await Post.findById(comment.post);
-      if (!post) return res.status(404).json({ message: "Post non trouvé" });
-
       const userId = req.user && req.user.id;
       const isAdmin = req.user && req.user.role === "admin";
       const isCommentAuthor = comment.author.toString() === userId;
-      const isPostAuthor = post.author && post.author.toString() === userId;
+      let isOwner = false;
+      if (comment.post) {
+        const post = await Post.findById(comment.post);
+        if (!post) return res.status(404).json({ message: "Post non trouvé" });
+        isOwner = post.author && post.author.toString() === userId;
+      } else if (comment.knowledge) {
+        const knowledge = await Knowledge.findById(comment.knowledge);
+        if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
+        isOwner = knowledge.author && knowledge.author.toString() === userId;
+      }
 
-      if (!isAdmin && !isCommentAuthor && !isPostAuthor) {
-        return res
-          .status(403)
-          .json({
-            message: "Vous n'êtes pas autorisé à modifier ce commentaire",
-          });
+      if (!isAdmin && !isCommentAuthor && !isOwner) {
+        return res.status(403).json({
+          message: "Vous n'êtes pas autorisé à modifier ce commentaire",
+        });
       }
 
       // Traiter potentiels nouveaux fichiers (remplace les anciens médias si fournis)
@@ -249,20 +254,24 @@ class CommentController {
       if (!comment)
         return res.status(404).json({ message: "Commentaire non trouvé" });
 
-      const post = await Post.findById(comment.post);
-      if (!post) return res.status(404).json({ message: "Post non trouvé" });
-
       const userId = req.user && req.user.id;
       const isAdmin = req.user && req.user.role === "admin";
       const isCommentAuthor = comment.author.toString() === userId;
-      const isPostAuthor = post.author && post.author.toString() === userId;
+      let isOwner = false;
+      if (comment.post) {
+        const post = await Post.findById(comment.post);
+        if (!post) return res.status(404).json({ message: "Post non trouvé" });
+        isOwner = post.author && post.author.toString() === userId;
+      } else if (comment.knowledge) {
+        const knowledge = await Knowledge.findById(comment.knowledge);
+        if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
+        isOwner = knowledge.author && knowledge.author.toString() === userId;
+      }
 
-      if (!isAdmin && !isCommentAuthor && !isPostAuthor) {
-        return res
-          .status(403)
-          .json({
-            message: "Vous n'êtes pas autorisé à supprimer ce commentaire",
-          });
+      if (!isAdmin && !isCommentAuthor && !isOwner) {
+        return res.status(403).json({
+          message: "Vous n'êtes pas autorisé à supprimer ce commentaire",
+        });
       }
 
       // Collecter récursivement tous les ids d'enfants
@@ -280,14 +289,97 @@ class CommentController {
 
       const result = await Comment.deleteMany({ _id: { $in: toDelete } });
 
-      // Si c'était un commentaire racine, enlever la référence dans le post.comments
       if (!comment.parentComment) {
-        await Post.findByIdAndUpdate(comment.post, {
+        if (comment.post) {
+          await Post.findByIdAndUpdate(comment.post, { $pull: { comments: comment._id } });
+        } else if (comment.knowledge) {
+          await Knowledge.findByIdAndUpdate(comment.knowledge, { $pull: { comments: comment._id } });
+        }
+      }
+
+      // Si c'était un commentaire racine sur une knowledge, enlever la ref
+      if (!comment.parentComment && comment.knowledge) {
+        await Knowledge.findByIdAndUpdate(comment.knowledge, {
           $pull: { comments: comment._id },
         });
       }
 
       return res.json({ success: true, deletedCount: result.deletedCount });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+  }
+
+  async createCommentForKnowledge(req, res) {
+    try {
+      const { knowledgeId } = req.params;
+      const { content, parentComment } = req.body;
+      if (!content || !content.trim()) {
+        return res.status(400).json({ message: "Le contenu du commentaire est requis" });
+      }
+      const knowledge = await Knowledge.findById(knowledgeId);
+      if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
+      if (req.user && req.user.role == null) {
+        return res.status(403).json({
+          message: "Accès restreint : demandez l'accès à un administrateur pour commenter",
+        });
+      }
+      const mediaFiles = (req.files || []).map((file) => {
+        let type = "file";
+        if (file.mimetype.startsWith("image")) type = "image";
+        else if (file.mimetype.startsWith("video")) type = "video";
+        else if (file.mimetype === "application/pdf") type = "pdf";
+        else if (file.mimetype.includes("word")) type = "doc";
+        return { url: `/uploads/${file.filename}`, type };
+      });
+      const comment = await Comment.create({
+        content: content.trim(),
+        author: req.user.id,
+        knowledge: knowledgeId,
+        parentComment: parentComment || null,
+        media: mediaFiles,
+      });
+      if (!parentComment) {
+        knowledge.comments = knowledge.comments || [];
+        knowledge.comments.push(comment._id);
+        await knowledge.save();
+      }
+      const populated = await Comment.findById(comment._id).populate("author", "name email");
+      return res.status(201).json({ success: true, data: populated });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+  }
+
+  async getCommentsByKnowledge(req, res) {
+    try {
+      const { knowledgeId } = req.params;
+      const knowledge = await Knowledge.findById(knowledgeId);
+      if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
+      const comments = await Comment.find({ knowledge: knowledgeId }).populate("author", "name email");
+      const map = {};
+      comments.forEach((c) => {
+        map[c._id.toString()] = { ...c.toObject(), replies: [] };
+      });
+      const roots = [];
+      comments.forEach((c) => {
+        const id = c._id.toString();
+        if (c.parentComment) {
+          const parentId = c.parentComment.toString();
+          if (map[parentId]) map[parentId].replies.push(map[id]);
+          else roots.push(map[id]);
+        } else roots.push(map[id]);
+      });
+      const sortRecursive = (arr) => {
+        arr.forEach((item) => {
+          if (item.replies?.length) sortRecursive(item.replies);
+        });
+        arr.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+      };
+      sortRecursive(roots);
+      return res.json({ success: true, data: roots });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
