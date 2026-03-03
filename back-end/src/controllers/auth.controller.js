@@ -7,29 +7,44 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES;
 
 class AuthController {
+
   async register(req, res) {
     try {
       const { name, email, password } = req.body;
 
       const existing = await User.findOne({ email });
-      if (existing)
+      if (existing) {
         return res.status(400).json({ message: "Email already in use" });
+      }
 
       const userCount = await User.countDocuments();
-      const finalRoleName = userCount === 0 ? "admin" : "connected";
-      const roleDoc = await Role.findOne({ name: finalRoleName });
+
+      let role = null;
+      let roleName = null;
+      let status = undefined;
+
+      if (userCount === 0) {
+        const superAdminRole = await Role.findOne({ name: "super_admin" });
+        if (!superAdminRole) {
+          return res.status(500).json({ message: "super_admin role not found" });
+        }
+        role = superAdminRole._id;
+        roleName = superAdminRole.name;
+        status = "active";
+      }
 
       const user = await User.create({
         name,
         email,
         password,
-        role: roleDoc._id,
+        role,
+        status
       });
 
-      const payload = { id: user._id, role: roleDoc.name };
+      const payload = { id: user._id, role: roleName };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "User registered successfully",
         data: {
@@ -37,14 +52,15 @@ class AuthController {
             id: user._id,
             name: user.name,
             email: user.email,
-            role: roleDoc.name,
+            status: user.status,
+            role: roleName
           },
-          token,
-        },
+          token
+        }
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
@@ -60,9 +76,13 @@ class AuthController {
       if (!matched)
         return res.status(400).json({ message: "Invalid credentials" });
 
-      const roleDoc = await Role.findById(user.role);
+      let roleName = null;
+      if (user.role) {
+        const roleDocument = await Role.findById(user.role);
+        if (roleDocument) roleName = roleDocument.name;
+      }
 
-      const payload = { id: user._id, role: roleDoc.name };
+      const payload = { id: user._id, role: roleName };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
       res.status(200).json({
@@ -73,12 +93,37 @@ class AuthController {
             id: user._id,
             name: user.name,
             email: user.email,
-            role: roleDoc.name,
+            status: user.status,
+            role: roleName
           },
-          token,
-        },
+          token
+        }
       });
     } catch (err) {
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  async changePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password required" });
+      }
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user.password) {
+        return res.status(400).json({ message: "Cannot change password for OAuth accounts" });
+      }
+      const matched = await user.comparePassword(currentPassword);
+      if (!matched) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      user.password = newPassword;
+      await user.save();
+      res.json({ success: true, message: "Password updated successfully" });
+    } catch (err) {
+      console.error(err);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -89,68 +134,82 @@ class AuthController {
       if (!authHeader) {
         return res.status(400).json({ message: "No token provided" });
       }
+
       let token;
       if (authHeader.startsWith("Bearer")) {
         token = authHeader.split(" ")[1];
       }
+
       blacklistedTokens.add(token);
 
       res.status(200).json({
         success: true,
-        message:
-          "Logged out successfully. Please remove the token from client.",
+        message: "Logged out successfully. Please remove the token from client."
       });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  // --------------------- Google OAuth Callback ---------------------
+  // ================= GOOGLE CALLBACK =================
   async googleCallback(req, res) {
     try {
+      console.log('Google OAuth Callback - User:', req.user);
       const user = req.user;
-      const roleDoc = await Role.findById(user.role);
+      let roleName = null;
 
-      const payload = { id: user._id, role: roleDoc.name };
+      if (user.role) {
+        const roleDocument = await Role.findById(user.role);
+        if (roleDocument) roleName = roleDocument.name;
+      }
+
+      const payload = { id: user._id, role: roleName };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
-      res.json({
-        message: "Login with Google success",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: roleDoc.name,
-        },
-      });
+      const userData = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: roleName
+      };
+
+      // Redirect to frontend with token and user data
+      const redirectUrl = `http://localhost:5173/oauth/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userData))}`;
+      console.log('Google OAuth - Redirect URL:', redirectUrl);
+      res.redirect(redirectUrl);
+
     } catch (err) {
-      console.error(err);
+      console.error('Google OAuth error:', err);
       res.status(500).json({ message: "Google login failed" });
     }
   }
 
-  // --------------------- GitHub OAuth Callback ---------------------
+  // ================= GITHUB CALLBACK =================
   async githubCallback(req, res) {
     try {
       const user = req.user;
-      const roleDoc = await Role.findById(user.role);
-      const payload = { id: user._id, role: roleDoc.name };
+      let roleName = null;
+
+      if (user.role) {
+        const roleDocument = await Role.findById(user.role);
+        if (roleDocument) roleName = roleDocument.name;
+      }
+
+      const payload = { id: user._id, role: roleName };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
-      res.json({
-        message: "Login with GitHub success",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: roleDoc.name,
-        },
-      });
+      const userData = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: roleName
+      };
+
+      // Redirect to frontend with token and user data
+      const redirectUrl = `http://localhost:5173/oauth/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userData))}`;
+      console.log('GitHub OAuth - Redirect URL:', redirectUrl);
+      res.redirect(redirectUrl);
+
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "GitHub login failed" });
