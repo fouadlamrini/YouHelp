@@ -14,10 +14,6 @@ class KnowledgeController {
     try {
       const { content, category, subCategory, resource, snippet } = req.body;
 
-      // Vérifier que le titre et le contenu sont fournis
-      if (!title || title.trim() === "") {
-        return res.status(400).json({ message: "Le titre est obligatoire" });
-      }
       if (!content || content.trim() === "") {
         return res.status(400).json({ message: "Le contenu est obligatoire" });
       }
