@@ -5,34 +5,34 @@ const authMiddleware = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 
 // ===== GET ALL CATEGORIES =====
-// accessible by admin, formateur, etudiant
+// accessible by admin, formateur, etudiant, super_admin
 router.get(
   '/',
   authMiddleware,
-  requireRole(['admin', 'formateur', 'etudiant']),
+  requireRole(['admin', 'formateur', 'etudiant', 'super_admin']),
   CategoryController.getAllCategory
 );
 
 // ===== CREATE / UPDATE / DELETE CATEGORY =====
-// accessible by admin only
+// accessible by admin & super_admin
 router.post(
   '/',
   authMiddleware,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   CategoryController.createCategory
 );
 
 router.put(
   '/:id',
   authMiddleware,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   CategoryController.updateCategory
 );
 
 router.delete(
   '/:id',
   authMiddleware,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   CategoryController.deleteCategory
 );
 

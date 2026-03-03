@@ -20,7 +20,7 @@ class SubCategoryController {
 // ================= CREATE =================
 async createSubCategory(req, res) {
   try {
-    const { name, category } = req.body; 
+    const { name, category, icon, color } = req.body;
 
     const existingCategory = await Category.findOne({ name: category });
 
@@ -30,6 +30,8 @@ async createSubCategory(req, res) {
     const subCategory = await SubCategory.create({
       name,
       category: existingCategory._id,
+      icon: icon || null,
+      color: color || null,
     });
 
     res.status(201).json({ success: true, data: subCategory });
@@ -39,11 +41,11 @@ async createSubCategory(req, res) {
     res.status(500).json({ message: "Server error" });
   }
 }
-//update
+// ================= UPDATE =================
 async updateSubCategory(req, res) {
   try {
     const { id } = req.params;
-    const { name, category } = req.body;
+    const { name, category, icon, color } = req.body;
     const existingCategory = await Category.findOne({ name: category });
     if (!existingCategory) {
       return res.status(400).json({ message: "Category not found" });
@@ -53,6 +55,8 @@ async updateSubCategory(req, res) {
       {
         name,
         category: existingCategory._id,
+        ...(icon !== undefined && { icon }),
+        ...(color !== undefined && { color }),
       },
       { new: true, runValidators: true }
     );

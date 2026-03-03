@@ -13,13 +13,17 @@ class CategoryController {
   // CREATE new category
   async createCategory(req, res) {
     try {
-      const { name } = req.body;
+      const { name, icon, color } = req.body;
       const existing = await Category.findOne({ name });
       if (existing) {
         return res.status(400).json({ message: 'Category already exists' });
       }
 
-      const category = await Category.create({ name });
+      const category = await Category.create({
+        name,
+        icon: icon || null,
+        color: color || null,
+      });
       res.status(201).json({ success: true, data: category });
     } catch (err) {
       console.error(err);
@@ -27,16 +31,20 @@ class CategoryController {
     }
   }
 
-  //update category
+  // UPDATE category
 async updateCategory(req, res) {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, icon, color } = req.body;
 
     const category = await Category.findByIdAndUpdate(
       id,
-      { name },              
-      { new: true, runValidators: true } 
+      {
+        name,
+        ...(icon !== undefined && { icon }),
+        ...(color !== undefined && { color }),
+      },
+      { new: true, runValidators: true }
     );
 
     if (!category) {
