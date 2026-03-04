@@ -21,9 +21,11 @@ const resolveAvatarUrl = (src) => {
 const mapKnowledgeToCardData = (knowledge) => {
   if (!knowledge) return null;
   const author = knowledge.author || {};
-  const firstImage = knowledge.media?.find((m) => m.type === "image");
-  let mediaUrl = firstImage?.url || "";
-  if (mediaUrl && !mediaUrl.startsWith("http")) mediaUrl = `${API_BASE}${mediaUrl}`;
+  const rawMedia = Array.isArray(knowledge.media) ? knowledge.media : [];
+  const media = rawMedia.map((m) => {
+    const url = m.url?.startsWith("http") ? m.url : `${API_BASE}${m.url}`;
+    return { ...m, url };
+  });
   return {
     id: knowledge._id,
     userName: author.name || author.email || "?",
@@ -32,8 +34,7 @@ const mapKnowledgeToCardData = (knowledge) => {
     subCategory: knowledge.subCategory?.name || knowledge.subCategory || "",
     time: knowledge.createdAt ? new Date(knowledge.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "",
     content: knowledge.content || "",
-    mediaUrl: mediaUrl || "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=800",
-    snippet: (knowledge.snippet && (typeof knowledge.snippet === "string" ? knowledge.snippet : knowledge.snippet.code)) || "// No snippet",
+    media,
     comments: knowledge.comments || [],
   };
 };

@@ -114,6 +114,9 @@ export const subcategoryApi = {
   delete: (id) => api.delete(`/subcategory/${id}`),
 };
 
+// Alias with different casing for backward compatibility
+export const subCategoryApi = subcategoryApi;
+
 // —— Post ——
 export const postApi = {
   getAll: (params) => api.get("/post", { params }),

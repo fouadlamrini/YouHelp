@@ -26,12 +26,12 @@ router.get("/:id", KnowledgeController.getKnowledgeById);
 /* ===== CREATE ===== */
 // Créer une nouvelle connaissance
 // - Authentification requise
-// - Rôles autorisés: admin, formateur, etudiant
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
 // - Médias optionnels (max 10 fichiers)
 router.post(
   "/",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   KnowledgeController.createKnowledge
 );
@@ -39,12 +39,12 @@ router.post(
 /* ===== UPDATE ===== */
 // Mettre à jour une connaissance
 // - Authentification requise
-// - Seul l'auteur ou un admin peut mettre à jour
+// - Seul l'auteur ou un admin/super_admin peut mettre à jour
 // - Médias optionnels
 router.put(
   "/:id",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   KnowledgeController.updateKnowledge
 );
@@ -52,33 +52,33 @@ router.put(
 /* ===== DELETE ===== */
 // Supprimer une connaissance
 // - Authentification requise
-// - Seul l'auteur ou un admin peut supprimer
+// - Seul l'auteur ou un admin/super_admin peut supprimer
 router.delete(
   "/:id",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.deleteKnowledge
 );
 
 /* ===== REACTIONS ===== */
 // Ajouter/retirer une réaction (like) sur une connaissance
 // - Authentification requise
-// - Rôles autorisés: admin, formateur, etudiant
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
 router.post(
   "/:id/reaction",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.toggleReaction
 );
 
 /* ===== SHARES ===== */
 // Ajouter/retirer un partage sur une connaissance
 // - Authentification requise
-// - Rôles autorisés: admin, formateur, etudiant
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
 router.post(
   "/:id/share",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.toggleShare
 );
 

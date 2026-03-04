@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { 
-  FiCode, FiGlobe, FiX, FiZoomIn, FiHeart, 
-  FiMessageCircle, FiShare2, FiMoreHorizontal, FiSend,
-  FiEdit2, FiTrash2 // Zadna had l-icons
+import {
+  FiGlobe,
+  FiX,
+  FiZoomIn,
+  FiHeart,
+  FiMessageCircle,
+  FiShare2,
+  FiMoreHorizontal,
+  FiSend,
+  FiEdit2,
+  FiTrash2,
+  FiFileText,
+  FiPlay,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 
@@ -12,6 +21,13 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const [liked, setLiked] = useState(false);
   const [commentText, setCommentText] = useState("");
   const isFavorite = onFavoriteClick ? isFavoriteProp : liked;
+  const media = Array.isArray(data.media)
+    ? data.media
+    : data.mediaUrl
+    ? [{ url: data.mediaUrl, type: "image" }]
+    : [];
+  const hasMedia = media.length > 0;
+  const [activeIndex, setActiveIndex] = useState(0);
   
   // State dyal l-Menu (Update/Delete)
   const [showDropdown, setShowDropdown] = useState(false);
@@ -83,32 +99,87 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div className="px-6 pb-4 flex flex-col md:flex-row gap-4">
-          <div 
-            onClick={() => setIsImageOpen(true)} 
-            className="w-full md:w-48 h-44 rounded-[1.5rem] overflow-hidden bg-slate-100 relative cursor-pointer group/img flex-shrink-0 border border-slate-50"
-          >
-            <img src={data.mediaUrl} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-500" alt="post" />
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-              <FiZoomIn className="text-white" size={24} />
-            </div>
-          </div>
-          
-          <div className="flex-grow min-w-0">
-            <div className="relative h-44 group/code">
-              <div className="absolute top-3 right-5 text-[9px] font-black text-white z-10 bg-indigo-500/90 px-2.5 py-1 rounded-lg backdrop-blur-md uppercase tracking-tighter flex items-center gap-1 shadow-lg transition-transform group-hover/code:scale-105">
-                <FiCode className="text-indigo-200" /> {data.subCategory}
-              </div>
-              <pre className="bg-[#0B1222] rounded-[1.8rem] p-6 pt-10 text-[12px] text-indigo-200 font-mono h-full overflow-x-auto custom-scrollbar border border-slate-800/50 shadow-inner">
-                <code>{data.snippet}</code>
-              </pre>
-            </div>
-          </div>
-        </div>
+        {/* MEDIA + CONTENT */}
+        <div className="px-6 pb-4 space-y-4">
+          {hasMedia && (() => {
+            const current = media[activeIndex] || media[0];
+            if (!current) return null;
 
-        <div className="px-8 pb-6 text-slate-600 font-medium leading-relaxed italic">
-          "{data.content}"
+            const filename = current.url?.split("/").pop();
+
+            return (
+              <div className="space-y-3">
+                <div
+                  onClick={() => current.type === "image" && setIsImageOpen(true)}
+                  className="w-full aspect-video rounded-[1.5rem] overflow-hidden bg-slate-100 relative cursor-pointer border border-slate-50 flex items-center justify-center"
+                >
+                  {current.type === "image" && (
+                    <>
+                      <img
+                        src={current.url}
+                        className="w-full h-full object-cover"
+                        alt="knowledge-media"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <FiZoomIn className="text-white" size={24} />
+                      </div>
+                    </>
+                  )}
+                  {current.type === "video" && (
+                    <video
+                      src={current.url}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  )}
+                  {current.type !== "image" && current.type !== "video" && (
+                    <a
+                      href={current.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center justify-center text-slate-700 hover:text-indigo-600"
+                    >
+                      <FiFileText size={32} className="mb-2" />
+                      <span className="text-xs font-bold truncate max-w-[220px]">
+                        {filename}
+                      </span>
+                    </a>
+                  )}
+                </div>
+
+                {media.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {media.map((m, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveIndex(idx)}
+                        className={`w-16 h-12 rounded-xl overflow-hidden border ${
+                          idx === activeIndex ? "border-indigo-500" : "border-slate-200"
+                        } flex-shrink-0 bg-slate-100 flex items-center justify-center`}
+                      >
+                        {m.type === "image" ? (
+                          <img
+                            src={m.url}
+                            className="w-full h-full object-cover"
+                            alt={`thumb-${idx}`}
+                          />
+                        ) : m.type === "video" ? (
+                          <FiPlay size={18} className="text-slate-700" />
+                        ) : (
+                          <FiFileText size={16} className="text-slate-700" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="text-slate-700 font-medium leading-relaxed">
+            {data.content}
+          </div>
         </div>
 
         {/* ACTIONS */}
@@ -156,8 +227,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         )}
       </div>
 
-      {/* MODAL IMAGE */}
-      {isImageOpen && (
+      {/* MODAL IMAGE (images only) */}
+      {isImageOpen && hasMedia && media[activeIndex]?.type === "image" && (
         <div 
           className="fixed inset-0 z-[999] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4" 
           onClick={() => setIsImageOpen(false)}
@@ -166,7 +237,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             <FiX size={32} />
           </button>
           <img 
-            src={data.mediaUrl} 
+            src={media[activeIndex]?.url} 
             className="max-w-6xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-white/10 animate-in zoom-in-95 duration-300" 
             alt="full" 
           />

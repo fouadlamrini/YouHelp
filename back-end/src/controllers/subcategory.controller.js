@@ -17,6 +17,23 @@ class SubCategoryController {
     }
   }
 
+  // ================= GET BY CATEGORY =================
+  async getByCategory(req, res) {
+    try {
+      const { categoryId } = req.params;
+      if (!categoryId) {
+        return res.status(400).json({ message: "categoryId is required" });
+      }
+      const subCategories = await SubCategory.find({ category: categoryId })
+        .populate("category", "name")
+        .sort({ createdAt: -1 });
+      return res.json({ success: true, data: subCategories });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
 // ================= CREATE =================
 async createSubCategory(req, res) {
   try {

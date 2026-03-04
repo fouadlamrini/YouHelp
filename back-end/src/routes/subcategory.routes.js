@@ -11,6 +11,13 @@ router.get(
   subCategoryController.getAllSubCategories
 );
 
+router.get(
+  "/category/:categoryId",
+  authMiddleware,
+  requireRole(["formateur", "admin", "super_admin"]),
+  subCategoryController.getByCategory
+);
+
 router.post(
   "/",
   authMiddleware,

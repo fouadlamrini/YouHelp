@@ -1,37 +1,151 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
 import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar"; 
 import { 
-  FiImage, FiCode, FiLink, FiSend, 
-  FiChevronDown, FiFileText, FiSearch 
+  FiImage, FiSend, 
+  FiChevronDown, FiFileText, FiSearch, FiX 
 } from "react-icons/fi";
+import { knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+
+const API_BASE = "http://localhost:3000";
+
+const resolveAvatarUrl = (src) => {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+};
+
+const mapKnowledgeToCardData = (knowledge) => {
+  if (!knowledge) return null;
+  const author = knowledge.author || {};
+  const rawMedia = Array.isArray(knowledge.media) ? knowledge.media : [];
+  const media = rawMedia.map((m) => {
+    const url = m.url?.startsWith("http") ? m.url : `${API_BASE}${m.url}`;
+    return { ...m, url };
+  });
+  return {
+    id: knowledge._id,
+    userName: author.name || author.email || "?",
+    userAvatar: author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"),
+    category: knowledge.category?.name || knowledge.category || "",
+    subCategory: knowledge.subCategory?.name || knowledge.subCategory || "",
+    time: knowledge.createdAt
+      ? new Date(knowledge.createdAt).toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+    content: knowledge.content || "",
+    media,
+    comments: knowledge.comments || [],
+  };
+};
 
 const MyKnowledge = () => {
+  const { user } = useAuth();
   const [content, setContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterSubCategory, setFilterSubCategory] = useState("all");
+  const [category, setCategory] = useState("");
+  const [subCategory, setSubCategory] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   
-  const [showCodeInput, setShowCodeInput] = useState(false);
-  const [showResourceInput, setShowResourceInput] = useState(false);
+  const [showCodeInput] = useState(false);
+  const [showResourceInput] = useState(false);
+  const [knowledgeRaw, setKnowledgeRaw] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
-  const [knowledgeList] = useState([
-    {
-      id: 1,
-      userName: "Fouad Lamrini",
-      userAvatar: "https://i.pravatar.cc/150?u=youcoder",
-      time: "2 hours ago",
-      category: "Frontend",
-      subCategory: "React",
-      content: "Exploring how to use server components to fetch data directly on the server side for better performance.",
-      mediaUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
-      snippet: "async function Page() {\n  const data = await db.fetch();\n  return <div>{data}</div>\n}",
-      comments: []
+  const loadKnowledge = async () => {
+    try {
+      setLoading(true);
+      const res = await knowledgeApi.getAll();
+      const all = res.data?.data ?? [];
+      const myId = user?.id || user?._id;
+      const mine = myId
+        ? all.filter((k) => (k.author?._id || k.author)?.toString() === myId.toString())
+        : [];
+      setKnowledgeRaw(mine);
+    } catch {
+      setKnowledgeRaw([]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadKnowledge();
+  }, []);
+
+  useEffect(() => {
+    categoryApi
+      .getAll()
+      .then((res) => setCategories(res.data?.data ?? res.data ?? []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const handleCategoryChange = (e) => {
+    const id = e.target.value;
+    const selected = categories.find((c) => c._id === id);
+    setCategory(selected?.name || "");
+    setSubCategory("");
+    setSubCategories([]);
+    if (!id) return;
+    subCategoryApi
+      .getByCategory(id)
+      .then((res) => setSubCategories(res.data?.data ?? res.data ?? []))
+      .catch(() => setSubCategories([]));
+  };
+
+  const handleChooseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFilesChange = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (!selected.length) return;
+    setFiles((prev) => [...prev, ...selected]);
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreateKnowledge = async () => {
+    const trimmed = (content || "").trim();
+    if (!trimmed || !category) return;
+    try {
+      setCreating(true);
+      const formData = new FormData();
+      formData.append("content", trimmed);
+      formData.append("category", category);
+      if (subCategory) formData.append("subCategory", subCategory);
+      files.forEach((f) => formData.append("media", f));
+      await knowledgeApi.create(formData);
+      setContent("");
+      setFiles([]);
+      await loadKnowledge();
+    } catch {
+      // silent
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const knowledgeList = knowledgeRaw.map(mapKnowledgeToCardData).filter(Boolean);
 
   const filteredKnowledge = knowledgeList.filter((item) => {
     const matchesSearch = item.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -65,29 +179,45 @@ const MyKnowledge = () => {
               {/* COMPOSER (Add Knowledge) */}
               <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase">FL</div>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase">
+                    YC
+                  </div>
 
                   <div className="flex-grow space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="relative">
-                        <select className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all uppercase">
+                        <select
+                          value={categories.find((c) => c.name === category)?._id || ""}
+                          onChange={handleCategoryChange}
+                          className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all uppercase"
+                        >
                           <option value="">Category</option>
-                          <option value="frontend">Frontend</option>
-                          <option value="backend">Backend</option>
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>
+                              {cat.name}
+                            </option>
+                          ))}
                         </select>
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                       </div>
                       <div className="relative">
-                        <select className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all uppercase">
+                        <select
+                          value={subCategory}
+                          onChange={(e) => setSubCategory(e.target.value)}
+                          className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all uppercase"
+                        >
                           <option value="">Sub Category</option>
-                          <option value="react">React</option>
-                          <option value="node">Node.js</option>
+                          {subCategories.map((sub) => (
+                            <option key={sub._id} value={sub.name}>
+                              {sub.name}
+                            </option>
+                          ))}
                         </select>
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                       </div>
                     </div>
 
-                    <div className="relative bg-slate-50 rounded-[2rem] p-5 border border-transparent focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                      <div className="relative bg-slate-50 rounded-[2rem] p-5 border border-transparent focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
                       <textarea 
                         rows="3" 
                         placeholder="Partagez une astuce technique..." 
@@ -96,33 +226,32 @@ const MyKnowledge = () => {
                         onChange={(e) => setContent(e.target.value)} 
                       />
 
-                      {showCodeInput && (
-                        <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                          <textarea 
-                            placeholder="// Collez votre code ici..." 
-                            className="w-full p-5 bg-[#0B1222] rounded-2xl text-[13px] font-mono text-indigo-300 outline-none border border-slate-800 shadow-inner"
-                            rows="5"
-                          />
-                        </div>
-                      )}
-
-                      {showResourceInput && (
-                        <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                          <div className="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
-                            <FiLink className="text-indigo-500 mr-2" size={18} />
-                            <input type="url" placeholder="Lien vers la documentation..." className="w-full text-sm font-bold text-slate-700 outline-none" />
-                          </div>
-                        </div>
-                      )}
+                      {/* Pas de snippet ni de resource pour Knowledge (UI simplifiée) */}
 
                       <div className="flex items-center justify-between mt-4 border-t border-slate-100 pt-4">
                         <div className="flex gap-2">
-                          <button className="p-2 text-slate-400 hover:bg-white hover:shadow-sm rounded-xl transition-all"><FiImage size={20} /></button>
-                          <button onClick={() => setShowCodeInput(!showCodeInput)} className={`p-2 rounded-xl transition-all ${showCodeInput ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white hover:shadow-sm'}`}><FiCode size={20} /></button>
-                          <button onClick={() => setShowResourceInput(!showResourceInput)} className={`p-2 rounded-xl transition-all ${showResourceInput ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:bg-white hover:shadow-sm'}`}><FiLink size={20} /></button>
+                          <input
+                            type="file"
+                            multiple
+                            ref={fileInputRef}
+                            onChange={handleFilesChange}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleChooseFiles}
+                            className="p-2 text-slate-400 hover:bg-white hover:shadow-sm rounded-xl transition-all"
+                          >
+                            <FiImage size={20} />
+                          </button>
                         </div>
-                        <button className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
-                          Publier <FiSend size={16} />
+                        <button
+                          type="button"
+                          onClick={handleCreateKnowledge}
+                          disabled={creating}
+                          className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {creating ? "Publication..." : "Publier"} <FiSend size={16} />
                         </button>
                       </div>
                     </div>
@@ -169,9 +298,19 @@ const MyKnowledge = () => {
                 <div className="flex items-center gap-2 px-4 mb-2 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em]">
                   <FiFileText /> Ma Bibliothèque ({filteredKnowledge.length})
                 </div>
-                {filteredKnowledge.map((item) => (
-                  <KnowledgeCard key={item.id} data={item} />
-                ))}
+                {loading ? (
+                  <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    Chargement de mes connaissances...
+                  </div>
+                ) : filteredKnowledge.length ? (
+                  filteredKnowledge.map((item) => (
+                    <KnowledgeCard key={item.id} data={item} />
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    Aucune connaissance trouvée
+                  </div>
+                )}
               </div>
             </div>
           </main>

@@ -1,26 +1,143 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar";
-import { FiImage, FiCode, FiLink, FiSend, FiChevronDown, FiFileText, FiSearch, FiX } from "react-icons/fi";
+import { FiImage, FiSend, FiChevronDown, FiFileText, FiSearch, FiX } from "react-icons/fi";
+import { knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
+
+const API_BASE = "http://localhost:3000";
+
+const resolveAvatarUrl = (src) => {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+};
+
+const mapKnowledgeToCardData = (knowledge) => {
+  if (!knowledge) return null;
+  const author = knowledge.author || {};
+  const rawMedia = Array.isArray(knowledge.media) ? knowledge.media : [];
+  const media = rawMedia.map((m) => {
+    const url = m.url?.startsWith("http") ? m.url : `${API_BASE}${m.url}`;
+    return { ...m, url };
+  });
+  return {
+    id: knowledge._id,
+    userName: author.name || author.email || "?",
+    userAvatar: author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"),
+    category: knowledge.category?.name || knowledge.category || "",
+    subCategory: knowledge.subCategory?.name || knowledge.subCategory || "",
+    time: knowledge.createdAt
+      ? new Date(knowledge.createdAt).toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+    content: knowledge.content || "",
+    media,
+    comments: knowledge.comments || [],
+  };
+};
 
 const KnowledgePage = () => {
   const [content, setContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterSubCategory, setFilterSubCategory] = useState("all");
+  const [category, setCategory] = useState("");
+  const [subCategory, setSubCategory] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
 
-  // Input states for Composer
-  const [showCodeInput, setShowCodeInput] = useState(false);
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [link, setLink] = useState("");
+  const [knowledgeRaw, setKnowledgeRaw] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
-  const [knowledgeList] = useState([
-    { id: 1, userName: "Yassine Dev", userAvatar: "https://i.pravatar.cc/150?u=y", time: "2h ago", category: "Frontend", subCategory: "React", content: "Kifach t-asta3mel 'useOptimistic' hook f Next.js 15.", mediaUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800", snippet: "const [state, update] = useOptimistic(s, u);" },
-    { id: 2, userName: "Anas Backend", userAvatar: "https://i.pravatar.cc/150?u=a", time: "5h ago", category: "Backend", subCategory: "Node.js", content: "Trick bach t-secure l-API dyalk b Redis.", snippet: "const limiter = rateLimit({ windowMs: 15 * 60 * 1000 });" },
-    { id: 3, userName: "Sarah UI", userAvatar: "https://i.pravatar.cc/150?u=s", time: "1d ago", category: "Design", subCategory: "Tailwind CSS", content: "Glassmorphism effect b Tailwind.", snippet: "className='bg-white/30 backdrop-blur-md'" }
-  ]);
+  // Inputs optionnels (plus utilisés: on garde l'état simple pour éviter les erreurs)
+  const [showCodeInput] = useState(false);
+  const [showLinkInput] = useState(false);
+  const [link] = useState("");
+
+  const loadKnowledge = async () => {
+    try {
+      setLoading(true);
+      const res = await knowledgeApi.getAll();
+      setKnowledgeRaw(res.data?.data ?? []);
+    } catch {
+      setKnowledgeRaw([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadKnowledge();
+  }, []);
+
+  useEffect(() => {
+    categoryApi
+      .getAll()
+      .then((res) => setCategories(res.data?.data ?? res.data ?? []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const handleCategoryChange = (e) => {
+    const id = e.target.value;
+    const selected = categories.find((c) => c._id === id);
+    setCategory(selected?.name || "");
+    setSubCategory("");
+    setSubCategories([]);
+    if (!id) return;
+    subCategoryApi
+      .getByCategory(id)
+      .then((res) => setSubCategories(res.data?.data ?? res.data ?? []))
+      .catch(() => setSubCategories([]));
+  };
+
+  const handleChooseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFilesChange = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (!selected.length) return;
+    setFiles((prev) => [...prev, ...selected]);
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreateKnowledge = async () => {
+    const trimmed = (content || "").trim();
+    if (!trimmed || !category) return;
+    try {
+      setCreating(true);
+      const formData = new FormData();
+      formData.append("content", trimmed);
+      formData.append("category", category);
+      if (subCategory) formData.append("subCategory", subCategory);
+      files.forEach((f) => formData.append("media", f));
+      await knowledgeApi.create(formData);
+      setContent("");
+      setFiles([]);
+      await loadKnowledge();
+    } catch {
+      // silent
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const knowledgeList = knowledgeRaw.map(mapKnowledgeToCardData).filter(Boolean);
 
   const filteredKnowledge = knowledgeList.filter((item) => {
     const matchesSearch = item.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -41,52 +158,90 @@ const KnowledgePage = () => {
               {/* --- COMPOSER (With Source & Code logic) --- */}
               <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase tracking-tighter">YD</div>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase tracking-tighter">YC</div>
                   <div className="flex-grow space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="relative">
-                        <select className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer uppercase tracking-tight">
+                        <select
+                          value={categories.find((c) => c.name === category)?._id || ""}
+                          onChange={handleCategoryChange}
+                          className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer uppercase tracking-tight"
+                        >
                           <option value="">Category</option>
-                          <option value="Frontend">Frontend</option>
-                          <option value="Backend">Backend</option>
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>
+                              {cat.name}
+                            </option>
+                          ))}
                         </select>
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       </div>
                       <div className="relative">
-                        <select className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer uppercase tracking-tight">
+                        <select
+                          value={subCategory}
+                          onChange={(e) => setSubCategory(e.target.value)}
+                          className="w-full pl-4 pr-10 py-3 bg-slate-50 border-none rounded-xl text-[11px] font-black text-slate-600 appearance-none focus:ring-2 focus:ring-indigo-500 cursor-pointer uppercase tracking-tight"
+                        >
                           <option value="">Sub Category</option>
-                          <option value="React">React</option>
-                          <option value="Node.js">Node.js</option>
+                          {subCategories.map((sub) => (
+                            <option key={sub._id} value={sub.name}>
+                              {sub.name}
+                            </option>
+                          ))}
                         </select>
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       </div>
                     </div>
 
-                    <div className="relative bg-slate-50 rounded-[2rem] p-5 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all border border-transparent">
+                      <div className="relative bg-slate-50 rounded-[2rem] p-5 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all border border-transparent">
                       <textarea rows="3" placeholder="Share your technical tip..." className="w-full bg-transparent border-none focus:ring-0 text-md font-medium text-slate-700 placeholder:text-slate-400 resize-none" value={content} onChange={(e) => setContent(e.target.value)} />
                       
-                      {/* SOURCE LINK INPUT */}
-                      {showLinkInput && (
-                        <div className="mt-3 flex items-center gap-2 bg-white border border-slate-200 p-2 px-4 rounded-xl">
-                          <FiLink className="text-emerald-500" />
-                          <input type="text" placeholder="https://source-link.com" className="flex-1 bg-transparent border-none text-xs focus:ring-0 font-bold text-slate-600" value={link} onChange={(e) => setLink(e.target.value)} />
-                          <button onClick={() => setShowLinkInput(false)}><FiX className="text-slate-400" /></button>
-                        </div>
-                      )}
+                      {/* Pas de snippet ni de resource pour Knowledge (UI simplifiée) */}
 
-                      {/* CODE SNIPPET INPUT */}
-                      {showCodeInput && (
-                        <textarea placeholder="// Paste code snippet here..." className="w-full mt-4 p-5 bg-[#0B1222] rounded-2xl text-[13px] font-mono text-indigo-300 outline-none border border-slate-800" rows="5" />
+                      {!!files.length && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {files.map((file, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600"
+                            >
+                              <span className="max-w-40 truncate">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFile(idx)}
+                                className="text-slate-400 hover:text-red-500"
+                              >
+                                <FiX size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                       
                       <div className="flex items-center justify-between mt-4 border-t border-slate-100 pt-4">
                         <div className="flex gap-2">
-                          <button className="p-2.5 text-slate-400 hover:bg-slate-100 rounded-xl transition-all"><FiImage size={20} /></button>
-                          <button onClick={() => setShowCodeInput(!showCodeInput)} className={`p-2.5 rounded-xl transition-all ${showCodeInput ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100'}`}><FiCode size={20} /></button>
-                          <button onClick={() => setShowLinkInput(!showLinkInput)} className={`p-2.5 rounded-xl transition-all ${showLinkInput ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100'}`}><FiLink size={20} /></button>
+                          <input
+                            type="file"
+                            multiple
+                            ref={fileInputRef}
+                            onChange={handleFilesChange}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleChooseFiles}
+                            className="p-2.5 text-slate-400 hover:bg-slate-100 rounded-xl transition-all"
+                          >
+                            <FiImage size={20} />
+                          </button>
                         </div>
-                        <button className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
-                          Share <FiSend size={16} />
+                        <button
+                          type="button"
+                          onClick={handleCreateKnowledge}
+                          disabled={creating}
+                          className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {creating ? "Publishing..." : "Share"} <FiSend size={16} />
                         </button>
                       </div>
                     </div>
@@ -119,9 +274,19 @@ const KnowledgePage = () => {
                 <div className="flex items-center gap-2 px-4 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em]">
                   <FiFileText /> Ma Bibliothèque ({filteredKnowledge.length})
                 </div>
-                {filteredKnowledge.map((item) => (
-                  <KnowledgeCard key={item.id} data={item} />
-                ))}
+                {loading ? (
+                  <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    Chargement de la knowledge...
+                  </div>
+                ) : filteredKnowledge.length ? (
+                  filteredKnowledge.map((item) => (
+                    <KnowledgeCard key={item.id} data={item} />
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    Aucune knowledge trouvée
+                  </div>
+                )}
               </div>
             </div>
           </main>

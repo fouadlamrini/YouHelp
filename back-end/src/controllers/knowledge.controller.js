@@ -12,7 +12,7 @@ class KnowledgeController {
   // - Médias, ressource et snippet optionnels
   async createKnowledge(req, res) {
     try {
-      const { content, category, subCategory, resource, snippet } = req.body;
+      const { content, category, subCategory } = req.body;
 
       if (!content || content.trim() === "") {
         return res.status(400).json({ message: "Le contenu est obligatoire" });
@@ -37,29 +37,28 @@ class KnowledgeController {
         subCategoryId = subCategoryDoc._id;
       }
 
-      // Traiter les médias uploadés
-      const mediaFiles = req.files ? req.files.map((file) => {
+      // Traiter les médias uploadés (même logique que Post)
+      const mediaFiles = (req.files || []).map((file) => {
         let type = "file";
         if (file.mimetype.startsWith("image")) type = "image";
         else if (file.mimetype.startsWith("video")) type = "video";
         else if (file.mimetype === "application/pdf") type = "pdf";
         else if (file.mimetype.includes("word")) type = "doc";
-        return { url: `/uploads/${file.filename}`, type };
-      }) : [];
+
+        let folder = "files";
+        if (type === "image") folder = "images";
+        else if (type === "video") folder = "videos";
+
+        return { url: `/uploads/${folder}/${file.filename}`, type };
+      });
 
       // Créer la connaissance
       const knowledge = await Knowledge.create({
-      
         content,
         author: req.user.id,
         category: categoryDoc._id,
         subCategory: subCategoryId,
         media: mediaFiles,
-        resource: resource || null,
-        snippet: snippet ? {
-          code: snippet.code || "",
-          language: snippet.language || "javascript",
-        } : null,
       });
 
       res.status(201).json({
@@ -119,11 +118,11 @@ class KnowledgeController {
   // ===== UPDATE =====
   // Mettre à jour une connaissance
   // - Seul l'auteur ou un admin peut mettre à jour
-  // - Peut modifier: titre, contenu, catégorie, sous-catégorie, tags, ressource, snippet
+  // - Peut modifier: contenu, catégorie, sous-catégorie, médias
   async updateKnowledge(req, res) {
     try {
       const { id } = req.params;
-      const { category, subCategory, resource, snippet, ...rest } = req.body;
+      const { category, subCategory, ...rest } = req.body;
 
       // Vérifier que la connaissance existe
       const knowledge = await Knowledge.findById(id);
@@ -167,17 +166,37 @@ class KnowledgeController {
 
      
 
-      // Mettre à jour la ressource si fournie
-      if (resource) {
-        updateData.resource = resource;
-      }
+      // Gérer les médias existants / nouveaux (même logique que Post)
+      try {
+        const existingMediaRaw = req.body.existingMedia;
+        let existingMedia = [];
+        if (existingMediaRaw) {
+          if (Array.isArray(existingMediaRaw)) {
+            existingMedia = existingMediaRaw;
+          } else if (typeof existingMediaRaw === "string") {
+            existingMedia = JSON.parse(existingMediaRaw || "[]");
+          }
+        }
 
-      // Mettre à jour le snippet si fourni
-      if (snippet) {
-        updateData.snippet = {
-          code: snippet.code || "",
-          language: snippet.language || "javascript",
-        };
+        const uploadedMedia = (req.files || []).map((file) => {
+          let type = "file";
+          if (file.mimetype.startsWith("image")) type = "image";
+          else if (file.mimetype.startsWith("video")) type = "video";
+          else if (file.mimetype === "application/pdf") type = "pdf";
+          else if (file.mimetype.includes("word")) type = "doc";
+
+          let folder = "files";
+          if (type === "image") folder = "images";
+          else if (type === "video") folder = "videos";
+
+          return { url: `/uploads/${folder}/${file.filename}`, type };
+        });
+
+        if (existingMedia.length || uploadedMedia.length) {
+          updateData.media = [...existingMedia, ...uploadedMedia];
+        }
+      } catch (e) {
+        console.error("Error parsing existingMedia for knowledge update:", e);
       }
 
       // Mettre à jour la connaissance
