@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { FiMoreHorizontal, FiSend, FiEdit2, FiTrash2, FiX } from "react-icons/fi";
+import React, { useState, useRef } from "react";
+import { FiMoreHorizontal, FiSend, FiEdit2, FiTrash2, FiX, FiSmile, FiImage } from "react-icons/fi";
 import { commentApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
+const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;
@@ -33,6 +34,10 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
   const [editText, setEditText] = useState(comment.content || "");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [replyMediaFiles, setReplyMediaFiles] = useState([]);
+  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(false);
+  const replyInputRef = useRef(null);
+  const replyFileInputRef = useRef(null);
 
   const author = comment.author || {};
   const userName = comment.userName ?? author.name ?? author.email ?? "?";
@@ -44,22 +49,54 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
   const likeCount = Array.isArray(comment.likes) ? comment.likes.length : 0;
   const isRootComment = !isReply;
 
-  const handleSendReply = () => {
-    if (!replyText.trim() || !postId || !onRefresh) {
-      if (replyText.trim()) setReplyText("");
-      setIsReplying(false);
-      return;
+  const handleReplyMediaChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setReplyMediaFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const removeReplyMediaFile = (index) => {
+    setReplyMediaFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const insertReplyEmoji = (emoji) => {
+    const el = replyInputRef.current;
+    if (el) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const before = replyText.slice(0, start);
+      const after = replyText.slice(end);
+      setReplyText(before + emoji + after);
+      setShowReplyEmojiPicker(false);
+      setTimeout(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+    } else {
+      setReplyText((prev) => prev + emoji);
+      setShowReplyEmojiPicker(false);
     }
+  };
+
+  const handleSendReply = () => {
+    const hasContent = replyText.trim();
+    const hasMedia = replyMediaFiles.length > 0;
+    if ((!hasContent && !hasMedia) || !postId || !onRefresh) return;
     setSendingReply(true);
-    commentApi
-      .createOnPost(postId, { content: replyText.trim(), parentComment: comment._id })
-      .then(() => {
-        setReplyText("");
-        setIsReplying(false);
-        onRefresh();
-      })
-      .catch(() => {})
-      .finally(() => setSendingReply(false));
+    const content = hasContent || " ";
+    const hasFiles = replyMediaFiles.length > 0;
+    const req = hasFiles
+      ? (() => {
+          const formData = new FormData();
+          formData.append("content", content);
+          formData.append("parentComment", comment._id);
+          replyMediaFiles.forEach((f) => formData.append("media", f));
+          return commentApi.createOnPost(postId, null, formData);
+        })()
+      : commentApi.createOnPost(postId, { content, parentComment: comment._id });
+    req.then(() => {
+      setReplyText("");
+      setReplyMediaFiles([]);
+      setIsReplying(false);
+      onRefresh();
+    }).catch(() => {}).finally(() => setSendingReply(false));
   };
 
   const handleLike = () => {
@@ -163,7 +200,40 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-slate-700 font-medium leading-relaxed mt-1 text-right">{text}</p>
+              <>
+                <p className="text-sm text-slate-700 font-medium leading-relaxed mt-1 text-right">{text}</p>
+                {Array.isArray(comment.media) && comment.media.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {comment.media.map((m, idx) => {
+                      let path = m.url;
+                      if (path && !path.startsWith("http") && path.startsWith("/uploads/") && !path.includes("/images/") && !path.includes("/videos/") && !path.includes("/files/")) {
+                        const filename = path.replace("/uploads/", "");
+                        const folder = m.type === "image" ? "images" : m.type === "video" ? "videos" : "files";
+                        path = `/uploads/${folder}/${filename}`;
+                      }
+                      const url = path?.startsWith("http") ? path : path ? `${API_BASE}${path}` : "";
+                      if (!url) return null;
+                      if (m.type === "image") {
+                        return (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                            <img src={url} alt="comment media" className="w-full h-full object-cover" />
+                          </a>
+                        );
+                      }
+                      if (m.type === "video") {
+                        return (
+                          <video key={idx} src={url} controls className="max-w-[200px] max-h-[120px] rounded-lg border border-slate-200" />
+                        );
+                      }
+                      return (
+                        <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-600 hover:underline">
+                          📄 {path?.split("/").pop()}
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -192,30 +262,64 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
 
           {isReplying && isRootComment && (
             <div className="mt-3 ml-2 animate-in slide-in-from-top-2 duration-300">
-              <div className="flex gap-3 items-center bg-white p-2 rounded-2xl border border-indigo-100 shadow-sm shadow-indigo-50/50">
-                <div className="grow relative flex items-center pr-2">
+              <div className="bg-white p-2 rounded-2xl border border-indigo-100 shadow-sm shadow-indigo-50/50 space-y-1.5">
+                <div className="flex gap-2 items-center">
                   <input
-                    autoFocus
+                    ref={replyInputRef}
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendReply(); } }}
                     placeholder="Écrire une réponse..."
-                    className="w-full bg-transparent py-1.5 px-1 text-xs outline-none text-slate-700 placeholder:text-slate-400"
+                    className="flex-1 bg-transparent py-1.5 px-2 text-xs outline-none text-slate-700 placeholder:text-slate-400"
                   />
-                  <button
-                    type="button"
-                    onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
-                    className={`transition-all ${replyText.trim() ? "text-indigo-600 scale-110" : "text-slate-200"}`}
-                  >
-                    <FiSend size={14} />
-                  </button>
+                  <div className="flex items-center gap-0.5 relative">
+                    <button type="button" onClick={() => setShowReplyEmojiPicker((v) => !v)} className="p-1 rounded text-slate-400 hover:text-amber-500">
+                      <FiSmile size={16} />
+                    </button>
+                    {showReplyEmojiPicker && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowReplyEmojiPicker(false)} aria-hidden />
+                        <div className="absolute left-0 bottom-full mb-1 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-[220px]">
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1.5">Emoji</p>
+                          <div className="grid grid-cols-6 gap-1 overflow-y-auto max-h-36">
+                            {EMOJI_LIST.map((emoji) => (
+                              <button key={emoji} type="button" onClick={() => insertReplyEmoji(emoji)} className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded-lg shrink-0">
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <button type="button" onClick={() => replyFileInputRef.current?.click()} className="p-1 rounded text-slate-400 hover:text-indigo-500">
+                      <FiImage size={16} />
+                    </button>
+                    <input ref={replyFileInputRef} type="file" multiple accept="image/*,video/*,application/pdf" className="hidden" onChange={handleReplyMediaChange} />
+                    <button
+                      type="button"
+                      onClick={handleSendReply}
+                      disabled={sendingReply || (!replyText.trim() && !replyMediaFiles.length)}
+                      className={`p-1.5 rounded ${(replyText.trim() || replyMediaFiles.length) ? "text-indigo-600" : "text-slate-200"}`}
+                    >
+                      <FiSend size={14} />
+                    </button>
+                  </div>
                 </div>
+                {replyMediaFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 px-1">
+                    {replyMediaFiles.map((file, index) => (
+                      <span key={index} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-bold text-slate-600">
+                        <span className="max-w-[80px] truncate">{file.name}</span>
+                        <button type="button" onClick={() => removeReplyMediaFile(index)} className="text-slate-400 hover:text-red-500"><FiX size={10} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 type="button"
-                onClick={() => !sendingReply && setIsReplying(false)}
+                onClick={() => !sendingReply && (setIsReplying(false), setReplyMediaFiles([]), setShowReplyEmojiPicker(false))}
                 className="text-[9px] font-bold text-slate-400 mt-1 ml-1 hover:text-red-400 uppercase tracking-tighter"
               >
                 Annuler

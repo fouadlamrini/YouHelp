@@ -40,14 +40,17 @@ class CommentController {
         });
       }
 
-      // Traiter les fichiers envoyés (si multipart/form-data)
+      // Traiter les fichiers envoyés (même structure que post: dossier images/videos/files)
       const mediaFiles = (req.files || []).map((file) => {
         let type = "file";
         if (file.mimetype.startsWith("image")) type = "image";
         else if (file.mimetype.startsWith("video")) type = "video";
         else if (file.mimetype === "application/pdf") type = "pdf";
         else if (file.mimetype.includes("word")) type = "doc";
-        return { url: `/uploads/${file.filename}`, type };
+        let folder = "files";
+        if (type === "image") folder = "images";
+        else if (type === "video") folder = "videos";
+        return { url: `/uploads/${folder}/${file.filename}`, type };
       });
 
       // Créer le commentaire avec éventuels médias
@@ -232,7 +235,10 @@ class CommentController {
           else if (file.mimetype.startsWith("video")) type = "video";
           else if (file.mimetype === "application/pdf") type = "pdf";
           else if (file.mimetype.includes("word")) type = "doc";
-          return { url: `/uploads/${file.filename}`, type };
+          let folder = "files";
+          if (type === "image") folder = "images";
+          else if (type === "video") folder = "videos";
+          return { url: `/uploads/${folder}/${file.filename}`, type };
         });
         comment.media = mediaFiles;
       }
@@ -340,7 +346,10 @@ class CommentController {
         else if (file.mimetype.startsWith("video")) type = "video";
         else if (file.mimetype === "application/pdf") type = "pdf";
         else if (file.mimetype.includes("word")) type = "doc";
-        return { url: `/uploads/${file.filename}`, type };
+        let folder = "files";
+        if (type === "image") folder = "images";
+        else if (type === "video") folder = "videos";
+        return { url: `/uploads/${folder}/${file.filename}`, type };
       });
       const comment = await Comment.create({
         content: content.trim(),

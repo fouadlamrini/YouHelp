@@ -14,11 +14,15 @@ import {
   FiPlus,
   FiPlay,
   FiFileText,
+  FiSmile,
+  FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 import { postApi, commentApi, solutionApi, favoritesApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
+
+const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;
@@ -92,6 +96,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
   const commentInputRef = useRef(null);
+  const commentFileInputRef = useRef(null);
+  const [commentMediaFiles, setCommentMediaFiles] = useState([]);
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
 
   if (!post || !post.user) return null;
 
@@ -219,11 +226,49 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
       .finally(() => setSaving(false));
   };
 
+  const handleCommentMediaChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setCommentMediaFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const removeCommentMediaFile = (index) => {
+    setCommentMediaFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const insertCommentEmoji = (emoji) => {
+    const el = commentInputRef.current;
+    if (el) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const before = commentText.slice(0, start);
+      const after = commentText.slice(end);
+      setCommentText(before + emoji + after);
+      setShowCommentEmojiPicker(false);
+      setTimeout(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+    } else {
+      setCommentText((prev) => prev + emoji);
+      setShowCommentEmojiPicker(false);
+    }
+  };
+
   const handleSendComment = () => {
-    if (!commentText.trim() || readOnly || sendingComment || !post.id) return;
+    const hasContent = commentText.trim();
+    const hasMedia = commentMediaFiles.length > 0;
+    if ((!hasContent && !hasMedia) || readOnly || sendingComment || !post.id) return;
     setSendingComment(true);
-    commentApi.createOnPost(post.id, { content: commentText.trim() }).then(() => {
+    const content = hasContent || " ";
+    const req = hasMedia
+      ? (() => {
+          const formData = new FormData();
+          formData.append("content", content);
+          commentMediaFiles.forEach((file) => formData.append("media", file));
+          return commentApi.createOnPost(post.id, null, formData);
+        })()
+      : commentApi.createOnPost(post.id, { content });
+    req.then(() => {
       setCommentText("");
+      setCommentMediaFiles([]);
       loadComments();
       onRefresh?.();
       setTimeout(() => commentInputRef.current?.focus(), 0);
@@ -528,24 +573,87 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
               <div className="text-[10px] text-slate-400 font-bold uppercase">No comments yet</div>
             )}
             {!readOnly && (
-              <div className="flex gap-2">
-                <input
-                  ref={commentInputRef}
-                  type="text"
-                  placeholder="Écrire un commentaire..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendComment(); } }}
-                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={handleSendComment}
-                  disabled={sendingComment || !commentText.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs disabled:opacity-50"
-                >
-                  <FiSend size={16} />
-                </button>
+              <div className="space-y-2">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 relative bg-slate-50 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                    <textarea
+                      ref={commentInputRef}
+                      rows={2}
+                      placeholder="Écrire un commentaire..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
+                      className="w-full px-4 py-2.5 bg-transparent rounded-xl text-sm resize-none outline-none"
+                    />
+                    {commentMediaFiles.length > 0 && (
+                      <div className="px-3 pb-2 flex flex-wrap gap-2">
+                        {commentMediaFiles.map((file, index) => (
+                          <span
+                            key={`${file.name}-${index}`}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-200/80 text-[10px] font-bold text-slate-700"
+                          >
+                            {file.type.startsWith("image") ? "🖼" : file.type.startsWith("video") ? "🎬" : "📄"}
+                            <span className="max-w-[100px] truncate">{file.name}</span>
+                            <button type="button" onClick={() => removeCommentMediaFile(index)} className="text-slate-500 hover:text-red-500">
+                              <FiX size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between px-2 pb-2 pt-0 border-t border-slate-100 mt-1">
+                      <div className="flex items-center gap-1 relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowCommentEmojiPicker((v) => !v)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 transition-colors"
+                          title="Emoji"
+                        >
+                          <FiSmile size={18} />
+                        </button>
+                        {showCommentEmojiPicker && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setShowCommentEmojiPicker(false)} aria-hidden />
+                            <div className="absolute left-0 bottom-full mb-1 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-3 w-[260px]">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Choisir un emoji</p>
+                              <div className="grid grid-cols-6 gap-1.5 overflow-y-auto max-h-40">
+                                {EMOJI_LIST.map((emoji) => (
+                                  <button key={emoji} type="button" onClick={() => insertCommentEmoji(emoji)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-slate-100 rounded-lg shrink-0">
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => commentFileInputRef.current?.click()}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 transition-colors"
+                          title="Image / Vidéo / PDF"
+                        >
+                          <FiImage size={18} />
+                        </button>
+                        <input
+                          ref={commentFileInputRef}
+                          type="file"
+                          multiple
+                          accept="image/*,video/*,application/pdf"
+                          className="hidden"
+                          onChange={handleCommentMediaChange}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSendComment}
+                        disabled={sendingComment || (!commentText.trim() && !commentMediaFiles.length)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs disabled:opacity-50"
+                      >
+                        <FiSend size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
