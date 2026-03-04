@@ -10,6 +10,11 @@ class FavoriteController {
       const { contentType, contentId } = req.body;
       const userId = req.user.id;
 
+      // Vérification basique du corps de la requête
+      if (!req.body || typeof contentType === "undefined") {
+        return res.status(400).json({ message: "Requête mal formée" });
+      }
+
       // Vérifier que le type de contenu est valide
       if (!["post", "knowledge"].includes(contentType)) {
         return res.status(400).json({ 
@@ -22,6 +27,12 @@ class FavoriteController {
         return res.status(400).json({ 
           message: "L'ID du contenu est requis" 
         });
+      }
+
+      // s'assurer que l'on travaille avec un ObjectId valide avant de requêter
+      const mongoose = require("mongoose");
+      if (!mongoose.Types.ObjectId.isValid(contentId)) {
+        return res.status(400).json({ message: "ID de contenu invalide" });
       }
 
       // Vérifier que le contenu existe
@@ -61,13 +72,20 @@ class FavoriteController {
       };
       favoriteData[contentType] = contentId;
 
-      const favorite = await Favorite.create(favoriteData);
-
-      res.status(201).json({
-        success: true,
-        message: "Contenu ajouté aux favoris avec succès",
-        data: favorite
-      });
+      try {
+        const favorite = await Favorite.create(favoriteData);
+        res.status(201).json({
+          success: true,
+          message: "Contenu ajouté aux favoris avec succès",
+          data: favorite
+        });
+      } catch (err) {
+        // gérer les erreurs de doublon de clé unique
+        if (err.code === 11000) {
+          return res.status(400).json({ message: "Ce contenu est déjà dans vos favoris" });
+        }
+        throw err; // laisser le catch principal s'occuper du reste
+      }
 
     } catch (error) {
       console.error(error);
