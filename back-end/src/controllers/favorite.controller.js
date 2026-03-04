@@ -129,7 +129,7 @@ class FavoriteController {
         .populate({
           path: "post",
           populate: [
-            { path: "author", select: "name email" },
+            { path: "author", select: "name email profilePicture" },
             { path: "category", select: "name" },
             { path: "subCategory", select: "name" }
           ]
@@ -137,7 +137,7 @@ class FavoriteController {
         .populate({
           path: "knowledge",
           populate: [
-            { path: "author", select: "name email" },
+            { path: "author", select: "name email profilePicture" },
             { path: "category", select: "name" },
             { path: "subCategory", select: "name" }
           ]

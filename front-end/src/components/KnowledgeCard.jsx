@@ -6,11 +6,12 @@ import {
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 
-const KnowledgeCard = ({ data }) => {
+const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick }) => {
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const isFavorite = onFavoriteClick ? isFavoriteProp : liked;
   
   // State dyal l-Menu (Update/Delete)
   const [showDropdown, setShowDropdown] = useState(false);
@@ -112,8 +113,11 @@ const KnowledgeCard = ({ data }) => {
 
         {/* ACTIONS */}
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
-          <button onClick={() => setLiked(!liked)} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${liked ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-rose-500'}`}>
-            <FiHeart className={liked ? "fill-rose-600" : ""} size={16} />
+          <button
+            onClick={() => (onFavoriteClick ? onFavoriteClick() : setLiked(!liked))}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${isFavorite ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-rose-500"}`}
+          >
+            <FiHeart className={isFavorite ? "fill-rose-600" : ""} size={16} />
             <span className="text-[11px] font-black uppercase">Favorite</span>
           </button>
           

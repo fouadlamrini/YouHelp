@@ -16,7 +16,7 @@ import {
   FiFileText,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
-import { postApi, commentApi, solutionApi } from "../services/api";
+import { postApi, commentApi, solutionApi, favoritesApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
 
@@ -89,8 +89,15 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [reacting, setReacting] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
 
   if (!post || !post.user) return null;
+
+  useEffect(() => {
+    if (!post.id) return;
+    favoritesApi.check("post", post.id).then((r) => setIsFavorite(!!r.data?.isFavorite)).catch(() => setIsFavorite(false));
+  }, [post.id]);
 
   useEffect(() => {
     setEditContent(post?.content || "");
@@ -135,6 +142,23 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const handleShare = () => {
     if (readOnly || !post.id) return;
     postApi.share(post.id).then(() => onRefresh?.()).catch(() => {});
+  };
+
+  const handleFavorite = () => {
+    if (readOnly || loadingFavorite || !post.id) return;
+    setLoadingFavorite(true);
+    const done = () => setLoadingFavorite(false);
+    if (isFavorite) {
+      favoritesApi.remove({ contentType: "post", contentId: post.id }).then(() => {
+        setIsFavorite(false);
+        onRefresh?.();
+      }).catch(() => {}).finally(done);
+    } else {
+      favoritesApi.add({ contentType: "post", contentId: post.id }).then(() => {
+        setIsFavorite(true);
+        onRefresh?.();
+      }).catch(() => {}).finally(done);
+    }
   };
 
   const handleDelete = () => {
@@ -446,10 +470,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
       <div className="p-2 grid grid-cols-4 gap-1 border-t border-slate-50 bg-white">
         <button
           type="button"
-          disabled={readOnly}
-          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
+          onClick={handleFavorite}
+          disabled={readOnly || loadingFavorite}
+          className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none ${
+            isFavorite ? "text-rose-600 bg-rose-50 hover:bg-rose-100" : "text-slate-600 hover:bg-rose-50 hover:text-rose-600"
+          }`}
         >
-          <FiHeart size={18} /> Favorite
+          <FiHeart size={18} className={isFavorite ? "fill-current" : ""} /> Favorite
         </button>
         <button
           type="button"
