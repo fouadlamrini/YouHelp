@@ -361,7 +361,6 @@ class PostController {
       const engagements = await Engagement.find({
         type: "share",
         user: userId,
-        post: { $exists: true, $ne: null },
       })
         .sort({ createdAt: -1 })
         .populate({
@@ -372,11 +371,18 @@ class PostController {
             { path: "subCategory", select: "name" },
           ],
         })
+        .populate({
+          path: "knowledge",
+          populate: [
+            { path: "author", select: "name email campus class level profilePicture" },
+            { path: "category", select: "name" },
+            { path: "subCategory", select: "name" },
+          ],
+        })
         .lean();
       const withMeta = await Promise.all(
-        engagements
-          .filter((e) => e.post)
-          .map(async (e) => {
+        engagements.map(async (e) => {
+          if (e.post) {
             const post = e.post;
             const sameContextReactionCount = await this._sameContextReactionCount(
               post._id,
@@ -392,9 +398,25 @@ class PostController {
                 commentCount,
               },
             };
-          })
+          }
+
+          if (e.knowledge) {
+            const knowledge = e.knowledge;
+            const commentCount = await Comment.countDocuments({ knowledge: knowledge._id });
+            return {
+              _id: e._id,
+              sharedAt: e.createdAt,
+              knowledge: {
+                ...knowledge,
+                commentCount,
+              },
+            };
+          }
+
+          return null;
+        })
       );
-      res.json({ success: true, data: withMeta });
+      res.json({ success: true, data: withMeta.filter(Boolean) });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });

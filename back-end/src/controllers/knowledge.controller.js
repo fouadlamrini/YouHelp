@@ -292,9 +292,9 @@ class KnowledgeController {
   }
 
   // ===== SHARES =====
-  // Ajouter/retirer un partage sur une connaissance
+  // Ajouter un partage sur une connaissance
   // - Seuls les utilisateurs avec role peuvent partager
-  // - Toggle: si l'utilisateur a déjà partagé, on retire le partage, sinon on l'ajoute
+  // - Chaque clic = un nouveau partage (pas de toggle)
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
@@ -305,18 +305,7 @@ class KnowledgeController {
       }
       const knowledge = await Knowledge.findById(id);
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
-      if (knowledge.author.toString() === req.user.id) {
-        return res.status(400).json({
-          message: "Vous ne pouvez pas partager votre propre connaissance",
-        });
-      }
       const userId = req.user.id;
-      const existing = await Engagement.findOne({ type: "share", user: userId, knowledge: id });
-      if (existing) {
-        await Engagement.deleteOne({ _id: existing._id });
-        await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: -1 } });
-        return res.json({ success: true, message: "Partage retiré", shareCount: Math.max(0, (knowledge.shareCount || 0) - 1) });
-      }
       await Engagement.create({ type: "share", user: userId, knowledge: id });
       await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
       return res.json({ success: true, message: "Connaissance partagée", shareCount: (knowledge.shareCount || 0) + 1 });

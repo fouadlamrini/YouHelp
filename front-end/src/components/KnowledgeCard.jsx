@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FiGlobe,
   FiX,
@@ -14,13 +14,18 @@ import {
   FiPlay,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
+import { knowledgeApi, knowledgeCommentApi, favoritesApi } from "../services/api";
 
-const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick }) => {
+const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh }) => {
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const isFavorite = onFavoriteClick ? isFavoriteProp : liked;
+  const [isFavorite, setIsFavorite] = useState(isFavoriteProp);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
   const media = Array.isArray(data.media)
     ? data.media
     : data.mediaUrl
@@ -28,14 +33,96 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
     : [];
   const hasMedia = media.length > 0;
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const categoryLabel =
+    (data.category && typeof data.category === "object" && data.category.name) ||
+    data.category ||
+    "";
+  const subCategoryLabel =
+    (data.subCategory && typeof data.subCategory === "object" && data.subCategory.name) ||
+    data.subCategory ||
+    "";
+
+  useEffect(() => {
+    if (!data.id) return;
+    favoritesApi
+      .check("knowledge", data.id)
+      .then((r) => setIsFavorite(!!r.data?.isFavorite))
+      .catch(() => setIsFavorite(false));
+  }, [data.id]);
+
+  useEffect(() => {
+    setIsFavorite(isFavoriteProp);
+  }, [isFavoriteProp]);
+
+  const loadComments = () => {
+    if (!data.id) return Promise.resolve();
+    return knowledgeCommentApi
+      .getByKnowledge(data.id)
+      .then((r) => setComments(r.data?.data ?? r.data ?? []))
+      .catch(() => setComments([]));
+  };
   
   // State dyal l-Menu (Update/Delete)
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleSendComment = () => {
-    if (commentText.trim()) {
-      setCommentText("");
+  const handleToggleComments = () => {
+    const next = !showComments;
+    setShowComments(next);
+    if (next && data.id) {
+      setLoadingComments(true);
+      loadComments().finally(() => setLoadingComments(false));
     }
+  };
+
+  const handleSendComment = () => {
+    const trimmed = (commentText || "").trim();
+    if (!trimmed || !data.id || sendingComment) return;
+    setSendingComment(true);
+    knowledgeCommentApi
+      .create(data.id, { content: trimmed })
+      .then(() => {
+        setCommentText("");
+        return loadComments();
+      })
+      .then(() => onRefresh?.())
+      .catch(() => {})
+      .finally(() => setSendingComment(false));
+  };
+
+  const handleFavoriteClick = () => {
+    if (!data.id || loadingFavorite) return;
+    setLoadingFavorite(true);
+    const done = () => setLoadingFavorite(false);
+    if (isFavorite) {
+      favoritesApi
+        .remove({ contentType: "knowledge", contentId: data.id })
+        .then(() => {
+          setIsFavorite(false);
+          onFavoriteClick?.(false);
+          onRefresh?.();
+        })
+        .catch(() => {})
+        .finally(done);
+    } else {
+      favoritesApi
+        .add({ contentType: "knowledge", contentId: data.id })
+        .then(() => {
+          setIsFavorite(true);
+          onFavoriteClick?.(true);
+          onRefresh?.();
+        })
+        .catch(() => {})
+        .finally(done);
+    }
+  };
+
+  const handleShare = () => {
+    if (!data.id) return;
+    knowledgeApi
+      .share(data.id)
+      .then(() => onRefresh?.())
+      .catch(() => {});
   };
 
   return (
@@ -53,10 +140,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                 <h4 className="text-[15px] font-black text-slate-900 leading-none">{data.userName}</h4>
                 <div className="flex gap-1.5 items-center ml-1">
                   <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter shadow-sm shadow-indigo-100">
-                    {data.category}
+                    {categoryLabel}
                   </span>
                   <span className="bg-slate-100 text-slate-600 text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter border border-slate-200">
-                    {data.subCategory}
+                    {subCategoryLabel}
                   </span>
                 </div>
               </div>
@@ -185,19 +272,31 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         {/* ACTIONS */}
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
           <button
-            onClick={() => (onFavoriteClick ? onFavoriteClick() : setLiked(!liked))}
-            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${isFavorite ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-rose-500"}`}
+            onClick={handleFavoriteClick}
+            disabled={loadingFavorite}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
+              isFavorite ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-rose-500"
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
           >
             <FiHeart className={isFavorite ? "fill-rose-600" : ""} size={16} />
             <span className="text-[11px] font-black uppercase">Favorite</span>
           </button>
           
-          <button onClick={() => setShowComments(!showComments)} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${showComments ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'}`}>
+          <button
+            onClick={handleToggleComments}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
+              showComments ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-indigo-600"
+            }`}
+          >
             <FiMessageCircle size={16} />
             <span className="text-[11px] font-black uppercase tracking-tight">Comment</span>
           </button>
 
-          <button className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all"
+          >
             <FiShare2 size={16} />
             <span className="text-[11px] font-black uppercase tracking-tight">Share</span>
           </button>
@@ -215,13 +314,25 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                   placeholder="Share your thoughts..." 
                   className="w-full bg-white border border-slate-200 rounded-full py-2 px-5 pr-20 text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm"
                 />
-                <button onClick={handleSendComment} className="absolute right-2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+                <button
+                  onClick={handleSendComment}
+                  disabled={sendingComment}
+                  className="absolute right-2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
                   <FiSend size={14} />
                 </button>
               </div>
             </div>
             <div className="space-y-1">
-              {data.comments?.map(comment => <CommentItem key={comment.id} comment={comment} />)}
+              {loadingComments ? (
+                <p className="px-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Chargement des commentaires...
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <CommentItem key={comment._id || comment.id} comment={comment} />
+                ))
+              )}
             </div>
           </div>
         )}
