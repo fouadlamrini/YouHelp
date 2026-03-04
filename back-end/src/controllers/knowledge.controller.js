@@ -80,7 +80,7 @@ class KnowledgeController {
     try {
       const knowledge = await Knowledge.find()
         .sort({ createdAt: -1 })
-        .populate("author", "name email role")
+        .populate("author", "name email role profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -99,7 +99,7 @@ class KnowledgeController {
       const { id } = req.params;
 
       const knowledge = await Knowledge.findById(id)
-        .populate("author", "name email role")
+        .populate("author", "name email role profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");

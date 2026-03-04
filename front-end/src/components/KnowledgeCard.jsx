@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   FiGlobe,
   FiX,
@@ -12,11 +12,31 @@ import {
   FiTrash2,
   FiFileText,
   FiPlay,
+  FiSmile,
+  FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
-import { knowledgeApi, knowledgeCommentApi, favoritesApi } from "../services/api";
+import { knowledgeApi, knowledgeCommentApi, favoritesApi, commentApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+
+const API_BASE = "http://localhost:3000";
+
+const resolveAvatarUrl = (src) => {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+};
+
+const EMOJI_LIST = [
+  "😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣",
+  "✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔",
+  "💡","📌","⭐","🎯"
+];
 
 const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh }) => {
+  const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -33,6 +53,15 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
     : [];
   const hasMedia = media.length > 0;
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const [commentMediaFiles, setCommentMediaFiles] = useState([]);
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
+  const commentInputRef = useRef(null);
+  const commentFileInputRef = useRef(null);
+
+  const myAvatar = user?.profilePicture
+    ? resolveAvatarUrl(user.profilePicture)
+    : (data.userAvatar || resolveAvatarUrl("default-avatar.jpg"));
 
   const categoryLabel =
     (data.category && typeof data.category === "object" && data.category.name) ||
@@ -76,18 +105,48 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleSendComment = () => {
-    const trimmed = (commentText || "").trim();
-    if (!trimmed || !data.id || sendingComment) return;
+    const hasText = (commentText || "").trim().length > 0;
+    const hasMedia = commentMediaFiles.length > 0;
+    if (!data.id || (!hasText && !hasMedia) || sendingComment) return;
+
     setSendingComment(true);
-    knowledgeCommentApi
-      .create(data.id, { content: trimmed })
+    const content = hasText ? commentText.trim() : " ";
+
+    const req = hasMedia
+      ? (() => {
+          const formData = new FormData();
+          formData.append("content", content);
+          commentMediaFiles.forEach((file) => formData.append("media", file));
+          return knowledgeCommentApi.create(data.id, formData, formData);
+        })()
+      : knowledgeCommentApi.create(data.id, { content });
+
+    req
       .then(() => {
         setCommentText("");
+        setCommentMediaFiles([]);
         return loadComments();
       })
       .then(() => onRefresh?.())
       .catch(() => {})
       .finally(() => setSendingComment(false));
+  };
+
+  const handleCommentMediaChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setCommentMediaFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const handleRemoveCommentMedia = (index) => {
+    setCommentMediaFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCommentEmojiClick = (emoji) => {
+    setCommentText((prev) => (prev || "") + emoji);
+    setShowCommentEmojiPicker(false);
+    setTimeout(() => commentInputRef.current?.focus(), 0);
   };
 
   const handleFavoriteClick = () => {
@@ -305,22 +364,85 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         {showComments && (
           <div className="bg-slate-50/40 border-t border-slate-100 py-6 animate-in slide-in-from-top-4 duration-500">
             <div className="flex gap-3 px-6 mb-6">
-              <img src="https://i.pravatar.cc/100?u=me" className="w-9 h-9 rounded-full border border-slate-200" alt="me" />
-              <div className="flex-grow relative flex items-center">
-                <input 
-                  type="text" 
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Share your thoughts..." 
-                  className="w-full bg-white border border-slate-200 rounded-full py-2 px-5 pr-20 text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm"
+              <img src={myAvatar} className="w-9 h-9 rounded-full border border-slate-200" alt="me" />
+              <div className="flex-grow">
+                <div className="relative">
+                  <textarea
+                    ref={commentInputRef}
+                    rows={1}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Écrire un commentaire..."
+                    className="w-full bg-white border border-slate-200 rounded-2xl py-2.5 px-4 pr-20 text-sm outline-none focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm resize-none"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowCommentEmojiPicker((v) => !v)}
+                      className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100"
+                    >
+                      <FiSmile size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => commentFileInputRef.current?.click()}
+                      className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100"
+                    >
+                      <FiImage size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendComment}
+                      disabled={sendingComment}
+                      className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <FiSend size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {showCommentEmojiPicker && (
+                  <div className="mt-2 bg-white border border-slate-200 rounded-2xl shadow-lg p-2 flex flex-wrap gap-1 max-w-xs">
+                    {EMOJI_LIST.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => handleCommentEmojiClick(emoji)}
+                        className="text-lg hover:scale-110 transition-transform"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!!commentMediaFiles.length && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {commentMediaFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600"
+                      >
+                        <span className="max-w-40 truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCommentMedia(idx)}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <FiX size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  multiple
+                  ref={commentFileInputRef}
+                  onChange={handleCommentMediaChange}
+                  className="hidden"
                 />
-                <button
-                  onClick={handleSendComment}
-                  disabled={sendingComment}
-                  className="absolute right-2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <FiSend size={14} />
-                </button>
               </div>
             </div>
             <div className="space-y-1">
@@ -330,7 +452,35 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                 </p>
               ) : (
                 comments.map((comment) => (
-                  <CommentItem key={comment._id || comment.id} comment={comment} />
+                  <CommentItem
+                    key={comment._id || comment.id}
+                    comment={comment}
+                    onToggleLike={(id) =>
+                      commentApi
+                        .like(id)
+                        .then(() => loadComments())
+                        .catch(() => {})
+                    }
+                    onReply={(parentId, replyContent, files) => {
+                      const trimmed = (replyContent || "").trim();
+                      if (!trimmed || !data.id) return;
+
+                      if (files?.length) {
+                        const formData = new FormData();
+                        formData.append("content", trimmed);
+                        files.forEach((f) => formData.append("media", f));
+                        return knowledgeCommentApi
+                          .create(data.id, formData, formData)
+                          .then(() => loadComments())
+                          .catch(() => {});
+                      }
+
+                      return knowledgeCommentApi
+                        .create(data.id, { content: trimmed, parentComment: parentId })
+                        .then(() => loadComments())
+                        .catch(() => {});
+                    }}
+                  />
                 ))
               )}
             </div>

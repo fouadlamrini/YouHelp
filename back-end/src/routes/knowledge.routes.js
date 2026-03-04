@@ -15,7 +15,7 @@ router.get("/:knowledgeId/comments", CommentController.getCommentsByKnowledge);
 router.post(
   "/:knowledgeId/comments",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   CommentController.createCommentForKnowledge
 );

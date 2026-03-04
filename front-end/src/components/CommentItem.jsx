@@ -24,7 +24,14 @@ const formatTime = (dateStr) => {
   return d.toLocaleDateString();
 };
 
-const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
+const CommentItem = ({
+  comment,
+  postId,
+  onRefresh,
+  isReply = false,
+  onToggleLike,
+  onReply,
+}) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
@@ -78,7 +85,23 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
   const handleSendReply = () => {
     const hasContent = replyText.trim();
     const hasMedia = replyMediaFiles.length > 0;
-    if ((!hasContent && !hasMedia) || !postId || !onRefresh) return;
+    if (!hasContent && !hasMedia) return;
+
+    // Délégué (ex: Knowledge) via prop onReply
+    if (onReply) {
+      const maybePromise = onReply(comment._id, replyText, replyMediaFiles);
+      setReplyText("");
+      setReplyMediaFiles([]);
+      setIsReplying(false);
+      if (maybePromise && typeof maybePromise.then === "function") {
+        setSendingReply(true);
+        maybePromise.finally(() => setSendingReply(false));
+      }
+      return;
+    }
+
+    // Flux classique Post (API commentApi.createOnPost)
+    if (!postId || !onRefresh) return;
     setSendingReply(true);
     const content = hasContent || " ";
     const hasFiles = replyMediaFiles.length > 0;
@@ -91,18 +114,38 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
           return commentApi.createOnPost(postId, null, formData);
         })()
       : commentApi.createOnPost(postId, { content, parentComment: comment._id });
-    req.then(() => {
-      setReplyText("");
-      setReplyMediaFiles([]);
-      setIsReplying(false);
-      onRefresh();
-    }).catch(() => {}).finally(() => setSendingReply(false));
+    req
+      .then(() => {
+        setReplyText("");
+        setReplyMediaFiles([]);
+        setIsReplying(false);
+        onRefresh();
+      })
+      .catch(() => {})
+      .finally(() => setSendingReply(false));
   };
 
   const handleLike = () => {
-    if (!comment._id || !onRefresh || liking) return;
+    if (!comment._id || liking) return;
+
+    if (onToggleLike) {
+      setLiking(true);
+      const maybePromise = onToggleLike(comment._id);
+      if (maybePromise && typeof maybePromise.then === "function") {
+        maybePromise.finally(() => setLiking(false));
+      } else {
+        setLiking(false);
+      }
+      return;
+    }
+
+    if (!onRefresh) return;
     setLiking(true);
-    commentApi.like(comment._id).then(() => onRefresh()).catch(() => {}).finally(() => setLiking(false));
+    commentApi
+      .like(comment._id)
+      .then(() => onRefresh())
+      .catch(() => {})
+      .finally(() => setLiking(false));
   };
 
   const handleUpdate = () => {
@@ -241,12 +284,12 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
             <button
               type="button"
               onClick={handleLike}
-              disabled={liking || !onRefresh}
+              disabled={liking}
               className="text-[11px] font-black text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-50"
             >
               Like {likeCount > 0 && <span className="text-indigo-600">({likeCount})</span>}
             </button>
-            {isRootComment && onRefresh && postId && (
+            {isRootComment && (onReply || (onRefresh && postId)) && (
               <>
                 <div className="w-1 h-1 bg-slate-200 rounded-full" />
                 <button
@@ -337,6 +380,8 @@ const CommentItem = ({ comment, postId, onRefresh, isReply = false }) => {
                   postId={postId}
                   onRefresh={onRefresh}
                   isReply
+                  onToggleLike={onToggleLike}
+                  onReply={onReply}
                 />
               ))}
             </div>
