@@ -18,6 +18,7 @@ function normalizeUser(data) {
     status: data.status,
     role: data.role?.name ?? data.role,
     profilePicture: data.profilePicture ?? null,
+    completeProfile: data.completeProfile ?? false,
   };
 }
 

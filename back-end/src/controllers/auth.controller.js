@@ -1,5 +1,8 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
+const Campus = require("../models/Campus");
+const Class = require("../models/Class");
+const Level = require("../models/Level");
 const jwt = require("jsonwebtoken");
 const blacklistedTokens = require("../utils/blacklist");
 
@@ -34,6 +37,7 @@ class AuthController {
       } else {
         const etudiantRole = await Role.findOne({ name: "etudiant" });
         if (etudiantRole) role = etudiantRole._id;
+        status = "pending";
       }
 
       const user = await User.create({
@@ -57,7 +61,8 @@ class AuthController {
             email: user.email,
             status: user.status,
             role: roleName,
-            profilePicture: user.profilePicture
+            profilePicture: user.profilePicture,
+            completeProfile: user.completeProfile
           },
           token
         }
@@ -99,7 +104,8 @@ class AuthController {
             email: user.email,
             status: user.status,
             role: roleName,
-            profilePicture: user.profilePicture
+            profilePicture: user.profilePicture,
+            completeProfile: user.completeProfile
           },
           token
         }
@@ -220,6 +226,53 @@ class AuthController {
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "GitHub login failed" });
+    }
+  }
+
+  /** GET options for complete-profile form (campus, class, level) - any authenticated user */
+  async getCompleteProfileOptions(req, res) {
+    try {
+      const [campuses, classes, levels] = await Promise.all([
+        Campus.find().sort({ name: 1 }).lean(),
+        Class.find().sort({ name: 1 }).lean(),
+        Level.find().sort({ name: 1 }).lean(),
+      ]);
+      res.json({ success: true, data: { campuses, classes, levels } });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  /** POST complete profile: campus, class, level, specialite, profilePicture → completeProfile true, status pending */
+  async completeProfile(req, res) {
+    try {
+      const { campus, class: classId, level, specialite, profilePicture } = req.body;
+      const userId = req.user.id;
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.completeProfile) {
+        return res.status(400).json({ message: "Profile already completed" });
+      }
+      const updateData = { completeProfile: true, status: "pending" };
+      if (campus !== undefined) updateData.campus = campus || null;
+      if (classId !== undefined) updateData.class = classId || null;
+      if (level !== undefined) updateData.level = level || null;
+      if (specialite !== undefined) updateData.specialite = specialite || null;
+      if (profilePicture !== undefined) updateData.profilePicture = profilePicture || user.profilePicture;
+      const updated = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+        runValidators: true,
+      })
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name")
+        .populate("level", "name")
+        .select("-password");
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
     }
   }
 }

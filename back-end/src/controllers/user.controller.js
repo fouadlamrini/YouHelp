@@ -6,7 +6,8 @@ async function getCurrentUserWithContext(userId) {
   return User.findById(userId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name");
+    .populate("class", "name")
+    .populate("level", "name");
 }
 
 /** Check if current user can manage target user (for get/update/delete) */
@@ -29,6 +30,35 @@ async function canManage(currentUserDoc, targetUserId, action = "read") {
       return currentUserDoc.class._id.toString() === target.class.toString();
     }
     return true;
+  }
+  return false;
+}
+
+/** Id for comparison (works for populated doc or raw ObjectId) */
+function refId(ref) {
+  if (!ref) return null;
+  return (ref._id || ref).toString();
+}
+
+/** Check if current user can accept target user (admin same campus, super_admin, formateur same campus+class+level) */
+async function canAcceptUser(currentUserDoc, targetUserDoc) {
+  const roleName = currentUserDoc.role?.name || null;
+  if (roleName === "super_admin") return true;
+  if (roleName === "admin") {
+    const currId = refId(currentUserDoc.campus);
+    const tgtId = refId(targetUserDoc.campus);
+    if (!currId || !tgtId) return false;
+    return currId === tgtId;
+  }
+  if (roleName === "formateur") {
+    if (!targetUserDoc.role || targetUserDoc.role.name !== "etudiant") return false;
+    const sameCampus = refId(currentUserDoc.campus) && refId(targetUserDoc.campus) &&
+      refId(currentUserDoc.campus) === refId(targetUserDoc.campus);
+    const sameClass = refId(currentUserDoc.class) && refId(targetUserDoc.class) &&
+      refId(currentUserDoc.class) === refId(targetUserDoc.class);
+    const sameLevel = refId(currentUserDoc.level) && refId(targetUserDoc.level) &&
+      refId(currentUserDoc.level) === refId(targetUserDoc.level);
+    return sameCampus && sameClass && sameLevel;
   }
   return false;
 }
@@ -75,7 +105,7 @@ class UserController {
 
   async updateProfile(req, res) {
     try {
-      const { name, profilePicture, coverPicture, campus, class: classId, level } = req.body;
+      const { name, profilePicture, coverPicture, campus, class: classId, level, specialite } = req.body;
       const updateData = {};
       if (name !== undefined) updateData.name = name;
       if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
@@ -83,6 +113,7 @@ class UserController {
       if (campus !== undefined) updateData.campus = campus || null;
       if (classId !== undefined) updateData.class = classId || null;
       if (level !== undefined) updateData.level = level || null;
+      if (specialite !== undefined) updateData.specialite = specialite || null;
       const user = await User.findByIdAndUpdate(req.user.id, updateData, {
         new: true,
         runValidators: true,
@@ -195,6 +226,36 @@ class UserController {
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  /** Accept user (set status active) - super_admin, admin same campus, formateur same campus+class+level */
+  async acceptUser(req, res) {
+    try {
+      const current = await getCurrentUserWithContext(req.user.id);
+      if (!current) return res.status(401).json({ message: "Unauthorized" });
+      const target = await User.findById(req.params.id)
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name")
+        .populate("level", "name");
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (target.status === "active") {
+        return res.status(400).json({ message: "User already accepted" });
+      }
+      const can = await canAcceptUser(current, target);
+      if (!can) return res.status(403).json({ message: "Forbidden" });
+      await User.findByIdAndUpdate(req.params.id, { status: "active" });
+      const updated = await User.findById(req.params.id)
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name")
+        .populate("level", "name")
+        .select("-password");
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      console.error("acceptUser error:", err);
+      res.status(500).json({ message: err.message || "Server error" });
     }
   }
 

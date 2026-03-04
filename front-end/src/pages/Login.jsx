@@ -42,7 +42,14 @@ const Login = () => {
     setLoading(true);
     try {
       await login(formData.email, formData.password);
-      navigate('/posts');
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (user && !user.completeProfile) {
+        navigate("/complete-profile");
+      } else if (user && user.status !== "active") {
+        navigate("/pending");
+      } else {
+        navigate("/posts");
+      }
     } catch (error) {
       setErrors({ general: "Invalid email or password" });
     } finally {

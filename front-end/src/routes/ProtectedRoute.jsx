@@ -11,6 +11,14 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
+  if (!user.completeProfile) {
+    return <Navigate to="/complete-profile" />;
+  }
+
+  if (user.status !== "active") {
+    return <Navigate to="/pending" />;
+  }
+
   return children;
 };
 

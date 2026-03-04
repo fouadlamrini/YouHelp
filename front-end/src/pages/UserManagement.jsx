@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave } from "react-icons/fi";
+import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave, FiCheck } from "react-icons/fi";
 import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../services/api";
 
 const roleBadgeClass = (roleName) => {
@@ -10,6 +10,12 @@ const roleBadgeClass = (roleName) => {
   if (r === "admin") return "bg-amber-100 text-amber-600";
   if (r === "formateur") return "bg-indigo-100 text-indigo-600";
   return "bg-emerald-100 text-emerald-600";
+};
+
+const statusBadgeClass = (status) => {
+  if (status === "active") return "bg-emerald-100 text-emerald-600";
+  if (status === "rejected") return "bg-rose-100 text-rose-600";
+  return "bg-amber-100 text-amber-600";
 };
 
 const UserManagement = () => {
@@ -143,6 +149,13 @@ const UserManagement = () => {
       .delete(user._id)
       .then(() => fetchUsers())
       .catch((err) => alert(err.response?.data?.message || "Erreur"));
+  };
+
+  const handleAcceptUser = (user) => {
+    usersApi
+      .acceptUser(user._id)
+      .then(() => fetchUsers())
+      .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
   };
 
   const openEditModal = (user) => {
@@ -395,6 +408,9 @@ const UserManagement = () => {
                           <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Détails
                           </th>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Statut
+                          </th>
                           <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-10">
                             Actions
                           </th>
@@ -403,7 +419,7 @@ const UserManagement = () => {
                       <tbody className="divide-y divide-slate-50">
                         {filteredUsers.length === 0 ? (
                           <tr>
-                            <td colSpan={3} className="p-8 text-center text-slate-400 text-sm">
+                            <td colSpan={4} className="p-8 text-center text-slate-400 text-sm">
                               Aucun utilisateur.
                             </td>
                           </tr>
@@ -447,7 +463,27 @@ const UserManagement = () => {
                                 </div>
                               </td>
                               <td className="p-6">
+                                <span
+                                  className={
+                                    "text-[9px] font-black uppercase px-2 py-1 rounded-md " +
+                                    statusBadgeClass(user.status)
+                                  }
+                                >
+                                  {user.status === "active" ? "Actif" : user.status === "rejected" ? "Refusé" : "En attente"}
+                                </span>
+                              </td>
+                              <td className="p-6">
                                 <div className="flex justify-end gap-2 pr-4">
+                                  {user.status === "pending" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAcceptUser(user)}
+                                      className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                      title="Accepter"
+                                    >
+                                      <FiCheck size={14} />
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => openEditModal(user)}

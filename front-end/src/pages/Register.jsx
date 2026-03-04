@@ -9,7 +9,7 @@ export default function RegisterYouHelp() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { register } = useContext(AuthContext);
+  const { register, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,12 +39,16 @@ export default function RegisterYouHelp() {
       });
       
       if (response.data?.success) {
-        navigate('/login');
+        const { user: userData, token } = response.data.data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
+        navigate("/complete-profile");
       } else {
-        setErrors({ general: response.data?.message || 'Registration failed' });
+        setErrors({ general: response.data?.message || "Registration failed" });
       }
     } catch (error) {
-      setErrors({ general: error.response?.data?.message || 'Registration failed' });
+      setErrors({ general: error.response?.data?.message || "Registration failed" });
     } finally {
       setLoading(false);
     }

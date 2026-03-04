@@ -31,6 +31,8 @@ export const authApi = {
   login: (data) => api.post("/auth/login", data),
   logout: () => api.post("/auth/logout"),
   changePassword: (data) => api.post("/auth/change-password", data),
+  getCompleteProfileOptions: () => api.get("/auth/complete-profile-options"),
+  completeProfile: (data) => api.put("/auth/complete-profile", data),
 };
 
 // —— Profile & Users ——
@@ -42,6 +44,7 @@ export const usersApi = {
   create: (data) => api.post("/users", data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
+  acceptUser: (id) => api.put(`/users/${id}/accept`),
 };
 
 // —— Avatars (built-in + upload) ——

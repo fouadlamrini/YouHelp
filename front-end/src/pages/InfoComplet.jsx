@@ -1,192 +1,277 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUser, FiMapPin, FiLayers, FiBookOpen, FiSend, FiChevronDown, FiLogOut, FiArrowLeft, FiTag } from "react-icons/fi";
+import {
+  FiUser,
+  FiMapPin,
+  FiLayers,
+  FiBookOpen,
+  FiSend,
+  FiChevronDown,
+  FiLogOut,
+  FiArrowLeft,
+  FiCamera,
+} from "react-icons/fi";
+import { AuthContext } from "../context/AuthContext";
+import api, { authApi, avatarsApi } from "../services/api";
+
+const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
+
+function resolveAvatarUrl(src) {
+  if (!src) return `${API_ORIGIN}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_ORIGIN}${src}`;
+  return `${API_ORIGIN}/avatars/${src}`;
+}
 
 const InfoComplet = () => {
+  const { user, setUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [options, setOptions] = useState({ campuses: [], classes: [], levels: [] });
+  const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [formData, setFormData] = useState({
     campus: "",
-    className: "", 
-    nickName: "",
+    class: "",
     level: "",
-    role: ""
+    specialite: "",
+    profilePicture: "",
   });
 
-  // Data dyal les classes m9sma
-  const classNames = ["Javascript", "Java", "PHP", "Python", "C#"];
-  const nickNames = ["Mernerds", "Javador", "DarHamza", "Pythoneers", "C-Sharpers"];
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.role) {
-      alert("Veuillez choisir votre rôle !");
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
       return;
     }
-    console.log("Données envoyées:", formData);
-    alert("Profil soumis avec succès !");
+    if (user.completeProfile) {
+      navigate(user.status === "active" ? "/posts" : "/pending");
+      return;
+    }
+    authApi
+      .getCompleteProfileOptions()
+      .then((res) => setOptions(res.data?.data ?? { campuses: [], classes: [], levels: [] }))
+      .catch(() => setOptions({ campuses: [], classes: [], levels: [] }))
+      .finally(() => setLoading(false));
+  }, [user, navigate]);
+
+  const handleConfirm = async (e) => {
+    e.preventDefault();
+    if (!formData.campus || !formData.class || !formData.level) {
+      alert("Veuillez remplir Campus, Classe et Niveau.");
+      return;
+    }
+    setSubmitLoading(true);
+    try {
+      const res = await authApi.completeProfile({
+        campus: formData.campus || null,
+        class: formData.class || null,
+        level: formData.level || null,
+        specialite: formData.specialite || null,
+        profilePicture: formData.profilePicture || undefined,
+      });
+      const updated = res.data?.data;
+      if (updated) {
+        const normalized = {
+          id: updated._id,
+          name: updated.name,
+          email: updated.email,
+          status: updated.status,
+          role: updated.role?.name ?? updated.role,
+          profilePicture: updated.profilePicture ?? null,
+          completeProfile: updated.completeProfile ?? true,
+        };
+        setUser(normalized);
+        localStorage.setItem("user", JSON.stringify(normalized));
+      }
+      navigate("/pending");
+    } catch (err) {
+      alert(err.response?.data?.message || "Erreur lors de l'envoi.");
+    } finally {
+      setSubmitLoading(false);
+    }
   };
+
+  const handleIgnore = () => {
+    navigate("/");
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await avatarsApi.upload(file);
+      const url = res.data?.data?.url;
+      if (url) setFormData((prev) => ({ ...prev, profilePicture: url }));
+    } catch (_) {}
+  };
+
+  if (!user || user.completeProfile) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans flex items-center justify-center p-4 py-12 relative overflow-hidden text-left">
-      
-      {/* Background Decoration */}
-      <div className="absolute top-0 right-0 w-1/2 h-full bg-indigo-500/5 -skew-x-12 translate-x-32"></div>
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-indigo-500/5 -skew-x-12 translate-x-32" />
 
       <main className="max-w-3xl w-full relative z-10">
-        
-        {/* TOP ACTIONS */}
         <div className="flex justify-between items-center mb-8 px-6">
-          <button 
-            onClick={() => navigate('/pending')}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
             className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-all"
           >
-            <FiArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform"/> Retour
+            <FiArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Retour
           </button>
-          
-          <button 
-            onClick={() => navigate('/login')}
+          <button
+            type="button"
+            onClick={() => { logout(); navigate("/login"); }}
             className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-rose-400 hover:text-rose-600 transition-all"
           >
-            <FiLogOut size={16} className="group-hover:translate-x-1 transition-transform"/> Déconnexion
+            <FiLogOut size={16} className="group-hover:translate-x-1 transition-transform" /> Déconnexion
           </button>
         </div>
 
         <div className="bg-white rounded-[4rem] p-10 md:p-16 shadow-2xl shadow-indigo-200/20 border border-white/50">
-          
-          {/* HEADER */}
           <div className="text-center mb-12">
             <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-3">
-              Finaliser l'inscription
+              Compléter mon profil
             </h1>
-            <div className="h-1.5 w-20 bg-indigo-600 mx-auto rounded-full mb-4"></div>
+            <div className="h-1.5 w-20 bg-indigo-600 mx-auto rounded-full mb-4" />
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
-              Informations académiques requises
+              Campus, classe, niveau, spécialité et photo
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            
-            {/* CAMPUS (Full Width) */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
-                <FiMapPin className="text-indigo-500" /> Votre Campus
+          <form onSubmit={handleConfirm} className="space-y-8">
+            {/* Photo de profil */}
+            <div className="flex flex-col items-center gap-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <FiCamera className="text-indigo-500" /> Photo de profil
               </label>
               <div className="relative">
-                <select 
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-indigo-100 bg-slate-100">
+                  <img
+                    src={formData.profilePicture ? resolveAvatarUrl(formData.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                    alt="profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full cursor-pointer shadow-lg">
+                  <FiCamera size={16} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Campus */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
+                <FiMapPin className="text-indigo-500" /> Campus
+              </label>
+              <div className="relative">
+                <select
                   required
+                  value={formData.campus}
                   className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                  onChange={(e) => setFormData({...formData, campus: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, campus: e.target.value })}
                 >
                   <option value="">Sélectionner le campus</option>
-                  <option value="Safi">YouCode Safi</option>
-                  <option value="Youssoufia">YouCode Youssoufia</option>
-                  <option value="Nador">YouCode Nador</option>
+                  {options.campuses.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
                 </select>
-                <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400" />
+                <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </div>
 
-            {/* CLASS NAME & NICKNAME (Grid) */}
+            {/* Classe & Niveau */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
-                  <FiLayers className="text-indigo-500" /> Nom de Classe
+                  <FiLayers className="text-indigo-500" /> Classe
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     required
+                    value={formData.class}
                     className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                    onChange={(e) => setFormData({...formData, className: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, class: e.target.value })}
                   >
-                    <option value="">Ex: Javascript</option>
-                    {classNames.map(name => <option key={name} value={name}>{name}</option>)}
+                    <option value="">Sélectionner la classe</option>
+                    {options.classes.map((c) => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
                   </select>
-                  <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
-                  <FiTag className="text-indigo-500" /> Nickname de Classe
-                </label>
-                <div className="relative">
-                  <select 
-                    required
-                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                    onChange={(e) => setFormData({...formData, nickName: e.target.value})}
-                  >
-                    <option value="">Ex: Mernerds</option>
-                    {nickNames.map(nick => <option key={nick} value={nick}>{nick}</option>)}
-                  </select>
-                  <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* LEVEL & ROLE (Grid) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
                   <FiBookOpen className="text-indigo-500" /> Niveau
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     required
+                    value={formData.level}
                     className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                    onChange={(e) => setFormData({...formData, level: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value })}
                   >
-                    <option value="">Promotion</option>
-                    <option value="P1">Année 01 (P1)</option>
-                    <option value="P2">Année 02 (P2)</option>
+                    <option value="">Sélectionner le niveau</option>
+                    {options.levels.map((l) => (
+                      <option key={l._id} value={l._id}>{l.name}</option>
+                    ))}
                   </select>
-                  <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
-                  <FiUser className="text-indigo-500" /> Je suis
-                </label>
-                <div className="flex gap-3 h-[60px]">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, role: "etudiant"})}
-                    className={`flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border-2 ${
-                      formData.role === 'etudiant' 
-                      ? 'bg-slate-900 border-slate-900 text-white shadow-lg' 
-                      : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
-                  >
-                    Étudiant
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, role: "formateur"})}
-                    className={`flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border-2 ${
-                      formData.role === 'formateur' 
-                      ? 'bg-slate-900 border-slate-900 text-white shadow-lg' 
-                      : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
-                  >
-                    Formateur
-                  </button>
+                  <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
             </div>
 
-            {/* SUBMIT BUTTON */}
-            <div className="pt-10">
-              <button 
+            {/* Spécialité */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
+                <FiUser className="text-indigo-500" /> Spécialité
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Développement Web"
+                value={formData.specialite}
+                className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 transition-all"
+                onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
+              />
+            </div>
+
+            {/* Boutons */}
+            <div className="pt-6 flex flex-col sm:flex-row gap-4">
+              <button
                 type="submit"
-                className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-4 group"
+                disabled={submitLoading}
+                className="flex-1 bg-indigo-600 text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-4 group disabled:opacity-50"
               >
-                Confirmer mes informations
-                <FiSend size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                {submitLoading ? "Envoi..." : "Confirmer mes informations"}
+                <FiSend size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                type="button"
+                onClick={handleIgnore}
+                className="flex-1 bg-slate-100 text-slate-700 py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:bg-slate-200 transition-all border-2 border-slate-200"
+              >
+                Ignorer
               </button>
             </div>
           </form>
         </div>
 
         <p className="mt-10 text-center text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
-          YouHelp &copy; 2026 • Accès Sécurisé
+          YouHelp &copy; 2026 • Accès après validation
         </p>
       </main>
     </div>

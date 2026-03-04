@@ -33,6 +33,12 @@ router.put(
   requireRole(["super_admin", "admin", "formateur"]),
   controller.update
 );
+router.put(
+  "/:id/accept",
+  auth,
+  requireRole(["super_admin", "admin", "formateur"]),
+  controller.acceptUser
+);
 router.delete(
   "/:id",
   auth,

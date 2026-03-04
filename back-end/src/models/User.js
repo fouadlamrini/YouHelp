@@ -26,7 +26,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'active', 'rejected'],
       default: 'pending'
-    }
+    },
+    completeProfile: { type: Boolean, default: false },
+    specialite: { type: String, default: null }
 
   },
   { timestamps: true },

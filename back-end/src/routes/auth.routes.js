@@ -8,6 +8,8 @@ router.post("/register", controller.register);
 router.post("/login", controller.login);
 router.post("/logout", controller.logout);
 router.post("/change-password", auth, controller.changePassword);
+router.get("/complete-profile-options", auth, controller.getCompleteProfileOptions);
+router.put("/complete-profile", auth, controller.completeProfile);
 
 // ==================== Google OAuth ======================
 router.get("/google",
