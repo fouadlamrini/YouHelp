@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const Role = require("./Role");
 
 const userSchema = new mongoose.Schema(
   {
@@ -33,8 +34,12 @@ const userSchema = new mongoose.Schema(
 
 
 userSchema.pre("save", async function () {
-  if (this.isModified("password")) {
+  if (this.isModified("password") && this.password) {
     this.password = await bcrypt.hash(this.password, 10);
+  }
+  if (!this.role) {
+    const etudiantRole = await Role.findOne({ name: "etudiant" });
+    if (etudiantRole) this.role = etudiantRole._id;
   }
 });
 

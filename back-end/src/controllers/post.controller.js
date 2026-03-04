@@ -64,12 +64,6 @@ class PostController {
     if (!req.user) return { _id: -1 };
     const role = req.user.role;
     if (role === "super_admin") return {};
-    if (role == null) {
-      const campusId = req.query.campus;
-      if (!campusId) return { _id: -1 };
-      const authorIds = await User.find({ campus: campusId }).distinct("_id");
-      return { author: { $in: authorIds } };
-    }
     const current = await User.findById(req.user.id).populate("campus class level");
     if (!current) return { _id: -1 };
     if (role === "admin") {
@@ -309,11 +303,6 @@ class PostController {
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
-      if (req.user?.role == null) {
-        return res.status(403).json({
-          message: "Access restricted: request admin for reaction access",
-        });
-      }
       const post = await Post.findById(id).populate("author");
       if (!post) return res.status(404).json({ message: "Post not found" });
       const userId = req.user.id;

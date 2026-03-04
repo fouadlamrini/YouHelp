@@ -62,14 +62,7 @@ const OAuthCallback = () => {
           
           // Small delay to ensure state is updated
           setTimeout(() => {
-            // Redirect based on role
-            if (user.role === null) {
-              console.log('OAuth Callback - Redirecting to /pending');
-              navigate('/pending');
-            } else {
-              console.log('OAuth Callback - Redirecting to /posts');
-              navigate('/posts');
-            }
+            navigate('/posts');
           }, 100);
         } else {
           console.log('OAuth Callback - No token or user found, redirecting to login');

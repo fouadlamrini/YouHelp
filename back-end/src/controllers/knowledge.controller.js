@@ -74,7 +74,7 @@ class KnowledgeController {
 
   // ===== READ =====
   // Récupérer toutes les connaissances
-  // - Accessible à tous (y compris utilisateurs sans role en lecture seule)
+  // - Accessible à tous en lecture
   // - Retourne les connaissances avec les détails de l'auteur, catégorie, etc.
   async getAllKnowledge(req, res) {
     try {
@@ -93,7 +93,7 @@ class KnowledgeController {
   }
 
   // Récupérer une connaissance par ID
-  // - Accessible à tous (y compris utilisateurs sans role en lecture seule)
+  // - Accessible à tous en lecture
   async getKnowledgeById(req, res) {
     try {
       const { id } = req.params;
@@ -255,16 +255,10 @@ class KnowledgeController {
 
   // ===== REACTIONS =====
   // Ajouter/retirer une réaction (like) sur une connaissance
-  // - Seuls les utilisateurs avec role peuvent réagir
   // - Toggle: si l'utilisateur a déjà réagi, on retire la réaction, sinon on l'ajoute
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
-      if (req.user?.role == null) {
-        return res.status(403).json({
-          message: "Accès refusé: demander le rôle approprié pour réagir",
-        });
-      }
       const knowledge = await Knowledge.findById(id);
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;
@@ -293,16 +287,10 @@ class KnowledgeController {
 
   // ===== SHARES =====
   // Ajouter un partage sur une connaissance
-  // - Seuls les utilisateurs avec role peuvent partager
   // - Chaque clic = un nouveau partage (pas de toggle)
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
-      if (req.user?.role == null) {
-        return res.status(403).json({
-          message: "Accès refusé: demander le rôle approprié pour partager",
-        });
-      }
       const knowledge = await Knowledge.findById(id);
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;

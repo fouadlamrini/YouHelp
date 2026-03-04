@@ -11,10 +11,6 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  if (user.role === null) {
-    return <Navigate to="/pending" />;
-  }
-
   return children;
 };
 

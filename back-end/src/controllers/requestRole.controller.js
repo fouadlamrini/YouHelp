@@ -153,7 +153,8 @@ async requestRole(req, res) {
       if (request.status !== "pending") {
         return res.status(400).json({ message: "Request already reviewed" });
       }
-      if (request.user.role != null) {
+      const requestUserRoleName = request.user.role?.name || null;
+      if (requestUserRoleName && requestUserRoleName !== "etudiant") {
         return res.status(400).json({ message: "User already has a role" });
       }
       const currentUser = await User.findById(req.user.id)
@@ -188,7 +189,8 @@ async requestRole(req, res) {
       if (request.status !== "pending") {
         return res.status(400).json({ message: "Request already reviewed" });
       }
-      if (request.user.role != null) {
+      const requestUserRoleNameForEtudiant = request.user.role?.name || null;
+      if (requestUserRoleNameForEtudiant === "super_admin" || requestUserRoleNameForEtudiant === "admin") {
         return res.status(400).json({ message: "User already has a role" });
       }
       const currentUser = await User.findById(req.user.id)

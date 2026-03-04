@@ -1,12 +1,36 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   FiUser, FiSettings, FiBell, FiMail, FiUserPlus,  FiBookOpen, FiLogOut,
   FiEdit ,FiCalendar
 } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
+
+const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
+
+function resolveAvatarUrl(src) {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+}
 
 function NavbarLoggedIn() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
+
+  const handleLogout = async () => {
+    setActiveDropdown(null);
+    try {
+      await logout();
+      navigate("/login");
+    } catch (e) {
+      navigate("/login");
+    }
+  };
 
   const toggleDropdown = (name) => {
     setActiveDropdown(activeDropdown === name ? null : name);
@@ -99,14 +123,20 @@ function NavbarLoggedIn() {
 
         <div className="h-8 w-[1px] bg-slate-100 mx-1"></div>
 
-        {/* PROFILE DROPDOWN */}
+        {/* PROFILE DROPDOWN - name and image from database (user context) */}
         <div className="relative nav-dropdown-container">
           <button onClick={() => toggleDropdown('settings')} className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 transition-all group shadow-sm">
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-100 flex-shrink-0">
-              <img src="https://i.pravatar.cc/150?u=youcoder" alt="profile" className="w-full h-full object-cover" />
+              <img
+                src={user?.profilePicture ? resolveAvatarUrl(user.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                alt="profile"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="hidden md:block text-left mr-1">
-              <p className="text-[12px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">Fouad Lamrini</p>
+              <p className="text-[12px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">
+                {user?.name || "Utilisateur"}
+              </p>
             </div>
           </button>
 
@@ -120,7 +150,11 @@ function NavbarLoggedIn() {
                   <FiSettings size={16} /> Paramètres
                 </Link>
                 <div className="h-[1px] bg-slate-50 my-1 mx-2"></div>
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                >
                   <FiLogOut size={16} /> Déconnexion
                 </button>
               </div>

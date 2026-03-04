@@ -2,14 +2,14 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/requestRole.controller");
 const auth = require("../middlewares/auth.middleware");
-const { requireRole, requireNoRole } = require("../middlewares/role.middleware");
+const { requireRole } = require("../middlewares/role.middleware");
 
-/* ================= USER (only role=null can send request = demande etudiant) ================= */
+/* ================= USER (only etudiant can send role change request) ================= */
 
 router.post(
   "/request-role",
   auth,
-  requireNoRole,
+  requireRole(["etudiant"]),
   controller.requestRole
 );
 

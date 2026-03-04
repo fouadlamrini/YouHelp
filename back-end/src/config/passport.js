@@ -18,7 +18,7 @@ passport.use(
         let user = await User.findOne({ email: profile.emails[0].value });
 
         if (!user) {
-          const defaultRole = await Role.findOne({ name: "connected" });
+          const defaultRole = await Role.findOne({ name: "etudiant" });
           user = await User.create({
             name: profile.displayName,
             email: profile.emails[0].value,
@@ -59,7 +59,7 @@ passport.use(
         }
 
         if (!user) {
-          const defaultRole = await Role.findOne({ name: "connected" });
+          const defaultRole = await Role.findOne({ name: "etudiant" });
           user = await User.create({
             name: profile.username,
             email: email || null,

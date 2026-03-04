@@ -20,7 +20,7 @@ class AuthController {
       const userCount = await User.countDocuments();
 
       let role = null;
-      let roleName = null;
+      let roleName = "etudiant";
       let status = undefined;
 
       if (userCount === 0) {
@@ -31,6 +31,9 @@ class AuthController {
         role = superAdminRole._id;
         roleName = superAdminRole.name;
         status = "active";
+      } else {
+        const etudiantRole = await Role.findOne({ name: "etudiant" });
+        if (etudiantRole) role = etudiantRole._id;
       }
 
       const user = await User.create({
@@ -53,7 +56,8 @@ class AuthController {
             name: user.name,
             email: user.email,
             status: user.status,
-            role: roleName
+            role: roleName,
+            profilePicture: user.profilePicture
           },
           token
         }
@@ -76,7 +80,7 @@ class AuthController {
       if (!matched)
         return res.status(400).json({ message: "Invalid credentials" });
 
-      let roleName = null;
+      let roleName = "etudiant";
       if (user.role) {
         const roleDocument = await Role.findById(user.role);
         if (roleDocument) roleName = roleDocument.name;
@@ -94,7 +98,8 @@ class AuthController {
             name: user.name,
             email: user.email,
             status: user.status,
-            role: roleName
+            role: roleName,
+            profilePicture: user.profilePicture
           },
           token
         }
@@ -156,7 +161,7 @@ class AuthController {
     try {
       console.log('Google OAuth Callback - User:', req.user);
       const user = req.user;
-      let roleName = null;
+      let roleName = "etudiant";
 
       if (user.role) {
         const roleDocument = await Role.findById(user.role);
@@ -170,7 +175,8 @@ class AuthController {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: roleName
+        role: roleName,
+        profilePicture: user.profilePicture
       };
 
       // Redirect to frontend with token and user data
@@ -188,7 +194,7 @@ class AuthController {
   async githubCallback(req, res) {
     try {
       const user = req.user;
-      let roleName = null;
+      let roleName = "etudiant";
 
       if (user.role) {
         const roleDocument = await Role.findById(user.role);
@@ -202,7 +208,8 @@ class AuthController {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: roleName
+        role: roleName,
+        profilePicture: user.profilePicture
       };
 
       // Redirect to frontend with token and user data

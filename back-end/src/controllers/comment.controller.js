@@ -5,7 +5,6 @@ const Knowledge = require("../models/Knowledge");
 class CommentController {
   /**
    * Crée un commentaire pour un post (ou une réponse si parentComment fourni).
-   * Règles : les users sans role (role=null) ne peuvent pas créer de commentaire.
    */
   async createComment(req, res) {
     try {
@@ -30,14 +29,6 @@ class CommentController {
         if (parent.parentComment) {
           return res.status(400).json({ message: "On ne peut répondre qu'au commentaire principal." });
         }
-      }
-
-      // Vérifier rôle (middleware requireRole est recommandé, mais double-check ici)
-      if (req.user && req.user.role == null) {
-        return res.status(403).json({
-          message:
-            "Accès restreint : demandez l'accès à un administrateur pour commenter",
-        });
       }
 
       // Traiter les fichiers envoyés (même structure que post: dossier images/videos/files)
@@ -84,7 +75,7 @@ class CommentController {
   /**
    * Récupère tous les commentaires d'un post et construit une structure imbriquée
    * Trie les commentaires (et leurs réponses) par nombre de likes décroissant.
-   * Lecture autorisée à tous (même sans role).
+   * Lecture autorisée à tous.
    */
   async getCommentsByPost(req, res) {
     try {
@@ -143,18 +134,10 @@ class CommentController {
 
   /**
    * Toggle like pour un commentaire : si l'utilisateur a déjà liké, on enlève le like, sinon on l'ajoute.
-   * Les users sans role ne peuvent pas liker.
    */
   async toggleLike(req, res) {
     try {
       const { id } = req.params; // id du commentaire
-
-      if (req.user && req.user.role == null) {
-        return res.status(403).json({
-          message:
-            "Accès restreint : demandez l'accès à un administrateur pour liker",
-        });
-      }
 
       const comment = await Comment.findById(id);
       if (!comment)
@@ -335,11 +318,6 @@ class CommentController {
       }
       const knowledge = await Knowledge.findById(knowledgeId);
       if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-      if (req.user && req.user.role == null) {
-        return res.status(403).json({
-          message: "Accès restreint : demandez l'accès à un administrateur pour commenter",
-        });
-      }
       const mediaFiles = (req.files || []).map((file) => {
         let type = "file";
         if (file.mimetype.startsWith("image")) type = "image";
