@@ -120,6 +120,7 @@ export const postApi = {
   getById: (id, params) => api.get(`/post/${id}`, { params }),
   getMyShares: () => api.get("/post/shares/mine"),
   deleteShare: (shareId) => api.delete(`/post/share/${shareId}`),
+  toggleSolved: (id, data) => api.patch(`/post/${id}/solved`, data),
   create: (formData) => api.post("/post", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   update: (id, data) =>
     data instanceof FormData

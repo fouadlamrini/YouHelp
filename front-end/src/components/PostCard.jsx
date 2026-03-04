@@ -72,6 +72,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showSolutionSection, setShowSolutionSection] = useState(false);
+  const [showWriteSolution, setShowWriteSolution] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
@@ -100,6 +101,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   const [commentMediaFiles, setCommentMediaFiles] = useState([]);
   const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
   const isSharedInstance = !!sharedInfo;
+  const [localSolved, setLocalSolved] = useState(rawPost?.isSolved ?? false);
+  const [togglingSolved, setTogglingSolved] = useState(false);
+  const [solutionText, setSolutionText] = useState("");
+
+  useEffect(() => {
+    setLocalSolved(rawPost?.isSolved ?? false);
+  }, [rawPost?.isSolved]);
 
   if (!post || !post.user) return null;
 
@@ -116,12 +124,48 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   }, [post?.id]);
 
   useEffect(() => {
-    if (post.isSolved && post.id) {
+    if (localSolved && post.id) {
       solutionApi.getByPost(post.id).then((r) => setSolution(r.data?.data ?? r.data)).catch(() => setSolution(null));
     } else {
       setSolution(null);
     }
-  }, [post.id, post.isSolved]);
+  }, [post.id, localSolved]);
+
+  const handleToggleSolved = () => {
+    if (readOnly || togglingSolved || !post.id) return;
+    if (!localSolved) {
+      setSolutionText("");
+      setShowWriteSolution(true);
+      return;
+    }
+    setTogglingSolved(true);
+    postApi
+      .toggleSolved(post.id)
+      .then((r) => {
+        const next = r.data?.data?.isSolved ?? !localSolved;
+        setLocalSolved(next);
+        onRefresh?.();
+      })
+      .catch(() => {})
+      .finally(() => setTogglingSolved(false));
+  };
+
+  const handleConfirmSolved = () => {
+    if (readOnly || togglingSolved || !post.id) return;
+    const trimmed = (solutionText || "").trim();
+    if (!trimmed) return;
+    setTogglingSolved(true);
+    postApi
+      .toggleSolved(post.id, { description: trimmed })
+      .then((r) => {
+        const next = r.data?.data?.isSolved ?? true;
+        setLocalSolved(next);
+        setShowWriteSolution(false);
+        onRefresh?.();
+      })
+      .catch(() => {})
+      .finally(() => setTogglingSolved(false));
+  };
 
   const loadComments = () => {
     if (!post.id) return Promise.resolve();
@@ -295,6 +339,51 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative">
+      {showWriteSolution && (
+        <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl shadow-sm">
+                <FiCheckCircle size={20} />
+              </div>
+              <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">Écrire la solution</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowWriteSolution(false)}
+              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-400 transition-all"
+            >
+              <FiX size={24} />
+            </button>
+          </div>
+          <div className="bg-slate-50 border border-slate-100 rounded-[1.5rem] p-5 space-y-4">
+            <textarea
+              value={solutionText}
+              onChange={(e) => setSolutionText(e.target.value)}
+              placeholder="Décris clairement la solution trouvée..."
+              className="w-full min-h-[120px] bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowWriteSolution(false)}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase bg-slate-100 text-slate-600 hover:bg-slate-200"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSolved}
+                disabled={togglingSolved || !solutionText.trim()}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Valider la solution
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSolutionSection && (
         <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
@@ -322,19 +411,31 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-black text-slate-900 leading-none">{post.user.name}</p>
-              {post.isSolved ? (
+              {localSolved ? (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase">
+                  <button
+                    type="button"
+                    onClick={handleToggleSolved}
+                    disabled={readOnly || togglingSolved}
+                    className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase cursor-pointer hover:bg-emerald-100/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    title="Cliquer pour marquer comme non résolu"
+                  >
                     <FiCheckCircle size={10} /> Solved
-                  </div>
-                  <button type="button" onClick={() => setShowSolutionSection(true)} className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">
+                  </button>
+                  <button type="button" onClick={() => setShowSolutionSection(true)} className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50 hover:bg-indigo-100/50">
                     Voir détail
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-full text-[9px] font-black uppercase">
+                <button
+                  type="button"
+                  onClick={handleToggleSolved}
+                  disabled={readOnly || togglingSolved}
+                  className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-full text-[9px] font-black uppercase cursor-pointer hover:bg-red-100/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Cliquer pour marquer comme résolu"
+                >
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Not Solved
-                </div>
+                </button>
               )}
             </div>
             {isSharedInstance && (

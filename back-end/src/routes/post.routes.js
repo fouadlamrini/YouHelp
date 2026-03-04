@@ -19,6 +19,9 @@ router.post(
   PostController.toggleReaction.bind(PostController)
 );
 
+/* ===== SOLVED TOGGLE ===== */
+router.patch("/:id/solved", auth, PostController.toggleSolved.bind(PostController));
+
 /* ===== PARTAGE ===== */
 router.post("/:id/share", auth, PostController.toggleShare.bind(PostController));
 router.delete("/share/:shareId", auth, PostController.deleteShare.bind(PostController));

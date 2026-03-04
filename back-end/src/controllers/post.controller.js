@@ -4,6 +4,7 @@ const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
 const Engagement = require("../models/Engagement");
+const Solution = require("../models/Solution");
 const { areFriends } = require("./friend.controller");
 
 class PostController {
@@ -230,6 +231,77 @@ class PostController {
       res.json({ success: true, message: "Post deleted successfully" });
     } catch (err) {
       console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  /**
+   * Check if current user can toggle solved status.
+   * Allowed: super_admin, post owner, admin (same campus as author), formateur (same campus + class + level as author).
+   */
+  async _canToggleSolved(req, post) {
+    const userId = req.user?.id;
+    if (!userId) return false;
+    if (req.user.role === "super_admin") return true;
+
+    const authorId = post.author?._id?.toString() || post.author?.toString();
+    if (authorId === userId.toString()) return true;
+
+    const role = req.user.role;
+    if (role !== "admin" && role !== "formateur") return false;
+
+    const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
+    const me = await User.findById(userId).populate("campus class level").lean();
+    if (!me || !author) return false;
+
+    const sameCampus = [me.campus?._id ?? me.campus, author.campus?._id ?? author.campus]
+      .every(Boolean) && (me.campus?._id ?? me.campus).toString() === (author.campus?._id ?? author.campus).toString();
+    if (role === "admin") return sameCampus;
+
+    const sameClass = [me.class?._id ?? me.class, author.class?._id ?? author.class]
+      .every(Boolean) && (me.class?._id ?? me.class).toString() === (author.class?._id ?? author.class).toString();
+    const sameLevel = [me.level?._id ?? me.level, author.level?._id ?? author.level]
+      .every(Boolean) && (me.level?._id ?? me.level).toString() === (author.level?._id ?? author.level).toString();
+    return sameCampus && sameClass && sameLevel;
+  }
+
+  async toggleSolved(req, res) {
+    try {
+      const { id } = req.params;
+      const post = await Post.findById(id).populate("author", "campus class level");
+      if (!post) return res.status(404).json({ message: "Post not found" });
+
+      const canToggle = await this._canToggleSolved(req, post);
+      if (!canToggle) {
+        return res.status(403).json({
+          message: "Vous n'êtes pas autorisé à modifier le statut résolu de ce post",
+        });
+      }
+
+      if (post.isSolved) {
+        await Solution.deleteOne({ post: id });
+        await Post.findByIdAndUpdate(id, { isSolved: false });
+        return res.json({ success: true, data: { isSolved: false }, message: "Post marqué comme non résolu" });
+      }
+
+      const rawDescription = req.body?.description;
+      const description =
+        typeof rawDescription === "string" && rawDescription.trim().length > 0
+          ? rawDescription.trim()
+          : "Marqué comme résolu";
+
+      await Solution.create({
+        post: id,
+        description,
+        markedBy: req.user.id,
+      });
+      await Post.findByIdAndUpdate(id, { isSolved: true });
+      return res.json({ success: true, data: { isSolved: true }, message: "Post marqué comme résolu" });
+    } catch (err) {
+      console.error(err);
+      if (err.code === 11000) {
+        return res.status(400).json({ message: "Ce post a déjà une solution" });
+      }
       res.status(500).json({ message: "Server error" });
     }
   }
