@@ -114,7 +114,8 @@ class PostController {
       const withSameContextReactions = await Promise.all(
         posts.map(async (p) => {
           const sameContextReactionCount = await this._sameContextReactionCount(p._id, p.author?._id || p.author);
-          return { ...p.toObject(), sameContextReactionCount };
+          const commentCount = await Comment.countDocuments({ post: p._id });
+          return { ...p.toObject(), sameContextReactionCount, commentCount };
         })
       );
       res.json({ success: true, data: withSameContextReactions });
@@ -140,7 +141,8 @@ class PostController {
         if (!allowed) return res.status(403).json({ message: "Forbidden" });
       }
       const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
-      res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount } });
+      const commentCount = await Comment.countDocuments({ post: req.params.id });
+      res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount } });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });

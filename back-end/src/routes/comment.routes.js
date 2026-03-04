@@ -13,7 +13,7 @@ router.get("/post/:postId", CommentController.getCommentsByPost);
 router.post(
   "/post/:postId",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   CommentController.createComment
 );
@@ -22,7 +22,7 @@ router.post(
 router.post(
   "/:id/like",
   auth,
-  requireRole(["admin", "formateur", "etudiant"]),
+  requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   CommentController.toggleLike
 );
 

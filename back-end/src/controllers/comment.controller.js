@@ -23,6 +23,15 @@ class CommentController {
       const post = await Post.findById(postId);
       if (!post) return res.status(404).json({ message: "Post non trouvé" });
 
+      // Réponse uniquement sur commentaire principal (pas de réponse à une réponse)
+      if (parentComment) {
+        const parent = await Comment.findById(parentComment);
+        if (!parent) return res.status(404).json({ message: "Commentaire parent non trouvé" });
+        if (parent.parentComment) {
+          return res.status(400).json({ message: "On ne peut répondre qu'au commentaire principal." });
+        }
+      }
+
       // Vérifier rôle (middleware requireRole est recommandé, mais double-check ici)
       if (req.user && req.user.role == null) {
         return res.status(403).json({
@@ -60,7 +69,7 @@ class CommentController {
       // Retourner le commentaire créé (simple)
       const populated = await Comment.findById(comment._id).populate(
         "author",
-        "name email"
+        "name email profilePicture"
       );
       return res.status(201).json({ success: true, data: populated });
     } catch (err) {
@@ -80,10 +89,10 @@ class CommentController {
       const post = await Post.findById(postId);
       if (!post) return res.status(404).json({ message: "Post non trouvé" });
 
-      // Récupère tous les commentaires liés à ce post
+      // Récupère tous les commentaires liés à ce post (author avec profilePicture pour l'avatar)
       const comments = await Comment.find({ post: postId }).populate(
         "author",
-        "name email"
+        "name email profilePicture"
       );
 
       // Construire map id->comment et initialiser children
@@ -233,7 +242,7 @@ class CommentController {
 
       const populated = await Comment.findById(comment._id).populate(
         "author",
-        "name email"
+        "name email profilePicture"
       );
       return res.json({ success: true, data: populated });
     } catch (err) {
@@ -345,7 +354,7 @@ class CommentController {
         knowledge.comments.push(comment._id);
         await knowledge.save();
       }
-      const populated = await Comment.findById(comment._id).populate("author", "name email");
+      const populated = await Comment.findById(comment._id).populate("author", "name email profilePicture");
       return res.status(201).json({ success: true, data: populated });
     } catch (err) {
       console.error(err);
@@ -358,7 +367,7 @@ class CommentController {
       const { knowledgeId } = req.params;
       const knowledge = await Knowledge.findById(knowledgeId);
       if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-      const comments = await Comment.find({ knowledge: knowledgeId }).populate("author", "name email");
+      const comments = await Comment.find({ knowledge: knowledgeId }).populate("author", "name email profilePicture");
       const map = {};
       comments.forEach((c) => {
         map[c._id.toString()] = { ...c.toObject(), replies: [] };

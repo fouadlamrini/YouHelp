@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FiHeart,
   FiMessageCircle,
@@ -91,6 +91,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
   const [reacting, setReacting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
+  const commentInputRef = useRef(null);
 
   if (!post || !post.user) return null;
 
@@ -114,19 +115,15 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
     }
   }, [post.id, post.isSolved]);
 
-  const flattenComments = (roots) => {
-    const out = [];
-    (roots || []).forEach((c) => {
-      out.push(c);
-      if (c.replies?.length) out.push(...flattenComments(c.replies));
-    });
-    return out;
+  const loadComments = () => {
+    if (!post.id) return Promise.resolve();
+    return commentApi.getByPost(post.id).then((r) => setComments(r.data?.data ?? r.data ?? [])).catch(() => setComments([]));
   };
 
   useEffect(() => {
     if (showComments && post.id) {
       setLoadingComments(true);
-      commentApi.getByPost(post.id).then((r) => setComments(flattenComments(r.data?.data ?? r.data ?? []))).catch(() => setComments([])).finally(() => setLoadingComments(false));
+      loadComments().finally(() => setLoadingComments(false));
     }
   }, [showComments, post.id]);
 
@@ -227,10 +224,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
     setSendingComment(true);
     commentApi.createOnPost(post.id, { content: commentText.trim() }).then(() => {
       setCommentText("");
-      commentApi.getByPost(post.id).then((r) => setComments(r.data.data || []));
+      loadComments();
       onRefresh?.();
+      setTimeout(() => commentInputRef.current?.focus(), 0);
     }).catch(() => {}).finally(() => setSendingComment(false));
   };
+
+  const commentCount = rawPost?.commentCount ?? 0;
 
   const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
@@ -484,7 +484,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
           disabled={readOnly}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiMessageCircle size={18} /> Commenter
+          <FiMessageCircle size={18} /> Commenter <span className="text-indigo-600">({commentCount})</span>
         </button>
         <button
           type="button"
@@ -516,18 +516,26 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh }) => {
             {loadingComments ? (
               <p className="text-[10px] text-slate-400">Chargement...</p>
             ) : Array.isArray(comments) && comments.length > 0 ? (
-              comments.map((c) => <CommentItem key={c._id || c.id} comment={c} />)
+              comments.map((c) => (
+                <CommentItem
+                  key={c._id || c.id}
+                  comment={c}
+                  postId={post.id}
+                  onRefresh={() => { loadComments(); onRefresh?.(); }}
+                />
+              ))
             ) : (
               <div className="text-[10px] text-slate-400 font-bold uppercase">No comments yet</div>
             )}
             {!readOnly && (
               <div className="flex gap-2">
                 <input
+                  ref={commentInputRef}
                   type="text"
                   placeholder="Écrire un commentaire..."
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendComment(); } }}
                   className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm"
                 />
                 <button
