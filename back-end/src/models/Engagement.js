@@ -18,15 +18,32 @@ const engagementSchema = new mongoose.Schema(
 
 engagementSchema.pre("validate", function (next) {
   if (!this.post && !this.knowledge) {
-    next(new Error("Engagement must have either post or knowledge"));
+    return next(new Error("Engagement must have either post or knowledge"));
   }
   if (this.post && this.knowledge) {
-    next(new Error("Engagement cannot have both post and knowledge"));
+    return next(new Error("Engagement cannot have both post and knowledge"));
   }
-  next();
+  return next();
 });
 
-engagementSchema.index({ type: 1, user: 1, post: 1 }, { unique: true, sparse: true });
-engagementSchema.index({ type: 1, user: 1, knowledge: 1 }, { unique: true, sparse: true });
+// Un seul engagement de type 'reaction' par user/post
+engagementSchema.index(
+  { type: 1, user: 1, post: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { type: "reaction", post: { $ne: null } },
+  }
+);
+
+// Un seul engagement de type 'reaction' par user/knowledge
+engagementSchema.index(
+  { type: 1, user: 1, knowledge: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { type: "reaction", knowledge: { $ne: null } },
+  }
+);
 
 module.exports = mongoose.model("Engagement", engagementSchema);

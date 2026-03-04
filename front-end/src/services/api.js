@@ -118,6 +118,8 @@ export const subcategoryApi = {
 export const postApi = {
   getAll: (params) => api.get("/post", { params }),
   getById: (id, params) => api.get(`/post/${id}`, { params }),
+  getMyShares: () => api.get("/post/shares/mine"),
+  deleteShare: (shareId) => api.delete(`/post/share/${shareId}`),
   create: (formData) => api.post("/post", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   update: (id, data) =>
     data instanceof FormData

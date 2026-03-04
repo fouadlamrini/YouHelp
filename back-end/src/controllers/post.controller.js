@@ -224,6 +224,9 @@ class PostController {
       const post = await Post.findByIdAndDelete(id);
       if (!post) return res.status(404).json({ message: "Post not found" });
 
+      // Cleanup engagements (reactions + shares) related to this post
+      await Engagement.deleteMany({ post: id });
+
       res.json({ success: true, message: "Post deleted successfully" });
     } catch (err) {
       console.error(err);
@@ -279,34 +282,105 @@ class PostController {
     }
   }
 
+  async getMySharedPosts(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Non authentifié" });
+      const engagements = await Engagement.find({
+        type: "share",
+        user: userId,
+        post: { $exists: true, $ne: null },
+      })
+        .sort({ createdAt: -1 })
+        .populate({
+          path: "post",
+          populate: [
+            { path: "author", select: "name email campus class level profilePicture" },
+            { path: "category", select: "name" },
+            { path: "subCategory", select: "name" },
+          ],
+        })
+        .lean();
+      const withMeta = await Promise.all(
+        engagements
+          .filter((e) => e.post)
+          .map(async (e) => {
+            const post = e.post;
+            const sameContextReactionCount = await this._sameContextReactionCount(
+              post._id,
+              post.author?._id || post.author
+            );
+            const commentCount = await Comment.countDocuments({ post: post._id });
+            return {
+              _id: e._id,
+              sharedAt: e.createdAt,
+              post: {
+                ...post,
+                sameContextReactionCount,
+                commentCount,
+              },
+            };
+          })
+      );
+      res.json({ success: true, data: withMeta });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  async deleteShare(req, res) {
+    try {
+      const { shareId } = req.params;
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Non authentifié" });
+
+      const engagement = await Engagement.findOne({
+        _id: shareId,
+        type: "share",
+        user: userId,
+      });
+
+      if (!engagement) {
+        return res.status(404).json({ message: "Partage introuvable" });
+      }
+
+      const postId = engagement.post;
+      await Engagement.deleteOne({ _id: engagement._id });
+
+      if (postId) {
+        await Post.findByIdAndUpdate(postId, {
+          $inc: { shareCount: -1 },
+        });
+      }
+
+      return res.json({ success: true, message: "Partage supprimé" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
-      if (req.user?.role == null) {
-        return res.status(403).json({
-          message: "Accès refusé: demander le rôle approprié pour partager",
-        });
-      }
       const post = await Post.findById(id);
       if (!post) return res.status(404).json({ message: "Post introuvable" });
-      if (post.author.toString() === req.user.id) {
-        return res.status(400).json({ message: "Vous ne pouvez pas partager votre propre post" });
-      }
       const userId = req.user.id;
-      const existing = await Engagement.findOne({ type: "share", user: userId, post: id });
-      if (existing) {
-        await Engagement.deleteOne({ _id: existing._id });
-        await Post.findByIdAndUpdate(id, { $inc: { shareCount: -1 } });
-        return res.json({ success: true, message: "Partage retiré" });
-      }
+      // Chaque clic = un nouveau partage, même sur son propre post
       await Engagement.create({ type: "share", user: userId, post: id });
-      await Post.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
-      return res.status(201).json({ success: true, message: "Post partagé" });
+      const updated = await Post.findByIdAndUpdate(
+        id,
+        { $inc: { shareCount: 1 } },
+        { new: true }
+      );
+      return res.status(201).json({
+        success: true,
+        message: "Post partagé",
+        totalShares: updated?.shareCount ?? post.shareCount + 1,
+      });
     } catch (err) {
       console.error(err);
-      if (err.code === 11000) {
-        return res.status(400).json({ message: "Vous avez déjà partagé ce post" });
-      }
       res.status(500).json({ message: "Erreur serveur" });
     }
   }

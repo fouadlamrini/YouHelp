@@ -17,6 +17,7 @@ import RoleRequestsPage from "./pages/RoleRequestsPage.jsx";
 import MyPost from "./pages/MyPosts.jsx";
 import MyKnowledge from "./pages/MyKnowledge.jsx";
 import MyFavorites from "./pages/MyFavorites.jsx";
+import MyShares from "./pages/MyShares.jsx";
 import InfoComplet from "./pages/InfoComplet.jsx";
 import Stats from "./pages/Stats.jsx";
 import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
@@ -128,6 +129,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <MyFavorites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-shares"
+            element={
+              <ProtectedRoute>
+                <MyShares />
               </ProtectedRoute>
             }
           />

@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   FiCamera, FiEdit2, FiPlus, FiEdit3, 
-  FiHeart, FiBookOpen, FiInfo, FiUsers 
+  FiHeart, FiBookOpen, FiInfo, FiUsers, FiShare2 
 } from "react-icons/fi";
 
 const HeaderProfile = () => {
@@ -11,6 +11,7 @@ const HeaderProfile = () => {
   const tabs = [
     { label: "Mes Posts", to: "/my-posts", icon: <FiEdit3 size={18} /> },
     { label: "Mes Knowledge", to: "/my-knowledge", icon: <FiBookOpen size={18} /> },
+    { label: "Mes Shares", to: "/my-shares", icon: <FiShare2 size={18} /> },
     { label: "Mes Favourites", to: "/my-favourites", icon: <FiHeart size={18} /> },
     { label: "Mes Amis", to: "/profile/friends", icon: <FiUsers size={18} /> },
     { label: "Infos", to: "/profile/info", icon: <FiInfo size={18} /> },
