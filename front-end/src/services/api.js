@@ -212,6 +212,15 @@ export const friendsApi = {
   remove: (userId) => api.delete(`/friends/${userId}`),
 };
 
+// —— Friend requests (invitations) ——
+export const friendRequestsApi = {
+  getReceived: () => api.get("/friend-requests/received"),
+  getAvailableUsers: () => api.get("/friend-requests/available-users"),
+  send: (toUserId) => api.post("/friend-requests", { toUserId }),
+  accept: (id) => api.put(`/friend-requests/${id}/accept`),
+  reject: (id) => api.put(`/friend-requests/${id}/reject`),
+};
+
 // —— Class Join Request ——
 export const classJoinRequestApi = {
   create: (data) => api.post("/class-join-request", data),

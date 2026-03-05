@@ -42,15 +42,19 @@ const InfoComplet = () => {
       navigate("/login");
       return;
     }
-    if (user.completeProfile) {
-      navigate(user.status === "active" ? "/posts" : "/pending");
+    if (user.completeProfile && user.status === "active") {
+      navigate("/posts");
       return;
     }
-    authApi
-      .getCompleteProfileOptions()
-      .then((res) => setOptions(res.data?.data ?? { campuses: [], classes: [], levels: [] }))
-      .catch(() => setOptions({ campuses: [], classes: [], levels: [] }))
-      .finally(() => setLoading(false));
+    if (!user.completeProfile) {
+      authApi
+        .getCompleteProfileOptions()
+        .then((res) => setOptions(res.data?.data ?? { campuses: [], classes: [], levels: [] }))
+        .catch(() => setOptions({ campuses: [], classes: [], levels: [] }))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
   }, [user, navigate]);
 
   const handleConfirm = async (e) => {
@@ -82,7 +86,7 @@ const InfoComplet = () => {
         setUser(normalized);
         localStorage.setItem("user", JSON.stringify(normalized));
       }
-      navigate("/pending");
+      // Rester sur la page : affichage du message d'attente + bouton "Voir les posts"
     } catch (err) {
       alert(err.response?.data?.message || "Erreur lors de l'envoi.");
     } finally {
@@ -91,7 +95,7 @@ const InfoComplet = () => {
   };
 
   const handleIgnore = () => {
-    navigate("/");
+    navigate("/posts");
   };
 
   const handleAvatarUpload = async (e) => {
@@ -104,7 +108,8 @@ const InfoComplet = () => {
     } catch (_) {}
   };
 
-  if (!user || user.completeProfile) return null;
+  if (!user) return null;
+  if (user.completeProfile && user.status === "active") return null;
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -112,6 +117,9 @@ const InfoComplet = () => {
       </div>
     );
   }
+
+  const displayName = user?.name || "Utilisateur";
+  const isWaiting = user.completeProfile && user.status !== "active";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans flex items-center justify-center p-4 py-12 relative overflow-hidden text-left">
@@ -136,10 +144,33 @@ const InfoComplet = () => {
         </div>
 
         <div className="bg-white rounded-[4rem] p-10 md:p-16 shadow-2xl shadow-indigo-200/20 border border-white/50">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-3">
-              Compléter mon profil
+          {/* Message de bienvenue */}
+          <div className="text-center mb-10">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mb-4">
+              Bienvenue {displayName} sur YouHelp !
             </h1>
+            <p className="text-slate-600 font-medium leading-relaxed mb-4">
+              Nous sommes ravis de vous avoir parmi nous. Pour rejoindre pleinement notre communauté d&apos;entraide, nous avons besoin d&apos;en savoir un peu plus sur vous.
+            </p>
+            {isWaiting && (
+              <>
+                <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-sm font-bold mb-8">
+                  Nous attendons qu&apos;un responsable active votre compte pour que vous ayez accès à toutes les fonctionnalités.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/posts")}
+                  className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-wide hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+                >
+                  Voir les posts
+                </button>
+              </>
+            )}
+          </div>
+
+          {!isWaiting && (
+            <>
+          <div className="text-center mb-8">
             <div className="h-1.5 w-20 bg-indigo-600 mx-auto rounded-full mb-4" />
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
               Campus, classe, niveau, spécialité et photo
@@ -268,6 +299,8 @@ const InfoComplet = () => {
               </button>
             </div>
           </form>
+            </>
+          )}
         </div>
 
         <p className="mt-10 text-center text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">

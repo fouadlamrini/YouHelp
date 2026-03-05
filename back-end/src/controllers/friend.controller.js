@@ -1,4 +1,5 @@
 const Friend = require("../models/Friend");
+const FriendRequest = require("../models/FriendRequest");
 const User = require("../models/User");
 
 function normalizePair(a, b) {
@@ -17,6 +18,7 @@ async function areFriends(userId1, userId2) {
 }
 
 class FriendController {
+  /** Envoyer une invitation (crée une FriendRequest) */
   async add(req, res) {
     try {
       const me = req.user.id;
@@ -24,21 +26,29 @@ class FriendController {
       if (!userId || userId === me) {
         return res.status(400).json({ message: "Invalid userId" });
       }
-      const other = await User.findById(userId).select("_id");
-      if (!other) return res.status(404).json({ message: "User not found" });
+      const toUser = await User.findById(userId).select("_id status");
+      if (!toUser) return res.status(404).json({ message: "User not found" });
+      if (toUser.status !== "active") {
+        return res.status(400).json({ message: "You can only send invitations to active users" });
+      }
       const [id1, id2] = normalizePair(me, userId);
-      const existing = await Friend.findOne({
-        $or: [
-          { user1: id1, user2: id2 },
-          { user1: id2, user2: id1 },
-        ],
+      const alreadyFriends = await Friend.findOne({
+        $or: [{ user1: id1, user2: id2 }, { user1: id2, user2: id1 }],
       });
-      if (existing) return res.status(400).json({ message: "Already friends" });
-      await Friend.create({ user1: id1, user2: id2 });
-      const list = await Friend.find({ $or: [{ user1: me }, { user2: me }] })
-        .populate("user1", "name email")
-        .populate("user2", "name email");
-      res.status(201).json({ success: true, data: list });
+      if (alreadyFriends) return res.status(400).json({ message: "Already friends" });
+      const existingRequest = await FriendRequest.findOne({
+        fromUser: { $in: [me, userId] },
+        toUser: { $in: [me, userId] },
+        status: "pending",
+      });
+      if (existingRequest) {
+        return res.status(400).json({ message: "Request already sent or received" });
+      }
+      const request = await FriendRequest.create({ fromUser: me, toUser: userId });
+      const populated = await FriendRequest.findById(request._id)
+        .populate("fromUser", "name email profilePicture")
+        .populate("toUser", "name email profilePicture");
+      res.status(201).json({ success: true, data: populated });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });
@@ -67,8 +77,16 @@ class FriendController {
     try {
       const me = req.user.id;
       const docs = await Friend.find({ $or: [{ user1: me }, { user2: me }] })
-        .populate("user1", "name email profilePicture")
-        .populate("user2", "name email profilePicture");
+        .populate({
+          path: "user1",
+          select: "name email profilePicture",
+          populate: [{ path: "campus", select: "name" }, { path: "class", select: "name" }],
+        })
+        .populate({
+          path: "user2",
+          select: "name email profilePicture",
+          populate: [{ path: "campus", select: "name" }, { path: "class", select: "name" }],
+        });
       const friends = docs.map((d) => (d.user1._id.toString() === me ? d.user2 : d.user1));
       res.json({ success: true, data: friends });
     } catch (err) {

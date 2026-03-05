@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-  FiUser, FiSettings, FiBell, FiMail, FiUserPlus,  FiBookOpen, FiLogOut,
-  FiEdit ,FiCalendar
+  FiUser, FiSettings, FiBell, FiMail, FiUserPlus, FiBookOpen, FiLogOut,
+  FiEdit, FiCalendar, FiCheck, FiX
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import api, { friendRequestsApi } from "../services/api";
 
 const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
 
@@ -21,6 +21,28 @@ function NavbarLoggedIn() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [invitations, setInvitations] = useState([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+
+  const loadInvitations = () => {
+    setInvitationsLoading(true);
+    friendRequestsApi.getReceived()
+      .then((res) => setInvitations(res.data?.data ?? []))
+      .catch(() => setInvitations([]))
+      .finally(() => setInvitationsLoading(false));
+  };
+
+  useEffect(() => {
+    if (activeDropdown === "invitations") loadInvitations();
+  }, [activeDropdown]);
+
+  const handleAcceptInvitation = (id) => {
+    friendRequestsApi.accept(id).then(() => loadInvitations()).catch(() => {});
+  };
+
+  const handleRejectInvitation = (id) => {
+    friendRequestsApi.reject(id).then(() => loadInvitations()).catch(() => {});
+  };
 
   const handleLogout = async () => {
     setActiveDropdown(null);
@@ -88,8 +110,36 @@ function NavbarLoggedIn() {
             </button>
             {activeDropdown === 'invitations' && (
               <div className={dropdownStyles}>
-                <p className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 border-b border-slate-50">Invitations</p>
-                <div className="max-h-64 overflow-y-auto italic text-center py-6 text-[10px] text-slate-400">Aucune demande</div>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
+                  <p className="text-[10px] font-black uppercase text-slate-400">Invitations</p>
+                  <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                    Inviter
+                  </Link>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {invitationsLoading ? (
+                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                  ) : invitations.length === 0 ? (
+                    <div className="italic text-center py-6 text-[10px] text-slate-400">Aucune demande</div>
+                  ) : (
+                    <div className="py-2">
+                      {invitations.map((req) => (
+                        <div key={req._id} className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50">
+                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-100">
+                            <img
+                              src={req.fromUser?.profilePicture ? resolveAvatarUrl(req.fromUser.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="flex-1 text-[11px] font-bold text-slate-700 truncate">{req.fromUser?.name || "?"}</span>
+                          <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-1.5 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-200" title="Accepter"><FiCheck size={14} /></button>
+                          <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-1.5 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-200" title="Refuser"><FiX size={14} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

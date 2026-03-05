@@ -14,6 +14,7 @@ const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","�
 
 const PostPage = () => {
   const { user } = useAuth();
+  const readOnly = user && user.status !== "active";
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -210,7 +211,14 @@ const PostPage = () => {
               </div>
             </div>
 
+            {readOnly && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800 text-sm font-bold text-center">
+                Mode lecture seule : un responsable doit activer votre compte pour créer des posts et réagir.
+              </div>
+            )}
+
             {/* 3. SECTION CREATE POST */}
+            {!readOnly && (
             <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
               <div className="flex gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg">YC</div>
@@ -349,6 +357,7 @@ const PostPage = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* 4. POSTS LIST */}
             <div className="space-y-6">
@@ -358,7 +367,7 @@ const PostPage = () => {
                 </div>
               ) : filteredPosts.length > 0 ? (
                 filteredPosts.map((singlePost) => (
-                  <PostCard key={singlePost._id || singlePost.id} post={singlePost} onRefresh={loadPosts} />
+                  <PostCard key={singlePost._id || singlePost.id} post={singlePost} onRefresh={loadPosts} readOnly={readOnly} />
                 ))
               ) : (
                 <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">

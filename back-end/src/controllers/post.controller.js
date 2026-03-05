@@ -1,5 +1,6 @@
 const Post = require("../models/Post");
 const User = require("../models/User");
+const Friend = require("../models/Friend");
 const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
@@ -76,7 +77,16 @@ class PostController {
       if (current.campus) filter.campus = current.campus._id;
       if (current.class) filter.class = current.class._id;
       if (current.level) filter.level = current.level._id;
-      const authorIds = await User.find(filter).distinct("_id");
+      const sameContextIds = await User.find(filter).distinct("_id");
+      const friendDocs = await Friend.find({
+        $or: [{ user1: req.user.id }, { user2: req.user.id }],
+      }).select("user1 user2");
+      const myFriendIds = friendDocs.map((d) => {
+        const u1 = d.user1.toString();
+        const u2 = d.user2.toString();
+        return u1 === req.user.id ? u2 : u1;
+      });
+      const authorIds = [...new Set([...sameContextIds.map(String), ...myFriendIds])];
       return { author: { $in: authorIds } };
     }
     return { _id: -1 };

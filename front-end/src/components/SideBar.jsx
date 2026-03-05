@@ -47,7 +47,11 @@ const NavItem = ({ icon: Icon, label, to, isOpen }) => {
 const Sidebar = () => {
   const [isOpen, setIsOpen] = React.useState(true);
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin" || user?.role?.name === "super_admin";
+  const roleName = user?.role?.name ?? user?.role;
+  const isEtudiant = roleName === "etudiant";
+  const isSuperAdmin = roleName === "super_admin";
+
+  if (isEtudiant) return null;
 
   return (
     <div

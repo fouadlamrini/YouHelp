@@ -7,14 +7,14 @@ const { requireRole } = require('../middlewares/role.middleware');
 router.get(
   "/",
   authMiddleware,
-  requireRole(["formateur", "admin", "super_admin"]),
+  requireRole(["formateur", "admin", "super_admin", "etudiant"]),
   subCategoryController.getAllSubCategories
 );
 
 router.get(
   "/category/:categoryId",
   authMiddleware,
-  requireRole(["formateur", "admin", "super_admin"]),
+  requireRole(["formateur", "admin", "super_admin", "etudiant"]),
   subCategoryController.getByCategory
 );
 
