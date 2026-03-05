@@ -5,6 +5,7 @@ import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar";
 import { FiImage, FiSend, FiChevronDown, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import { knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
 
@@ -41,14 +42,18 @@ const mapKnowledgeToCardData = (knowledge) => {
     content: knowledge.content || "",
     media,
     comments: knowledge.comments || [],
+    canReact: knowledge.canReact,
   };
 };
 
 const KnowledgePage = () => {
+  const { user } = useAuth();
+  const readOnlyUser = user && user.status !== "active";
   const [content, setContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterSubCategory, setFilterSubCategory] = useState("all");
+  const [feedFilter, setFeedFilter] = useState("all");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [categories, setCategories] = useState([]);
@@ -68,7 +73,7 @@ const KnowledgePage = () => {
   const loadKnowledge = async () => {
     try {
       setLoading(true);
-      const res = await knowledgeApi.getAll();
+      const res = await knowledgeApi.getAll({ filter: feedFilter });
       setKnowledgeRaw(res.data?.data ?? []);
     } catch {
       setKnowledgeRaw([]);
@@ -79,7 +84,7 @@ const KnowledgePage = () => {
 
   useEffect(() => {
     loadKnowledge();
-  }, []);
+  }, [feedFilter]);
 
   useEffect(() => {
     categoryApi
@@ -155,7 +160,21 @@ const KnowledgePage = () => {
           <main className="p-4 md:p-8">
             <div className="max-w-4xl mx-auto space-y-6 pb-20">
               
-              {/* --- COMPOSER (With Source & Code logic) --- */}
+              {/* Filtre flux: All campus / Friends / My campus */}
+              <div className="flex flex-wrap gap-2 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                <button type="button" onClick={() => setFeedFilter("all")} className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  Tous les campus
+                </button>
+                <button type="button" onClick={() => setFeedFilter("friends")} className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  Amis
+                </button>
+                <button type="button" onClick={() => setFeedFilter("my_campus")} className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "my_campus" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  Mon campus
+                </button>
+              </div>
+
+              {/* --- COMPOSER --- */}
+              {!readOnlyUser && (
               <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
                 <div className="flex gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase tracking-tighter">YC</div>
@@ -248,6 +267,13 @@ const KnowledgePage = () => {
                   </div>
                 </div>
               </div>
+              )}
+
+              {readOnlyUser && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800 text-sm font-bold text-center">
+                  Mode lecture seule : un responsable doit activer votre compte pour créer des contenus et réagir.
+                </div>
+              )}
 
               {/* --- FILTER BAR --- */}
               <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
@@ -280,7 +306,12 @@ const KnowledgePage = () => {
                   </div>
                 ) : filteredKnowledge.length ? (
                   filteredKnowledge.map((item) => (
-                    <KnowledgeCard key={item.id} data={item} />
+                    <KnowledgeCard
+                      key={item.id}
+                      data={item}
+                      onRefresh={loadKnowledge}
+                      readOnly={readOnlyUser || item.canReact === false}
+                    />
                   ))
                 ) : (
                   <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">

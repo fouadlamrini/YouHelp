@@ -92,6 +92,63 @@ class PostController {
     return { _id: -1 };
   }
 
+  /**
+   * Filtre des posts selon le type (all | friends | my_campus) et le statut utilisateur.
+   * - Utilisateur non actif : tous les posts (lecture seule côté front).
+   * - Actif + all : tous les posts.
+   * - Actif + friends : uniquement les posts des amis.
+   * - Actif + my_campus : uniquement les posts des users du même campus.
+   */
+  async _postsAuthorFilterByFilter(req, filterType) {
+    if (!req.user) return { _id: -1 };
+    const current = await User.findById(req.user.id)
+      .select("status campus class level")
+      .populate("campus class level");
+    if (!current) return { _id: -1 };
+    if (current.status !== "active") return {};
+    const filter = (filterType || "all").toLowerCase();
+    if (filter === "all") return {};
+    if (filter === "friends") {
+      const friendDocs = await Friend.find({
+        $or: [{ user1: req.user.id }, { user2: req.user.id }],
+      }).select("user1 user2");
+      const myFriendIds = friendDocs.map((d) => {
+        const u1 = d.user1.toString();
+        const u2 = d.user2.toString();
+        return u1 === req.user.id ? u2 : u1;
+      });
+      return { author: { $in: myFriendIds } };
+    }
+    if (filter === "my_campus") {
+      if (!current.campus) return { author: { $in: [] } };
+      const authorIds = await User.find({ campus: current.campus._id }).distinct("_id");
+      return { author: { $in: authorIds } };
+    }
+    return {};
+  }
+
+  /**
+   * Détermine si l'utilisateur courant peut réagir (like, comment, share, favorite) sur un post.
+   * - Non actif : non.
+   * - super_admin / admin : oui.
+   * - formateur / etudiant : oui seulement si même campus+class+level que l'auteur OU ami.
+   */
+  async _canReactToPost(req, authorId) {
+    if (!req.user || !authorId) return false;
+    const me = await User.findById(req.user.id).select("status").populate("campus class level");
+    if (!me || me.status !== "active") return false;
+    const role = req.user.role;
+    if (role === "super_admin" || role === "admin") return true;
+    const author = await User.findById(authorId).populate("campus class level");
+    if (!author) return false;
+    const sameCampus = me.campus && author.campus && me.campus._id.toString() === author.campus._id.toString();
+    const sameClass = me.class && author.class && me.class._id.toString() === author.class._id.toString();
+    const sameLevel = me.level && author.level && me.level._id.toString() === author.level._id.toString();
+    if (sameCampus && sameClass && sameLevel) return true;
+    const friend = await areFriends(req.user.id, authorId);
+    return !!friend;
+  }
+
   async _sameContextReactionCount(postId, authorId) {
     const author = await User.findById(authorId).select("campus class level");
     if (!author || (!author.campus && !author.class && !author.level)) return 0;
@@ -109,21 +166,27 @@ class PostController {
 
   async getAllPosts(req, res) {
     try {
-      const authorFilter = await this._postsAuthorFilter(req);
+      const filterType = req.query.filter || "all";
+      const authorFilter = await this._postsAuthorFilterByFilter(req, filterType);
+      if (authorFilter._id === -1) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const posts = await Post.find(authorFilter)
         .sort({ createdAt: -1 })
         .populate("author", "name email campus class level profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
-      const withSameContextReactions = await Promise.all(
+      const withMeta = await Promise.all(
         posts.map(async (p) => {
-          const sameContextReactionCount = await this._sameContextReactionCount(p._id, p.author?._id || p.author);
+          const authorId = p.author?._id || p.author;
+          const sameContextReactionCount = await this._sameContextReactionCount(p._id, authorId);
           const commentCount = await Comment.countDocuments({ post: p._id });
-          return { ...p.toObject(), sameContextReactionCount, commentCount };
+          const canReact = await this._canReactToPost(req, authorId);
+          return { ...p.toObject(), sameContextReactionCount, commentCount, canReact };
         })
       );
-      res.json({ success: true, data: withSameContextReactions });
+      res.json({ success: true, data: withMeta });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });
@@ -138,16 +201,14 @@ class PostController {
         .populate("subCategory", "name")
         .populate("comments");
       if (!post) return res.status(404).json({ message: "Post not found" });
-      const authorFilter = await this._postsAuthorFilter(req);
-      if (authorFilter._id === -1) return res.status(403).json({ message: "Forbidden" });
-      if (authorFilter.author && authorFilter.author.$in) {
-        const authorId = post.author?._id?.toString() || post.author?.toString();
-        const allowed = authorFilter.author.$in.some(id => id.toString() === authorId);
-        if (!allowed) return res.status(403).json({ message: "Forbidden" });
-      }
-      const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
+      const authorId = post.author?._id || post.author;
+      const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, authorId);
       const commentCount = await Comment.countDocuments({ post: req.params.id });
-      res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount } });
+      const canReact = await this._canReactToPost(req, authorId);
+      res.json({
+        success: true,
+        data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact },
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });

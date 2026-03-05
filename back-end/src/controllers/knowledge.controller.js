@@ -3,6 +3,8 @@ const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const User = require("../models/User");
 const Engagement = require("../models/Engagement");
+const Friend = require("../models/Friend");
+const { areFriends } = require("./friend.controller");
 
 class KnowledgeController {
   // ===== CREATE =====
@@ -72,43 +74,92 @@ class KnowledgeController {
     }
   }
 
+  // Filtre auteur selon type (all | friends | my_campus) et statut utilisateur
+  async _knowledgeAuthorFilterByFilter(req, filterType) {
+    if (!req.user) return { _id: -1 };
+    const current = await User.findById(req.user.id)
+      .select("status campus")
+      .populate("campus");
+    if (!current) return { _id: -1 };
+    if (current.status !== "active") return {};
+    const filter = (filterType || "all").toLowerCase();
+    if (filter === "all") return {};
+    if (filter === "friends") {
+      const friendDocs = await Friend.find({
+        $or: [{ user1: req.user.id }, { user2: req.user.id }],
+      }).select("user1 user2");
+      const myFriendIds = friendDocs.map((d) => {
+        const u1 = d.user1.toString();
+        const u2 = d.user2.toString();
+        return u1 === req.user.id ? u2 : u1;
+      });
+      return { author: { $in: myFriendIds } };
+    }
+    if (filter === "my_campus") {
+      if (!current.campus) return { author: { $in: [] } };
+      const authorIds = await User.find({ campus: current.campus._id }).distinct("_id");
+      return { author: { $in: authorIds } };
+    }
+    return {};
+  }
+
+  async _canReactToKnowledge(req, authorId) {
+    if (!req.user || !authorId) return false;
+    const me = await User.findById(req.user.id).select("status").populate("campus class level");
+    if (!me || me.status !== "active") return false;
+    const role = req.user.role;
+    if (role === "super_admin" || role === "admin") return true;
+    const author = await User.findById(authorId).populate("campus class level");
+    if (!author) return false;
+    const sameCampus = me.campus && author.campus && me.campus._id.toString() === author.campus._id.toString();
+    const sameClass = me.class && author.class && me.class._id.toString() === author.class._id.toString();
+    const sameLevel = me.level && author.level && me.level._id.toString() === author.level._id.toString();
+    if (sameCampus && sameClass && sameLevel) return true;
+    return !!(await areFriends(req.user.id, authorId));
+  }
+
   // ===== READ =====
-  // Récupérer toutes les connaissances
-  // - Accessible à tous en lecture
-  // - Retourne les connaissances avec les détails de l'auteur, catégorie, etc.
   async getAllKnowledge(req, res) {
     try {
-      const knowledge = await Knowledge.find()
+      const filterType = req.query.filter || "all";
+      const authorFilter = await this._knowledgeAuthorFilterByFilter(req, filterType);
+      if (authorFilter._id === -1) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const knowledge = await Knowledge.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email role profilePicture")
+        .populate("author", "name email campus class level profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
-
-      res.json({ success: true, data: knowledge });
+      const withCanReact = await Promise.all(
+        knowledge.map(async (k) => {
+          const authorId = k.author?._id || k.author;
+          const canReact = await this._canReactToKnowledge(req, authorId);
+          return { ...k.toObject(), canReact };
+        })
+      );
+      res.json({ success: true, data: withCanReact });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
     }
   }
 
-  // Récupérer une connaissance par ID
-  // - Accessible à tous en lecture
   async getKnowledgeById(req, res) {
     try {
       const { id } = req.params;
-
       const knowledge = await Knowledge.findById(id)
-        .populate("author", "name email role profilePicture")
+        .populate("author", "name email campus class level profilePicture")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
-
       if (!knowledge) {
         return res.status(404).json({ message: "Connaissance introuvable" });
       }
-
-      res.json({ success: true, data: knowledge });
+      const authorId = knowledge.author?._id || knowledge.author;
+      const canReact = await this._canReactToKnowledge(req, authorId);
+      res.json({ success: true, data: { ...knowledge.toObject(), canReact } });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
@@ -254,13 +305,18 @@ class KnowledgeController {
   }
 
   // ===== REACTIONS =====
-  // Ajouter/retirer une réaction (like) sur une connaissance
-  // - Toggle: si l'utilisateur a déjà réagi, on retire la réaction, sinon on l'ajoute
   async toggleReaction(req, res) {
     try {
       const { id } = req.params;
-      const knowledge = await Knowledge.findById(id);
+      const knowledge = await Knowledge.findById(id).populate("author");
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
+      const authorId = knowledge.author?._id || knowledge.author;
+      const canReact = await this._canReactToKnowledge(req, authorId);
+      if (!canReact) {
+        return res.status(403).json({
+          message: "Vous ne pouvez réagir qu'aux contenus du même campus/classe/niveau ou de vos amis",
+        });
+      }
       const userId = req.user.id;
       const existing = await Engagement.findOne({ type: "reaction", user: userId, knowledge: id });
       if (existing) {
@@ -286,13 +342,18 @@ class KnowledgeController {
   }
 
   // ===== SHARES =====
-  // Ajouter un partage sur une connaissance
-  // - Chaque clic = un nouveau partage (pas de toggle)
   async toggleShare(req, res) {
     try {
       const { id } = req.params;
-      const knowledge = await Knowledge.findById(id);
+      const knowledge = await Knowledge.findById(id).populate("author");
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
+      const authorId = knowledge.author?._id || knowledge.author;
+      const canReact = await this._canReactToKnowledge(req, authorId);
+      if (!canReact) {
+        return res.status(403).json({
+          message: "Vous ne pouvez partager que les contenus du même campus/classe/niveau ou de vos amis",
+        });
+      }
       const userId = req.user.id;
       await Engagement.create({ type: "share", user: userId, knowledge: id });
       await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });

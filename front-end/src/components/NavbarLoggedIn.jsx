@@ -33,6 +33,10 @@ function NavbarLoggedIn() {
   };
 
   useEffect(() => {
+    loadInvitations();
+  }, []);
+
+  useEffect(() => {
     if (activeDropdown === "invitations") loadInvitations();
   }, [activeDropdown]);
 
@@ -106,7 +110,11 @@ function NavbarLoggedIn() {
           <div className="relative">
             <button onClick={() => toggleDropdown('invitations')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'invitations' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
               <FiUserPlus size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white"></span>
+              {invitations.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                  {invitations.length > 99 ? "99+" : invitations.length}
+                </span>
+              )}
             </button>
             {activeDropdown === 'invitations' && (
               <div className={dropdownStyles}>

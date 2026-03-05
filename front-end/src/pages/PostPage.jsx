@@ -35,6 +35,7 @@ const PostPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [subCatFilter, setSubCatFilter] = useState("all");
+  const [feedFilter, setFeedFilter] = useState("all"); // all | friends | my_campus
 
   const loadMeta = async () => {
     try {
@@ -53,7 +54,7 @@ const PostPage = () => {
   const loadPosts = async () => {
     try {
       setLoadingPosts(true);
-      const res = await postApi.getAll();
+      const res = await postApi.getAll({ filter: feedFilter });
       setPosts(res.data?.data ?? []);
     } catch {
       setPosts([]);
@@ -64,8 +65,11 @@ const PostPage = () => {
 
   useEffect(() => {
     loadMeta();
-    loadPosts();
   }, []);
+
+  useEffect(() => {
+    loadPosts();
+  }, [feedFilter]);
 
   const handleMediaChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -139,6 +143,30 @@ const PostPage = () => {
 
         
             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 space-y-4">
+              {/* Filtre flux: All campus / Friends / My campus */}
+              <div className="flex flex-wrap gap-2 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setFeedFilter("all")}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Tous les campus
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedFilter("friends")}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Amis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedFilter("my_campus")}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "my_campus" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Mon campus
+                </button>
+              </div>
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Search Input */}
                 <div className="relative flex-grow">
@@ -367,7 +395,12 @@ const PostPage = () => {
                 </div>
               ) : filteredPosts.length > 0 ? (
                 filteredPosts.map((singlePost) => (
-                  <PostCard key={singlePost._id || singlePost.id} post={singlePost} onRefresh={loadPosts} readOnly={readOnly} />
+                  <PostCard
+                    key={singlePost._id || singlePost.id}
+                    post={singlePost}
+                    onRefresh={loadPosts}
+                    readOnly={readOnly || singlePost.canReact === false}
+                  />
                 ))
               ) : (
                 <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">

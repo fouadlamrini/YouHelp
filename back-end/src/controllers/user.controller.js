@@ -286,6 +286,8 @@ class UserController {
         class: classId || null,
         level: level || null,
         profilePicture: profilePicture || undefined,
+        completeProfile: true,
+        status: "active",
       });
       const populated = await User.findById(user._id)
         .populate("role", "name")
