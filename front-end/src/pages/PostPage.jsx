@@ -35,7 +35,7 @@ const PostPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [subCatFilter, setSubCatFilter] = useState("all");
-  const [feedFilter, setFeedFilter] = useState("all"); // all | friends | my_campus
+  const [postViewFilter, setPostViewFilter] = useState("all");
 
   const loadMeta = async () => {
     try {
@@ -54,7 +54,7 @@ const PostPage = () => {
   const loadPosts = async () => {
     try {
       setLoadingPosts(true);
-      const res = await postApi.getAll({ filter: feedFilter });
+      const res = await postApi.getAll({ filter: postViewFilter });
       setPosts(res.data?.data ?? []);
     } catch {
       setPosts([]);
@@ -69,7 +69,7 @@ const PostPage = () => {
 
   useEffect(() => {
     loadPosts();
-  }, [feedFilter]);
+  }, [postViewFilter]);
 
   const handleMediaChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -143,29 +143,32 @@ const PostPage = () => {
 
         
             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 space-y-4">
-              {/* Filtre flux: All campus / Friends / My campus */}
-              <div className="flex flex-wrap gap-2 p-1 bg-slate-50 rounded-2xl border border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setFeedFilter("all")}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  Tous les campus
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFeedFilter("friends")}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  Amis
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFeedFilter("my_campus")}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${feedFilter === "my_campus" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  Mon campus
-                </button>
+              {/* Filtres vue: All Campus / Friends / My Campus */}
+              <div className="flex flex-wrap gap-2">
+                <span className="text-[10px] font-black uppercase text-slate-400 self-center">Vue :</span>
+                <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setPostViewFilter("all")}
+                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${postViewFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                  >
+                    All Campus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPostViewFilter("friends")}
+                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${postViewFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                  >
+                    Friends
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPostViewFilter("my_campus")}
+                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${postViewFilter === "my_campus" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                  >
+                    My Campus
+                  </button>
+                </div>
               </div>
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Search Input */}
@@ -399,7 +402,7 @@ const PostPage = () => {
                     key={singlePost._id || singlePost.id}
                     post={singlePost}
                     onRefresh={loadPosts}
-                    readOnly={readOnly || singlePost.canReact === false}
+                    readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false)}
                   />
                 ))
               ) : (

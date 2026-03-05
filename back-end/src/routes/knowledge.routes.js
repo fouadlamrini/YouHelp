@@ -4,67 +4,80 @@ const KnowledgeController = require("../controllers/knowledge.controller");
 const CommentController = require("../controllers/comment.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
-const requireActive = require("../middlewares/requireActive.middleware");
 const upload = require("../middlewares/upload.middleware");
 
 /* ===== READ ===== */
-router.get("/", auth, KnowledgeController.getAllKnowledge);
+// Récupérer toutes les connaissances (accessible à tous)
+router.get("/", KnowledgeController.getAllKnowledge);
 
+// Commentaires sur une connaissance (avant /:id pour que :id ne capture pas "comments")
 router.get("/:knowledgeId/comments", CommentController.getCommentsByKnowledge);
 router.post(
   "/:knowledgeId/comments",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   CommentController.createCommentForKnowledge
 );
 
-router.get("/:id", auth, KnowledgeController.getKnowledgeById);
+// Récupérer une connaissance par ID (accessible à tous)
+router.get("/:id", KnowledgeController.getKnowledgeById);
 
 /* ===== CREATE ===== */
+// Créer une nouvelle connaissance
+// - Authentification requise
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
+// - Médias optionnels (max 10 fichiers)
 router.post(
   "/",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   KnowledgeController.createKnowledge
 );
 
 /* ===== UPDATE ===== */
+// Mettre à jour une connaissance
+// - Authentification requise
+// - Seul l'auteur ou un admin/super_admin peut mettre à jour
+// - Médias optionnels
 router.put(
   "/:id",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   KnowledgeController.updateKnowledge
 );
 
 /* ===== DELETE ===== */
+// Supprimer une connaissance
+// - Authentification requise
+// - Seul l'auteur ou un admin/super_admin peut supprimer
 router.delete(
   "/:id",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.deleteKnowledge
 );
 
 /* ===== REACTIONS ===== */
+// Ajouter/retirer une réaction (like) sur une connaissance
+// - Authentification requise
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
 router.post(
   "/:id/reaction",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.toggleReaction
 );
 
 /* ===== SHARES ===== */
+// Ajouter/retirer un partage sur une connaissance
+// - Authentification requise
+// - Rôles autorisés: admin, formateur, etudiant, super_admin
 router.post(
   "/:id/share",
   auth,
-  requireActive,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   KnowledgeController.toggleShare
 );

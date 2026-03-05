@@ -17,6 +17,12 @@ async function areFriends(userId1, userId2) {
   return !!doc;
 }
 
+/** Retourne les IDs des amis de l'utilisateur (pour filtrage posts) */
+async function getMyFriendIds(userId) {
+  const docs = await Friend.find({ $or: [{ user1: userId }, { user2: userId }] }).select("user1 user2");
+  return docs.map((d) => (d.user1.toString() === userId.toString() ? d.user2.toString() : d.user1.toString()));
+}
+
 class FriendController {
   /** Envoyer une invitation (crée une FriendRequest) */
   async add(req, res) {
@@ -96,4 +102,4 @@ class FriendController {
   }
 }
 
-module.exports = { friendController: new FriendController(), areFriends };
+module.exports = { friendController: new FriendController(), areFriends, getMyFriendIds };

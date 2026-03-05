@@ -35,7 +35,7 @@ const EMOJI_LIST = [
   "💡","📌","⭐","🎯"
 ];
 
-const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false }) => {
+const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
@@ -105,7 +105,6 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleSendComment = () => {
-    if (readOnly) return;
     const hasText = (commentText || "").trim().length > 0;
     const hasMedia = commentMediaFiles.length > 0;
     if (!data.id || (!hasText && !hasMedia) || sendingComment) return;
@@ -151,7 +150,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleFavoriteClick = () => {
-    if (readOnly || !data.id || loadingFavorite) return;
+    if (!data.id || loadingFavorite) return;
     setLoadingFavorite(true);
     const done = () => setLoadingFavorite(false);
     if (isFavorite) {
@@ -178,7 +177,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleShare = () => {
-    if (readOnly || !data.id) return;
+    if (!data.id) return;
     knowledgeApi
       .share(data.id)
       .then(() => onRefresh?.())
@@ -333,10 +332,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
           <button
             onClick={handleFavoriteClick}
-            disabled={loadingFavorite || readOnly}
+            disabled={loadingFavorite}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
               isFavorite ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-rose-500"
-            } disabled:opacity-60 disabled:cursor-not-allowed ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
           >
             <FiHeart className={isFavorite ? "fill-rose-600" : ""} size={16} />
             <span className="text-[11px] font-black uppercase">Favorite</span>
@@ -344,10 +343,9 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           
           <button
             onClick={handleToggleComments}
-            disabled={readOnly}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
               showComments ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-indigo-600"
-            } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
+            }`}
           >
             <FiMessageCircle size={16} />
             <span className="text-[11px] font-black uppercase tracking-tight">Comment</span>
@@ -356,8 +354,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           <button
             type="button"
             onClick={handleShare}
-            disabled={readOnly}
-            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all"
           >
             <FiShare2 size={16} />
             <span className="text-[11px] font-black uppercase tracking-tight">Share</span>
@@ -366,7 +363,6 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
         {showComments && (
           <div className="bg-slate-50/40 border-t border-slate-100 py-6 animate-in slide-in-from-top-4 duration-500">
-            {!readOnly && (
             <div className="flex gap-3 px-6 mb-6">
               <img src={myAvatar} className="w-9 h-9 rounded-full border border-slate-200" alt="me" />
               <div className="flex-grow">
@@ -449,7 +445,6 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                 />
               </div>
             </div>
-            )}
             <div className="space-y-1">
               {loadingComments ? (
                 <p className="px-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">

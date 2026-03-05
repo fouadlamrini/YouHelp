@@ -1,6 +1,7 @@
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
 const Knowledge = require("../models/Knowledge");
+const User = require("../models/User");
 
 class CommentController {
   /**
@@ -8,6 +9,10 @@ class CommentController {
    */
   async createComment(req, res) {
     try {
+      const currentUser = await User.findById(req.user.id).select("status").lean();
+      if (currentUser?.status !== "active") {
+        return res.status(403).json({ message: "Seuls les comptes activés peuvent commenter." });
+      }
       const { postId } = req.params;
       const { content, parentComment } = req.body;
 
