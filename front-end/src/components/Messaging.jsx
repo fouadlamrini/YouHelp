@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend,
 } from "react-icons/fi";
-import { messagesApi } from "../services/api";
+import { messagesApi, friendsApi } from "../services/api";
 import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,6 +18,9 @@ const Messaging = () => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -30,6 +33,16 @@ const Messaging = () => {
       .catch(() => setConversations([]))
       .finally(() => setLoading(false));
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!showNewChat || !user?.id) return;
+    setFriendsLoading(true);
+    friendsApi
+      .list()
+      .then((res) => setFriends(res.data?.data || []))
+      .catch(() => setFriends([]))
+      .finally(() => setFriendsLoading(false));
+  }, [showNewChat, user?.id]);
 
   useEffect(() => {
     if (!activeChat?.user?._id) {
@@ -73,6 +86,17 @@ const Messaging = () => {
     setActiveChat(conv);
   };
 
+  const handleStartChatWithFriend = (friend) => {
+    if (!friend?._id) return;
+    const existing = conversations.find((c) => c.user._id === friend._id);
+    const conv = existing || { user: friend, lastMessage: null };
+    if (!existing) {
+      setConversations((prev) => [conv, ...prev]);
+    }
+    setActiveChat(conv);
+    setShowNewChat(false);
+  };
+
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || !activeChat?.user?._id || sending) return;
@@ -113,7 +137,14 @@ const Messaging = () => {
           </div>
           <div className="flex items-center gap-3 text-slate-500">
             <FiMoreHorizontal size={18} className="hover:text-indigo-600" />
-            <FiEdit size={16} className="hover:text-indigo-600" />
+            <FiEdit
+              size={16}
+              className="hover:text-indigo-600 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNewChat((v) => !v);
+              }}
+            />
             {isMinimized ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
           </div>
         </div>
@@ -154,6 +185,51 @@ const Messaging = () => {
           </div>
         )}
       </div>
+
+      {showNewChat && !isMinimized && (
+        <div className="absolute bottom-12 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-[101]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]">
+              New message
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowNewChat(false)}
+              className="p-1 rounded-full hover:bg-slate-100 text-slate-400"
+            >
+              <FiX size={14} />
+            </button>
+          </div>
+          {friendsLoading ? (
+            <p className="text-xs text-slate-400">Chargement des amis...</p>
+          ) : friends.length === 0 ? (
+            <p className="text-xs text-slate-400">Aucun ami pour le moment.</p>
+          ) : (
+            <div className="max-h-64 overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+              {friends.map((f) => (
+                <button
+                  key={f._id}
+                  type="button"
+                  onClick={() => handleStartChatWithFriend(f)}
+                  className="w-full flex items-center gap-3 py-2 text-left hover:bg-slate-50 px-1"
+                >
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold">
+                    {f.name?.[0] || "?"}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-semibold text-slate-800">
+                      {f.name || f.email}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Friend
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {activeChat && (
         <div className="w-80 h-[450px] bg-white shadow-2xl rounded-t-xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">

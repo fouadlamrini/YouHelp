@@ -1,5 +1,6 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
+const { areFriends } = require("./friend.controller");
 
 class MessageController {
   async send(req, res) {
@@ -12,6 +13,10 @@ class MessageController {
       if (!receiver) return res.status(404).json({ message: "Receiver not found" });
       if (receiverId === req.user.id) {
         return res.status(400).json({ message: "Cannot send message to yourself" });
+      }
+      const friends = await areFriends(req.user.id, receiverId);
+      if (!friends) {
+        return res.status(403).json({ message: "You can only message your friends" });
       }
       const message = await Message.create({
         sender: req.user.id,
