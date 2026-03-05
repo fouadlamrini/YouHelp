@@ -316,6 +316,18 @@ class CommentController {
 
   async createCommentForKnowledge(req, res) {
     try {
+      const currentUser = await User.findById(req.user.id)
+        .select("status")
+        .lean();
+      if (!currentUser || currentUser.status !== "active") {
+        return res
+          .status(403)
+          .json({
+            message:
+              "Seuls les comptes activés peuvent commenter les connaissances.",
+          });
+      }
+
       const { knowledgeId } = req.params;
       const { content, parentComment } = req.body;
       if (!content || !content.trim()) {

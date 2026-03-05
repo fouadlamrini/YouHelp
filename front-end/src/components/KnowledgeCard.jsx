@@ -35,7 +35,7 @@ const EMOJI_LIST = [
   "💡","📌","⭐","🎯"
 ];
 
-const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh }) => {
+const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
@@ -105,6 +105,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleSendComment = () => {
+    if (readOnly) return;
     const hasText = (commentText || "").trim().length > 0;
     const hasMedia = commentMediaFiles.length > 0;
     if (!data.id || (!hasText && !hasMedia) || sendingComment) return;
@@ -150,6 +151,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleFavoriteClick = () => {
+    if (readOnly) return;
     if (!data.id || loadingFavorite) return;
     setLoadingFavorite(true);
     const done = () => setLoadingFavorite(false);
@@ -177,6 +179,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   };
 
   const handleShare = () => {
+    if (readOnly) return;
     if (!data.id) return;
     knowledgeApi
       .share(data.id)
@@ -332,9 +335,11 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
           <button
             onClick={handleFavoriteClick}
-            disabled={loadingFavorite}
+            disabled={loadingFavorite || readOnly}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
-              isFavorite ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-rose-500"
+              isFavorite
+                ? "bg-white text-rose-600 shadow-sm"
+                : "text-slate-500 hover:text-rose-500"
             } disabled:opacity-60 disabled:cursor-not-allowed`}
           >
             <FiHeart className={isFavorite ? "fill-rose-600" : ""} size={16} />
@@ -354,7 +359,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all"
+            disabled={readOnly}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FiShare2 size={16} />
             <span className="text-[11px] font-black uppercase tracking-tight">Share</span>

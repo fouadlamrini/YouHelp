@@ -3,6 +3,7 @@ const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const User = require("../models/User");
 const Engagement = require("../models/Engagement");
+const { areFriends, getMyFriendIds } = require("./friend.controller");
 
 class KnowledgeController {
   // ===== CREATE =====
@@ -12,6 +13,18 @@ class KnowledgeController {
   // - Médias, ressource et snippet optionnels
   async createKnowledge(req, res) {
     try {
+      const currentUser = await User.findById(req.user.id)
+        .select("status")
+        .lean();
+      if (!currentUser || currentUser.status !== "active") {
+        return res
+          .status(403)
+          .json({
+            message:
+              "Seuls les comptes activés peuvent créer des connaissances.",
+          });
+      }
+
       const { content, category, subCategory } = req.body;
 
       if (!content || content.trim() === "") {
@@ -78,14 +91,67 @@ class KnowledgeController {
   // - Retourne les connaissances avec les détails de l'auteur, catégorie, etc.
   async getAllKnowledge(req, res) {
     try {
-      const knowledge = await Knowledge.find()
+      const rawFilter = (req.query.filter || "all").toString().toLowerCase();
+      const allowedFilters = ["all", "friends", "my_campus"];
+      const viewFilter = allowedFilters.includes(rawFilter) ? rawFilter : "all";
+
+      const currentUser = await User.findById(req.user.id)
+        .select("status campus class level")
+        .populate("campus class level");
+      if (!currentUser) {
+        return res.status(403).json({ message: "Utilisateur introuvable" });
+      }
+
+      let authorFilter = {};
+      let noAuthors = false;
+      if (currentUser.status === "active") {
+        const friendIds = await getMyFriendIds(req.user.id);
+
+        if (viewFilter === "friends") {
+          if (friendIds.length === 0) {
+            noAuthors = true;
+          } else {
+            authorFilter = { author: { $in: friendIds } };
+          }
+        } else if (viewFilter === "my_campus") {
+          const campusId = currentUser.campus?._id || currentUser.campus;
+          if (campusId) {
+            const sameCampusIds = await User.find({ campus: campusId }).distinct(
+              "_id"
+            );
+            if (sameCampusIds.length === 0) {
+              noAuthors = true;
+            } else {
+              authorFilter = { author: { $in: sameCampusIds } };
+            }
+          }
+        }
+      }
+
+      if (noAuthors) {
+        return res.json({ success: true, data: [] });
+      }
+
+      const knowledgeDocs = await Knowledge.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email role profilePicture")
+        .populate("author", "name email role profilePicture campus class level")
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
 
-      res.json({ success: true, data: knowledge });
+      const withMeta = await Promise.all(
+        knowledgeDocs.map(async (k) => {
+          const canReact = await this._knowledgeCanReact(
+            req.user.id,
+            currentUser,
+            k,
+            viewFilter
+          );
+          return { ...k.toObject(), canReact };
+        })
+      );
+
+      res.json({ success: true, data: withMeta });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
@@ -99,7 +165,10 @@ class KnowledgeController {
       const { id } = req.params;
 
       const knowledge = await Knowledge.findById(id)
-        .populate("author", "name email role profilePicture")
+        .populate(
+          "author",
+          "name email role profilePicture campus class level"
+        )
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -108,7 +177,21 @@ class KnowledgeController {
         return res.status(404).json({ message: "Connaissance introuvable" });
       }
 
-      res.json({ success: true, data: knowledge });
+      const currentUser = await User.findById(req.user.id)
+        .select("status campus class level")
+        .populate("campus class level");
+      if (!currentUser) {
+        return res.status(403).json({ message: "Utilisateur introuvable" });
+      }
+
+      const canReact = await this._knowledgeCanReact(
+        req.user.id,
+        currentUser,
+        knowledge,
+        "all"
+      );
+
+      res.json({ success: true, data: { ...knowledge.toObject(), canReact } });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
@@ -258,10 +341,51 @@ class KnowledgeController {
   // - Toggle: si l'utilisateur a déjà réagi, on retire la réaction, sinon on l'ajoute
   async toggleReaction(req, res) {
     try {
+      const currentUser = await User.findById(req.user.id)
+        .select("status campus class level")
+        .populate("campus class level");
+      if (!currentUser || currentUser.status !== "active") {
+        return res
+          .status(403)
+          .json({
+            message:
+              "Seuls les comptes activés peuvent réagir aux connaissances.",
+          });
+      }
+
       const { id } = req.params;
-      const knowledge = await Knowledge.findById(id);
+      const knowledge = await Knowledge.findById(id).populate(
+        "author",
+        "campus class level"
+      );
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;
+
+      // Même règle que pour les posts : étudiant doit être même campus + classe + niveau OU ami
+      if (currentUser.role === "etudiant") {
+        const author = knowledge.author;
+        const sameCampus =
+          currentUser.campus &&
+          author?.campus &&
+          currentUser.campus._id.toString() === author.campus._id.toString();
+        const sameClass =
+          currentUser.class &&
+          author?.class &&
+          currentUser.class._id.toString() === author.class._id.toString();
+        const sameLevel =
+          currentUser.level &&
+          author?.level &&
+          currentUser.level._id.toString() === author.level._id.toString();
+        const sameContext = sameCampus && sameClass && sameLevel;
+        const friend = await areFriends(userId, author._id || author);
+        if (!sameContext && !friend) {
+          return res.status(403).json({
+            message:
+              "Vous ne pouvez réagir qu'aux connaissances de votre même campus/classe/niveau ou de vos amis.",
+          });
+        }
+      }
+
       const existing = await Engagement.findOne({ type: "reaction", user: userId, knowledge: id });
       if (existing) {
         await Engagement.deleteOne({ _id: existing._id });
@@ -290,6 +414,18 @@ class KnowledgeController {
   // - Chaque clic = un nouveau partage (pas de toggle)
   async toggleShare(req, res) {
     try {
+      const currentUser = await User.findById(req.user.id)
+        .select("status")
+        .lean();
+      if (!currentUser || currentUser.status !== "active") {
+        return res
+          .status(403)
+          .json({
+            message:
+              "Seuls les comptes activés peuvent partager des connaissances.",
+          });
+      }
+
       const { id } = req.params;
       const knowledge = await Knowledge.findById(id);
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
@@ -301,6 +437,36 @@ class KnowledgeController {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
     }
+  }
+
+  async _knowledgeCanReact(currentUserId, currentUser, knowledge, viewFilter) {
+    if (!currentUser || currentUser.status !== "active") return false;
+    const author = knowledge.author;
+    if (!author) return false;
+    const authorId = author._id || author;
+
+    if (viewFilter === "friends") return true;
+
+    const sameCampus =
+      currentUser.campus &&
+      author.campus &&
+      currentUser.campus._id.toString() === author.campus._id.toString();
+    const sameClass =
+      currentUser.class &&
+      author.class &&
+      currentUser.class._id.toString() === author.class._id.toString();
+    const sameLevel =
+      currentUser.level &&
+      author.level &&
+      currentUser.level._id.toString() === author.level._id.toString();
+    const sameContext = !!sameCampus && !!sameClass && !!sameLevel;
+
+    if (viewFilter === "my_campus") {
+      return sameContext;
+    }
+
+    const friend = await areFriends(currentUserId, authorId);
+    return sameContext || friend;
   }
 }
 

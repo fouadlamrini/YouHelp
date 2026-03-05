@@ -172,7 +172,7 @@ export const solutionApi = {
 
 // —— Knowledge ——
 export const knowledgeApi = {
-  getAll: () => api.get("/knowledge"),
+  getAll: (params) => api.get("/knowledge", { params }),
   getById: (id) => api.get(`/knowledge/${id}`),
   create: (formData) => api.post("/knowledge", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   update: (id, formData) => api.put(`/knowledge/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } }),

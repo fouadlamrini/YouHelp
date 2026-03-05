@@ -7,8 +7,8 @@ const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
 
 /* ===== READ ===== */
-// Récupérer toutes les connaissances (accessible à tous)
-router.get("/", KnowledgeController.getAllKnowledge);
+// Récupérer toutes les connaissances (lecture avec filtrage par utilisateur connecté)
+router.get("/", auth, KnowledgeController.getAllKnowledge.bind(KnowledgeController));
 
 // Commentaires sur une connaissance (avant /:id pour que :id ne capture pas "comments")
 router.get("/:knowledgeId/comments", CommentController.getCommentsByKnowledge);
@@ -20,8 +20,8 @@ router.post(
   CommentController.createCommentForKnowledge
 );
 
-// Récupérer une connaissance par ID (accessible à tous)
-router.get("/:id", KnowledgeController.getKnowledgeById);
+// Récupérer une connaissance par ID (lecture avec meta pour utilisateur connecté)
+router.get("/:id", auth, KnowledgeController.getKnowledgeById.bind(KnowledgeController));
 
 /* ===== CREATE ===== */
 // Créer une nouvelle connaissance
@@ -33,7 +33,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
-  KnowledgeController.createKnowledge
+  KnowledgeController.createKnowledge.bind(KnowledgeController)
 );
 
 /* ===== UPDATE ===== */
@@ -46,7 +46,7 @@ router.put(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
-  KnowledgeController.updateKnowledge
+  KnowledgeController.updateKnowledge.bind(KnowledgeController)
 );
 
 /* ===== DELETE ===== */
@@ -57,7 +57,7 @@ router.delete(
   "/:id",
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
-  KnowledgeController.deleteKnowledge
+  KnowledgeController.deleteKnowledge.bind(KnowledgeController)
 );
 
 /* ===== REACTIONS ===== */
@@ -68,7 +68,7 @@ router.post(
   "/:id/reaction",
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
-  KnowledgeController.toggleReaction
+  KnowledgeController.toggleReaction.bind(KnowledgeController)
 );
 
 /* ===== SHARES ===== */
@@ -79,7 +79,7 @@ router.post(
   "/:id/share",
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
-  KnowledgeController.toggleShare
+  KnowledgeController.toggleShare.bind(KnowledgeController)
 );
 
 module.exports = router;

@@ -5,6 +5,7 @@ import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar";
 import { FiImage, FiSend, FiChevronDown, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import { knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
 
@@ -45,6 +46,8 @@ const mapKnowledgeToCardData = (knowledge) => {
 };
 
 const KnowledgePage = () => {
+  const { user } = useAuth();
+  const readOnly = user && user.status !== "active";
   const [content, setContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -60,6 +63,8 @@ const KnowledgePage = () => {
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
 
+  const [viewFilter, setViewFilter] = useState("all");
+
   // Inputs optionnels (plus utilisés: on garde l'état simple pour éviter les erreurs)
   const [showCodeInput] = useState(false);
   const [showLinkInput] = useState(false);
@@ -68,7 +73,7 @@ const KnowledgePage = () => {
   const loadKnowledge = async () => {
     try {
       setLoading(true);
-      const res = await knowledgeApi.getAll();
+      const res = await knowledgeApi.getAll({ filter: viewFilter });
       setKnowledgeRaw(res.data?.data ?? []);
     } catch {
       setKnowledgeRaw([]);
@@ -79,7 +84,7 @@ const KnowledgePage = () => {
 
   useEffect(() => {
     loadKnowledge();
-  }, []);
+  }, [viewFilter]);
 
   useEffect(() => {
     categoryApi
@@ -156,6 +161,7 @@ const KnowledgePage = () => {
             <div className="max-w-4xl mx-auto space-y-6 pb-20">
               
               {/* --- COMPOSER (With Source & Code logic) --- */}
+              {!readOnly && (
               <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
                 <div className="flex gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 uppercase tracking-tighter">YC</div>
@@ -248,14 +254,54 @@ const KnowledgePage = () => {
                   </div>
                 </div>
               </div>
+              )}
+
+              {readOnly && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800 text-sm font-bold text-center">
+                  Mode lecture seule : un responsable doit activer votre compte pour créer et réagir sur les connaissances.
+                </div>
+              )}
 
               {/* --- FILTER BAR --- */}
-              <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-grow w-full">
+              <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Vue :</span>
+                  <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setViewFilter("all")}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${
+                        viewFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      All Campus
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewFilter("friends")}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${
+                        viewFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      Friends
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewFilter("my_campus")}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${
+                        viewFilter === "my_campus" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      My Campus
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col md:flex-row gap-4 items-center">
+                  <div className="relative flex-grow w-full">
                   <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" />
                   <input type="text" placeholder="Search knowledge..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto">
                   <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-black text-slate-500 uppercase cursor-pointer">
                     <option value="all">Categories</option>
                     <option value="Frontend">Frontend</option>
@@ -266,6 +312,7 @@ const KnowledgePage = () => {
                     <option value="React">React</option>
                     <option value="Node.js">Node.js</option>
                   </select>
+                  </div>
                 </div>
               </div>
 
@@ -280,7 +327,12 @@ const KnowledgePage = () => {
                   </div>
                 ) : filteredKnowledge.length ? (
                   filteredKnowledge.map((item) => (
-                    <KnowledgeCard key={item.id} data={item} />
+                    <KnowledgeCard
+                      key={item.id}
+                      data={item}
+                      readOnly={readOnly || (user?.status === "active" && item.canReact === false)}
+                      onRefresh={loadKnowledge}
+                    />
                   ))
                 ) : (
                   <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">

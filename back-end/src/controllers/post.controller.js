@@ -123,17 +123,30 @@ class PostController {
       if (!currentUser) return res.status(403).json({ message: "User not found" });
 
       let authorFilter = {};
+      let noAuthors = false;
       if (currentUser.status === "active") {
         const friendIds = await getMyFriendIds(req.user.id);
         if (viewFilter === "friends") {
-          authorFilter = friendIds.length ? { author: { $in: friendIds } } : { _id: -1 };
+          if (friendIds.length === 0) {
+            noAuthors = true;
+          } else {
+            authorFilter = { author: { $in: friendIds } };
+          }
         } else if (viewFilter === "my_campus") {
           const campusId = currentUser.campus?._id || currentUser.campus;
           if (campusId) {
             const sameCampusIds = await User.find({ campus: campusId }).distinct("_id");
-            authorFilter = sameCampusIds.length ? { author: { $in: sameCampusIds } } : { _id: -1 };
+            if (sameCampusIds.length === 0) {
+              noAuthors = true;
+            } else {
+              authorFilter = { author: { $in: sameCampusIds } };
+            }
           }
         }
+      }
+
+      if (noAuthors) {
+        return res.json({ success: true, data: [] });
       }
 
       const posts = await Post.find(authorFilter)
