@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhone } from 'react-icons/fi';
 import { getSocket } from '../services/socket';
 
-const VideoCall = ({ callData, onEnd }) => {
+const VideoCall = ({ callData, onEnd, onConnected }) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -19,6 +19,7 @@ const VideoCall = ({ callData, onEnd }) => {
   const remoteStreamRef = useRef(null);
   const pendingOfferRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
+  const onConnectedCalledRef = useRef(false);
 
   const attachAndPlay = (el, stream) => {
     if (!el || !stream) return;
@@ -167,11 +168,18 @@ const VideoCall = ({ callData, onEnd }) => {
       pc.oniceconnectionstatechange = () => {
         console.log('[VideoCall] 🧊 ICE connection state:', pc.iceConnectionState);
       };
+      const maybeCallOnConnected = () => {
+        if (!onConnectedCalledRef.current && typeof onConnected === 'function') {
+          onConnectedCalledRef.current = true;
+          onConnected();
+        }
+      };
       pc.onconnectionstatechange = () => {
         console.log('[VideoCall] 🔗 RTCPeerConnection state:', pc.connectionState);
         if (pc.connectionState === 'connected') {
           setIsConnected(true);
           setConnectionState('connected');
+          maybeCallOnConnected();
         } else if (pc.connectionState === 'failed') {
           setConnectionState('failed');
         }
@@ -188,6 +196,7 @@ const VideoCall = ({ callData, onEnd }) => {
         }
         setIsConnected(true);
         setConnectionState('connected');
+        maybeCallOnConnected();
       };
 
       // 5. Get user media then add tracks

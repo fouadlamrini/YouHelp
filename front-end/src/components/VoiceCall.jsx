@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiMic, FiMicOff, FiPhone } from 'react-icons/fi';
 import { getSocket } from '../services/socket';
 
-const VoiceCall = ({ callData, onEnd }) => {
+const VoiceCall = ({ callData, onEnd, onConnected }) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -17,6 +17,7 @@ const VoiceCall = ({ callData, onEnd }) => {
   const remoteAudioRef = useRef(null);
   const pendingOfferRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
+  const onConnectedCalledRef = useRef(false);
 
   // Lire le flux audio distant (sans ça on n'entend pas l'autre)
   useEffect(() => {
@@ -122,10 +123,17 @@ const VoiceCall = ({ callData, onEnd }) => {
           });
         }
       };
+      const maybeCallOnConnected = () => {
+        if (!onConnectedCalledRef.current && typeof onConnected === 'function') {
+          onConnectedCalledRef.current = true;
+          onConnected();
+        }
+      };
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === 'connected') {
           setIsConnected(true);
           setConnectionState('connected');
+          maybeCallOnConnected();
         } else if (pc.connectionState === 'failed') {
           setConnectionState('failed');
         }
@@ -137,6 +145,7 @@ const VoiceCall = ({ callData, onEnd }) => {
         setRemoteStream(stream);
         setIsConnected(true);
         setConnectionState('connected');
+        maybeCallOnConnected();
         const el = remoteAudioRef.current;
         if (el) {
           el.srcObject = stream;

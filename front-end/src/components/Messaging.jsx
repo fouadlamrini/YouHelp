@@ -9,6 +9,9 @@ import { useAuth } from "../context/AuthContext";
 import VideoCall from "./VideoCall.jsx";
 import VoiceCall from "./VoiceCall.jsx";
 
+const RINGTONE_OUTGOING = "/sounds/bruit tonalité du telephone.mp3";
+const RINGTONE_INCOMING = "/sounds/Toque Galaxy Bells (Samsung).mp3";
+
 const Messaging = ({ openChatUserId = null }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -27,6 +30,42 @@ const Messaging = ({ openChatUserId = null }) => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [voiceCall, setVoiceCall] = useState(null);
   const [incomingVoiceCall, setIncomingVoiceCall] = useState(null);
+  const outgoingRingtoneRef = useRef(null);
+  const incomingRingtoneRef = useRef(null);
+
+  const stopOutgoingRingtone = () => {
+    const audio = outgoingRingtoneRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      outgoingRingtoneRef.current = null;
+    }
+  };
+
+  const stopIncomingRingtone = () => {
+    const audio = incomingRingtoneRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      incomingRingtoneRef.current = null;
+    }
+  };
+
+  const playOutgoingRingtone = () => {
+    stopOutgoingRingtone();
+    const audio = new Audio(RINGTONE_OUTGOING);
+    audio.loop = true;
+    audio.play().catch(() => {});
+    outgoingRingtoneRef.current = audio;
+  };
+
+  const playIncomingRingtone = () => {
+    stopIncomingRingtone();
+    const audio = new Audio(RINGTONE_INCOMING);
+    audio.loop = true;
+    audio.play().catch(() => {});
+    incomingRingtoneRef.current = audio;
+  };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -107,6 +146,7 @@ const Messaging = ({ openChatUserId = null }) => {
           isInitiator: false,
           otherUserName: data.fromUser?.name || data.fromUser?.email
         });
+        playIncomingRingtone();
       }
     };
 
@@ -118,6 +158,7 @@ const Messaging = ({ openChatUserId = null }) => {
           isInitiator: false,
           otherUserName: data.fromUser?.name || data.fromUser?.email
         });
+        playIncomingRingtone();
       }
     };
 
@@ -172,6 +213,7 @@ const Messaging = ({ openChatUserId = null }) => {
         fromUser: user
       });
     }
+    playOutgoingRingtone();
     setVideoCall({
       currentUserId: user.id,
       otherUserId: activeChat.user._id,
@@ -190,6 +232,7 @@ const Messaging = ({ openChatUserId = null }) => {
         fromUser: user
       });
     }
+    playOutgoingRingtone();
     setVoiceCall({
       currentUserId: user.id,
       otherUserId: activeChat.user._id,
@@ -200,32 +243,42 @@ const Messaging = ({ openChatUserId = null }) => {
 
   const handleAcceptCall = () => {
     if (incomingCall) {
+      stopIncomingRingtone();
       setVideoCall(incomingCall);
       setIncomingCall(null);
     }
   };
 
   const handleRejectCall = () => {
+    stopIncomingRingtone();
     setIncomingCall(null);
   };
 
   const handleAcceptVoiceCall = () => {
     if (incomingVoiceCall) {
+      stopIncomingRingtone();
       setVoiceCall(incomingVoiceCall);
       setIncomingVoiceCall(null);
     }
   };
 
   const handleRejectVoiceCall = () => {
+    stopIncomingRingtone();
     setIncomingVoiceCall(null);
   };
 
   const handleEndVideoCall = () => {
+    stopOutgoingRingtone();
     setVideoCall(null);
   };
 
   const handleEndVoiceCall = () => {
+    stopOutgoingRingtone();
     setVoiceCall(null);
+  };
+
+  const handleCallConnected = () => {
+    stopOutgoingRingtone();
   };
 
   const formatTime = (dateStr) => {
@@ -480,6 +533,7 @@ const Messaging = ({ openChatUserId = null }) => {
         <VideoCall
           callData={videoCall}
           onEnd={handleEndVideoCall}
+          onConnected={handleCallConnected}
         />
       )}
       {/* Voice Call Modal */}
@@ -487,6 +541,7 @@ const Messaging = ({ openChatUserId = null }) => {
         <VoiceCall
           callData={voiceCall}
           onEnd={handleEndVoiceCall}
+          onConnected={handleCallConnected}
         />
       )}
     </div>
