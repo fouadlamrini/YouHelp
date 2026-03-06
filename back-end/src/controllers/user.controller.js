@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
+const { notifyUserActivated, notifyUserRefused } = require("../services/notification.service");
 
 /** Get current user doc with role (and campus, class) for permission checks */
 async function getCurrentUserWithContext(userId) {
@@ -252,9 +253,41 @@ class UserController {
         .populate("class", "name")
         .populate("level", "name")
         .select("-password");
+      await notifyUserActivated(current, target).catch((err) => console.error("notifyUserActivated:", err));
       res.json({ success: true, data: updated });
     } catch (err) {
       console.error("acceptUser error:", err);
+      res.status(500).json({ message: err.message || "Server error" });
+    }
+  }
+
+  /** Refuse user (set status rejected) - same permissions as accept */
+  async rejectUser(req, res) {
+    try {
+      const current = await getCurrentUserWithContext(req.user.id);
+      if (!current) return res.status(401).json({ message: "Unauthorized" });
+      const target = await User.findById(req.params.id)
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name")
+        .populate("level", "name");
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (target.status === "rejected") {
+        return res.status(400).json({ message: "User already rejected" });
+      }
+      const can = await canAcceptUser(current, target);
+      if (!can) return res.status(403).json({ message: "Forbidden" });
+      await User.findByIdAndUpdate(req.params.id, { status: "rejected" });
+      const updated = await User.findById(req.params.id)
+        .populate("role", "name")
+        .populate("campus", "name")
+        .populate("class", "name")
+        .populate("level", "name")
+        .select("-password");
+      await notifyUserRefused(current, target).catch((err) => console.error("notifyUserRefused:", err));
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      console.error("rejectUser error:", err);
       res.status(500).json({ message: err.message || "Server error" });
     }
   }

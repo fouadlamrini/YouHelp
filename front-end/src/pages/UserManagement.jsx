@@ -200,6 +200,14 @@ const UserManagement = () => {
       .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
   };
 
+  const handleRejectUser = (user) => {
+    if (!window.confirm(`Refuser l'utilisateur ${user.name || user.email} ?`)) return;
+    usersApi
+      .rejectUser(user._id)
+      .then(() => fetchUsers())
+      .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
+  };
+
   const openEditModal = (user) => {
     setEditingUser({
       ...user,
@@ -553,14 +561,24 @@ const UserManagement = () => {
                               <td className="p-6">
                                 <div className="flex justify-end gap-2 pr-4">
                                   {user.status === "pending" && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleAcceptUser(user)}
-                                      className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
-                                      title="Accepter"
-                                    >
-                                      <FiCheck size={14} />
-                                    </button>
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAcceptUser(user)}
+                                        className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                        title="Accepter"
+                                      >
+                                        <FiCheck size={14} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRejectUser(user)}
+                                        className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                        title="Refuser"
+                                      >
+                                        <FiX size={14} />
+                                      </button>
+                                    </>
                                   )}
                                   <button
                                     type="button"

@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
 const Campus = require("../models/Campus");
+const { notifyNewRegistration } = require("../services/notification.service");
 const Class = require("../models/Class");
 const Level = require("../models/Level");
 const jwt = require("jsonwebtoken");
@@ -269,6 +270,7 @@ class AuthController {
         .populate("class", "name")
         .populate("level", "name")
         .select("-password");
+      await notifyNewRegistration(updated).catch((err) => console.error("notifyNewRegistration:", err));
       res.json({ success: true, data: updated });
     } catch (err) {
       console.error(err);

@@ -43,6 +43,7 @@ const knowledgeRoutes = require("./src/routes/knowledge.routes");
 const favoriteRoutes = require("./src/routes/favorite.routes");
 const avatarRoutes = require("./src/routes/avatar.routes");
 const statsRoutes = require("./src/routes/stats.routes");
+const notificationRoutes = require("./src/routes/notification.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/campus", campusRoutes);
@@ -64,6 +65,7 @@ app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/avatars", avatarRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ======== SOCKET.IO (real-time messages) ========
 const { io, emitToUser } = setupSocket(server);

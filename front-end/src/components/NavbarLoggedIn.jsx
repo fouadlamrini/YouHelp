@@ -5,7 +5,7 @@ import {
   FiEdit, FiCalendar, FiCheck, FiX
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api, { friendRequestsApi, messagesApi } from "../services/api";
+import api, { friendRequestsApi, messagesApi, notificationsApi } from "../services/api";
 import { getSocket } from "../services/socket";
 
 const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
@@ -28,6 +28,8 @@ function NavbarLoggedIn() {
   const [invitationsLoading, setInvitationsLoading] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const formatMessageTime = (dateStr) => {
     if (!dateStr) return "";
@@ -64,6 +66,23 @@ function NavbarLoggedIn() {
 
   useEffect(() => {
     if (activeDropdown === "messages") loadConversations();
+  }, [activeDropdown]);
+
+  const loadNotifications = () => {
+    setNotificationsLoading(true);
+    notificationsApi
+      .getMine()
+      .then((res) => setNotifications(res.data?.data ?? []))
+      .catch(() => setNotifications([]))
+      .finally(() => setNotificationsLoading(false));
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activeDropdown === "notifications") loadNotifications();
   }, [activeDropdown]);
 
   useEffect(() => {
@@ -253,14 +272,51 @@ function NavbarLoggedIn() {
           </div>
 
           {/* NOTIFICATIONS */}
-          <div className="relative">
-            <button onClick={() => toggleDropdown('notifications')} className={`p-2.5 rounded-xl transition-all ${activeDropdown === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+          <div className="relative nav-dropdown-container">
+            <button onClick={() => toggleDropdown('notifications')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
               <FiBell size={20} />
+              {notifications.some((n) => !n.read) && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                  {notifications.filter((n) => !n.read).length > 99 ? "99+" : notifications.filter((n) => !n.read).length}
+                </span>
+              )}
             </button>
             {activeDropdown === 'notifications' && (
               <div className={dropdownStyles}>
-                <p className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 border-b border-slate-50">Notifications</p>
-                <div className="max-h-64 overflow-y-auto italic text-center py-6 text-[10px] text-slate-400">Pas de notifications</div>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
+                  <p className="text-[10px] font-black uppercase text-slate-400">Notifications</p>
+                  {(user?.role === "super_admin" || user?.role === "admin" || user?.role === "formateur") && (
+                    <Link to="/users" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                      Liste des utilisateurs
+                    </Link>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {notificationsLoading ? (
+                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="italic text-center py-6 text-[10px] text-slate-400">Pas de notifications</div>
+                  ) : (
+                    <div className="py-2">
+                      {notifications.map((n) => (
+                        <Link
+                          key={n._id}
+                          to={n.link || "/users"}
+                          onClick={() => {
+                            setActiveDropdown(null);
+                            if (!n.read) notificationsApi.markAsRead(n._id).then(() => loadNotifications()).catch(() => {});
+                          }}
+                          className={`block px-4 py-3 hover:bg-slate-50 border-b border-slate-50/80 last:border-0 ${!n.read ? "bg-indigo-50/30" : ""}`}
+                        >
+                          <p className="text-[11px] font-bold text-slate-800 leading-snug">{n.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {new Date(n.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

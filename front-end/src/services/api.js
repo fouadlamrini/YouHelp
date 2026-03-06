@@ -48,6 +48,7 @@ export const usersApi = {
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
   acceptUser: (id) => api.put(`/users/${id}/accept`),
+  rejectUser: (id) => api.put(`/users/${id}/reject`),
 };
 
 // —— Avatars (built-in + upload) ——
@@ -70,6 +71,13 @@ export const rolesApi = {
 // —— Stats (super_admin / admin / formateur) ——
 export const statsApi = {
   get: () => api.get("/stats"),
+};
+
+// —— Notifications ——
+export const notificationsApi = {
+  getMine: () => api.get("/notifications"),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put("/notifications/read-all"),
 };
 
 // —— Campus (super_admin) ——
