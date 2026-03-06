@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend,
+  FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend, FiTrash2, FiMic,
 } from "react-icons/fi";
-import { messagesApi, friendsApi } from "../services/api";
+import { messagesApi, friendsApi, API_BASE } from "../services/api";
 import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 import VideoCall from "./VideoCall.jsx";
 import VoiceCall from "./VoiceCall.jsx";
+import VoiceMessageBubble from "./VoiceMessageBubble.jsx";
 
 const RINGTONE_OUTGOING = "/sounds/bruit tonalité du telephone.mp3";
 const RINGTONE_INCOMING = "/sounds/Toque Galaxy Bells (Samsung).mp3";
@@ -32,6 +33,10 @@ const Messaging = ({ openChatUserId = null }) => {
   const [incomingVoiceCall, setIncomingVoiceCall] = useState(null);
   const outgoingRingtoneRef = useRef(null);
   const incomingRingtoneRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const recordingStreamRef = useRef(null);
 
   const stopOutgoingRingtone = () => {
     const audio = outgoingRingtoneRef.current;
@@ -162,14 +167,20 @@ const Messaging = ({ openChatUserId = null }) => {
       }
     };
 
+    const onMessageDeleted = ({ messageId }) => {
+      setMessages((prev) => prev.filter((m) => (m._id || m.id) !== messageId));
+    };
+
     socket.on("message", onMessage);
     socket.on("video-call-request", onVideoCallRequest);
     socket.on("voice-call-request", onVoiceCallRequest);
-    
+    socket.on("message-deleted", onMessageDeleted);
+
     return () => {
       socket.off("message", onMessage);
       socket.off("video-call-request", onVideoCallRequest);
       socket.off("voice-call-request", onVoiceCallRequest);
+      socket.off("message-deleted", onMessageDeleted);
     };
   }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
 
@@ -188,18 +199,71 @@ const Messaging = ({ openChatUserId = null }) => {
     setShowNewChat(false);
   };
 
-  const handleSend = async () => {
+  const handleSend = async (attachmentFile = null) => {
     const text = inputText.trim();
-    if (!text || !activeChat?.user?._id || sending) return;
+    if ((!text && !attachmentFile) || !activeChat?.user?._id || sending) return;
     setSending(true);
     try {
-      const res = await messagesApi.send({ receiverId: activeChat.user._id, content: text });
-      setMessages((prev) => [...prev, res.data.data]);
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append("receiverId", String(activeChat.user._id));
+        formData.append("content", text);
+        formData.append("attachment", attachmentFile);
+        const res = await messagesApi.send(formData);
+        setMessages((prev) => [...prev, res.data.data]);
+      } else {
+        const res = await messagesApi.send({ receiverId: activeChat.user._id, content: text });
+        setMessages((prev) => [...prev, res.data.data]);
+      }
       setInputText("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (e) {
       console.error(e);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeChat?.user?._id) return;
+    handleSend(file);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm("Supprimer ce message ?")) return;
+    try {
+      await messagesApi.delete(messageId);
+      setMessages((prev) => prev.filter((m) => (m._id || m.id) !== messageId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const startVoiceRecording = () => {
+    if (!activeChat?.user?._id || sending) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      recordingStreamRef.current = stream;
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      const chunks = [];
+      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      mr.onstop = () => {
+        recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
+        recordingStreamRef.current = null;
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const file = new File([blob], "voice.webm", { type: "audio/webm" });
+        handleSend(file);
+      };
+      mr.start();
+      setIsRecording(true);
+    }).catch((err) => console.error("Micro access:", err));
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
@@ -405,7 +469,9 @@ const Messaging = ({ openChatUserId = null }) => {
                         <h4 className="text-[13px] font-black text-slate-800 truncate">{conv.user.name || conv.user.email}</h4>
                         <span className="text-[10px] text-slate-400 font-bold">{formatTime(conv.lastMessage?.createdAt)}</span>
                       </div>
-                      <p className="text-xs text-slate-500 truncate font-medium">{conv.lastMessage?.content || "No messages"}</p>
+                      <p className="text-xs text-slate-500 truncate font-medium">
+                        {conv.lastMessage?.content || (conv.lastMessage?.attachment ? "📎 Pièce jointe" : "No messages")}
+                      </p>
                     </div>
                   </div>
                 ))
@@ -494,13 +560,56 @@ const Messaging = ({ openChatUserId = null }) => {
             {messages.map((msg) => {
               const senderId = msg.sender?._id || msg.sender;
               const isMe = user?.id && String(senderId) === String(user.id);
+              const att = msg.attachment;
+              const attachmentUrl = att?.url ? (att.url.startsWith("http") ? att.url : `${API_BASE}${att.url}`) : null;
+              if (att?.type === "audio" && attachmentUrl) {
+                return (
+                  <div key={msg._id} className={isMe ? "self-end" : ""}>
+                    <VoiceMessageBubble
+                      src={attachmentUrl}
+                      isMe={isMe}
+                      createdAt={formatTime(msg.createdAt)}
+                      onDelete={isMe ? () => handleDeleteMessage(msg._id) : undefined}
+                    />
+                  </div>
+                );
+              }
               return (
                 <div
                   key={msg._id}
-                  className={`p-3 rounded-2xl max-w-[85%] shadow-sm ${isMe ? "bg-indigo-600 text-white rounded-tr-none self-end" : "bg-white border border-slate-100 rounded-tl-none"}`}
+                  className={`group p-3 rounded-2xl max-w-[85%] shadow-sm ${isMe ? "bg-indigo-600 text-white rounded-tr-none self-end" : "bg-white border border-slate-100 rounded-tl-none"}`}
                 >
-                  <p className="text-xs font-medium leading-relaxed">{msg.content}</p>
-                  <p className={`text-[9px] mt-1 ${isMe ? "text-indigo-200" : "text-slate-400"}`}>{formatTime(msg.createdAt)}</p>
+                  {att && attachmentUrl && (
+                    <div className="mb-2">
+                      {att.type === "image" && (
+                        <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden max-w-[220px]">
+                          <img src={attachmentUrl} alt={att.originalName || "Image"} className="w-full h-auto object-cover" />
+                        </a>
+                      )}
+                      {att.type === "video" && (
+                        <video src={attachmentUrl} controls className="rounded-lg max-h-40 w-full" />
+                      )}
+                      {att.type === "file" && (
+                        <a href={attachmentUrl} download={att.originalName} className={`text-xs underline ${isMe ? "text-indigo-200" : "text-indigo-600"}`}>
+                          📎 {att.originalName || "Fichier"}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {msg.content ? <p className="text-xs font-medium leading-relaxed">{msg.content}</p> : null}
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    {isMe && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMessage(msg._id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 transition-opacity"
+                        title="Supprimer"
+                      >
+                        <FiTrash2 size={12} />
+                      </button>
+                    )}
+                    <p className={`text-[9px] ${isMe ? "text-indigo-200" : "text-slate-400"}`}>{formatTime(msg.createdAt)}</p>
+                  </div>
                 </div>
               );
             })}
@@ -508,21 +617,38 @@ const Messaging = ({ openChatUserId = null }) => {
           </div>
 
           <div className="p-3 bg-white border-t border-slate-100">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,audio/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
             <div className="flex items-center gap-2 bg-slate-100 rounded-2xl px-3 py-2">
               <input
                 type="text"
                 placeholder="Message..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !isRecording && handleSend()}
                 className="flex-grow bg-transparent border-none focus:ring-0 text-xs py-1"
               />
-              <button onClick={handleSend} disabled={sending || !inputText.trim()} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
+              {isRecording ? (
+                <button type="button" onClick={stopVoiceRecording} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600" title="Arrêter l’enregistrement">
+                  <FiMic size={18} />
+                </button>
+              ) : (
+                <button type="button" onClick={startVoiceRecording} className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg" title="Message vocal">
+                  <FiMic size={18} />
+                </button>
+              )}
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg" title="Fichier, image ou vidéo">
+                <FiPaperclip size={18} />
+              </button>
+              <button onClick={() => handleSend()} disabled={sending || !inputText.trim()} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
                 <FiSend size={18} />
               </button>
               <FiSmile size={18} className="cursor-pointer text-slate-400" />
-              <FiImage size={18} className="cursor-pointer text-slate-400" />
-              <FiPaperclip size={18} className="cursor-pointer text-slate-400" />
             </div>
           </div>
         </div>

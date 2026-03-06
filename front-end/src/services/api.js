@@ -9,6 +9,9 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
     return config;
   },
   (e) => Promise.reject(e)
@@ -187,11 +190,18 @@ export const favoritesApi = {
 
 // —— Messages ——
 export const messagesApi = {
-  send: (data) => api.post("/messages", data),
+  send: (data) => {
+    if (data instanceof FormData) {
+      return api.post("/messages", data);
+    }
+    return api.post("/messages", data);
+  },
   getConversations: () => api.get("/messages/conversations"),
   getConversation: (userId) => api.get(`/messages/conversation/${userId}`),
   delete: (id) => api.delete(`/messages/${id}`),
 };
+
+export const API_BASE = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, "") : "http://localhost:3000";
 
 // —— Workshops ——
 export const workshopsApi = {

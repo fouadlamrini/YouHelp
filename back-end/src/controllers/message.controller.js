@@ -5,10 +5,17 @@ const { areFriends } = require("./friend.controller");
 class MessageController {
   async send(req, res) {
     try {
-      const { receiverId, content } = req.body;
-      if (!receiverId || !content?.trim()) {
-        return res.status(400).json({ message: "receiverId and content required" });
+      const receiverId = req.body.receiverId;
+      const content = (req.body.content || "").trim();
+      const hasFile = req.file && req.file.path;
+
+      if (!receiverId) {
+        return res.status(400).json({ message: "receiverId required" });
       }
+      if (!content && !hasFile) {
+        return res.status(400).json({ message: "content or attachment required" });
+      }
+
       const receiver = await User.findById(receiverId).select("_id");
       if (!receiver) return res.status(404).json({ message: "Receiver not found" });
       if (receiverId === req.user.id) {
@@ -18,10 +25,24 @@ class MessageController {
       if (!friends) {
         return res.status(403).json({ message: "You can only message your friends" });
       }
+
+      let attachment = null;
+      if (hasFile) {
+        const file = req.file;
+        const folder = file.path.includes("images") ? "images" : file.path.includes("videos") ? "videos" : file.path.includes("audio") ? "audio" : "files";
+        const type = file.mimetype.startsWith("image") ? "image" : file.mimetype.startsWith("video") ? "video" : file.mimetype.startsWith("audio") ? "audio" : "file";
+        attachment = {
+          url: `/uploads/${folder}/${file.filename}`,
+          type,
+          originalName: file.originalname || file.filename,
+        };
+      }
+
       const message = await Message.create({
         sender: req.user.id,
         receiver: receiverId,
-        content: content.trim(),
+        content: content || "",
+        ...(attachment && { attachment }),
       });
       const populated = await Message.findById(message._id)
         .populate("sender", "name email")
@@ -77,7 +98,7 @@ class MessageController {
             ],
           })
             .sort({ createdAt: -1 })
-            .select("content createdAt readAt receiver")
+            .select("content attachment createdAt readAt receiver")
             .lean();
           const unread = last && last.receiver && last.receiver.toString() === me && !last.readAt;
           return {
@@ -107,7 +128,10 @@ class MessageController {
       if (message.sender.toString() !== req.user.id) {
         return res.status(403).json({ message: "Can only delete your own messages" });
       }
+      const receiverId = message.receiver.toString();
       await Message.findByIdAndDelete(id);
+      const emitToUser = req.app.get("emitToUser");
+      if (emitToUser) emitToUser(receiverId, "message-deleted", { messageId: id });
       res.json({ success: true, message: "Message deleted" });
     } catch (err) {
       console.error(err);
