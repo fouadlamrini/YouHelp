@@ -25,23 +25,83 @@ function setupSocket(server) {
 
   io.on("connection", (socket) => {
     const uid = socket.userId;
+    console.log('🔗 Socket connected - User ID:', uid);
+    
     if (!userSockets.has(uid)) userSockets.set(uid, new Set());
     userSockets.get(uid).add(socket.id);
 
     socket.on("disconnect", () => {
+      console.log('❌ Socket disconnected - User ID:', uid);
       const set = userSockets.get(uid);
       if (set) {
         set.delete(socket.id);
         if (set.size === 0) userSockets.delete(uid);
       }
     });
+
+    // Video Call Events
+    socket.on("video-call-request", (data) => {
+      console.log('📹 Video call request received:', data);
+      const { from, to, fromUser } = data;
+      
+      // Forward the request to the target user
+      emitToUser(to, "video-call-request", {
+        from,
+        to,
+        fromUser
+      });
+    });
+
+    socket.on("join-video-call", (data) => {
+      console.log('🎥 Join video call:', data);
+      const { userId, otherUserId } = data;
+      
+      // Join both users to a room for WebRTC signaling
+      const room = [userId, otherUserId].sort().join("-");
+      socket.join(room);
+      console.log(`📞 Users ${userId} and ${otherUserId} joined room ${room}`);
+    });
+
+    socket.on("offer", (data) => {
+      console.log('[socket] 🤝 offer from', socket.userId, 'to', data.to, '| userSockets keys:', Array.from(userSockets.keys()));
+      emitToUser(data.to, "offer", {
+        offer: data.offer,
+        from: socket.userId
+      });
+    });
+
+    socket.on("answer", (data) => {
+      console.log('[socket] ✅ answer from', socket.userId, 'to', data.to, '| userSockets keys:', Array.from(userSockets.keys()));
+      emitToUser(data.to, "answer", {
+        answer: data.answer,
+        from: socket.userId
+      });
+    });
+
+    socket.on("ice-candidate", (data) => {
+      console.log('[socket] 🧊 ice-candidate from', socket.userId, 'to', data.to);
+      emitToUser(data.to, "ice-candidate", {
+        candidate: data.candidate,
+        from: socket.userId
+      });
+    });
+
+    socket.on("callee-ready", (data) => {
+      console.log('[socket] 📞 callee-ready from', socket.userId, 'to', data.to);
+      emitToUser(data.to, "callee-ready", { from: socket.userId });
+    });
   });
 
   /** Send event to one user (all his sockets) */
   function emitToUser(userId, event, data) {
-    const set = userSockets.get(userId);
-    if (!set) return;
+    const id = String(userId);
+    const set = userSockets.get(id);
+    if (!set) {
+      console.log('[socket] ⚠️ emitToUser: no socket for userId', id, '| available:', Array.from(userSockets.keys()));
+      return;
+    }
     set.forEach((sid) => io.to(sid).emit(event, data));
+    console.log('[socket] 📤', event, 'sent to', id);
   }
 
   return { io, emitToUser };

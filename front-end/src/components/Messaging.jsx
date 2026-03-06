@@ -6,6 +6,7 @@ import {
 import { messagesApi, friendsApi } from "../services/api";
 import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
+import VideoCall from "./VideoCall.jsx";
 
 const Messaging = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const Messaging = () => {
   const [showNewChat, setShowNewChat] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [videoCall, setVideoCall] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -64,6 +67,7 @@ const Messaging = () => {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
+    
     const onMessage = (msg) => {
       if (activeChat?.user?._id === msg.sender?._id) {
         setMessages((prev) => [...prev, msg]);
@@ -78,9 +82,28 @@ const Messaging = () => {
         return list;
       });
     };
+
+    const onVideoCallRequest = (data) => {
+      console.log('📹 Video call request received:', data);
+      
+      if (data.to === user?.id && !videoCall && !incomingCall) {
+        setIncomingCall({
+          currentUserId: user.id,
+          otherUserId: data.from,
+          isInitiator: false,
+          otherUserName: data.fromUser?.name || data.fromUser?.email
+        });
+      }
+    };
+
     socket.on("message", onMessage);
-    return () => socket.off("message", onMessage);
-  }, [activeChat?.user?._id]);
+    socket.on("video-call-request", onVideoCallRequest);
+    
+    return () => {
+      socket.off("message", onMessage);
+      socket.off("video-call-request", onVideoCallRequest);
+    };
+  }, [activeChat?.user?._id, user?.id, videoCall, incomingCall]);
 
   const handleSelectChat = (conv) => {
     setActiveChat(conv);
@@ -112,6 +135,43 @@ const Messaging = () => {
     }
   };
 
+  const handleVideoCall = () => {
+    if (!activeChat?.user?._id || !user?.id || videoCall) return;
+    
+    // Send notification to other user
+    const socket = getSocket();
+    if (socket) {
+      socket.emit("video-call-request", {
+        from: user.id,
+        to: activeChat.user._id,
+        fromUser: user
+      });
+    }
+    
+    // Start call as initiator
+    setVideoCall({
+      currentUserId: user.id,
+      otherUserId: activeChat.user._id,
+      isInitiator: true,
+      otherUserName: activeChat.user.name || activeChat.user.email
+    });
+  };
+
+  const handleAcceptCall = () => {
+    if (incomingCall) {
+      setVideoCall(incomingCall);
+      setIncomingCall(null);
+    }
+  };
+
+  const handleRejectCall = () => {
+    setIncomingCall(null);
+  };
+
+  const handleEndVideoCall = () => {
+    setVideoCall(null);
+  };
+
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -122,6 +182,36 @@ const Messaging = () => {
 
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
+      {/* Incoming Call Notification */}
+      {incomingCall && (
+        <div className="fixed top-20 right-8 bg-white rounded-lg shadow-2xl border border-slate-200 p-4 z-[102] w-80">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+              <FiVideo className="text-green-600" size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Incoming Video Call</h4>
+              <p className="text-xs text-slate-500">{incomingCall.otherUserName}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAcceptCall}
+              className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 flex items-center justify-center gap-2"
+            >
+              <FiPhone size={14} />
+              Accept
+            </button>
+            <button
+              onClick={handleRejectCall}
+              className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-2"
+            >
+              <FiX size={14} />
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
       <div
         className={`w-80 bg-white shadow-2xl rounded-t-xl border border-slate-200 transition-all duration-300 ${isMinimized ? "h-12" : "h-[500px]"}`}
       >
@@ -248,13 +338,7 @@ const Messaging = () => {
               <FiVideo
                 size={14}
                 className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
-                onClick={() => {
-                  const otherId = activeChat?.user?._id;
-                  if (user?.id && otherId) {
-                    const room = [String(user.id), String(otherId)].sort().join("-");
-                    window.open(`/video-call?room=${encodeURIComponent(room)}`, "_blank", "noopener");
-                  }
-                }}
+                onClick={handleVideoCall}
               />
               <FiMinus onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
               <FiX onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
@@ -297,6 +381,14 @@ const Messaging = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Video Call Modal */}
+      {videoCall && (
+        <VideoCall 
+          callData={videoCall} 
+          onEnd={handleEndVideoCall}
+        />
       )}
     </div>
   );
