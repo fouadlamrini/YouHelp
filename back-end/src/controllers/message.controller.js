@@ -77,11 +77,13 @@ class MessageController {
             ],
           })
             .sort({ createdAt: -1 })
-            .select("content createdAt readAt")
+            .select("content createdAt readAt receiver")
             .lean();
+          const unread = last && last.receiver && last.receiver.toString() === me && !last.readAt;
           return {
             user: p,
             lastMessage: last || null,
+            unread: !!unread,
           };
         })
       );

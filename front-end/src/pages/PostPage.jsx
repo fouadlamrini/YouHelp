@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import PostCard from "../components/PostCard";
@@ -13,6 +14,8 @@ import { useAuth } from "../context/AuthContext";
 const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 
 const PostPage = () => {
+  const [searchParams] = useSearchParams();
+  const openChatUserId = searchParams.get("chat") || null;
   const { user } = useAuth();
   const readOnly = user && user.status !== "active";
   const fileInputRef = useRef(null);
@@ -416,7 +419,7 @@ const PostPage = () => {
         </main>
       </div>
 
-      <Messaging />
+      <Messaging openChatUserId={openChatUserId} />
     </div>
   );
 };

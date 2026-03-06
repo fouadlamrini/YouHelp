@@ -5,7 +5,8 @@ import {
   FiEdit, FiCalendar, FiCheck, FiX
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api, { friendRequestsApi } from "../services/api";
+import api, { friendRequestsApi, messagesApi } from "../services/api";
+import { getSocket } from "../services/socket";
 
 const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
 
@@ -25,6 +26,16 @@ function NavbarLoggedIn() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [invitations, setInvitations] = useState([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+
+  const formatMessageTime = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
 
   const loadInvitations = () => {
     setInvitationsLoading(true);
@@ -41,6 +52,37 @@ function NavbarLoggedIn() {
   useEffect(() => {
     if (activeDropdown === "invitations") loadInvitations();
   }, [activeDropdown]);
+
+  const loadConversations = () => {
+    setConversationsLoading(true);
+    messagesApi
+      .getConversations()
+      .then((res) => setConversations(res.data?.data ?? []))
+      .catch(() => setConversations([]))
+      .finally(() => setConversationsLoading(false));
+  };
+
+  useEffect(() => {
+    if (activeDropdown === "messages") loadConversations();
+  }, [activeDropdown]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onMessage = () => loadConversations();
+    socket.on("message", onMessage);
+    return () => socket.off("message", onMessage);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const onMessagesRead = () => loadConversations();
+    window.addEventListener("messages-read", onMessagesRead);
+    return () => window.removeEventListener("messages-read", onMessagesRead);
+  }, []);
 
   const handleAcceptInvitation = (id) => {
     friendRequestsApi.accept(id).then(() => loadInvitations()).catch(() => {});
@@ -157,13 +199,55 @@ function NavbarLoggedIn() {
 
           {/* MESSAGES */}
           <div className="relative">
-            <button onClick={() => toggleDropdown('messages')} className={`p-2.5 rounded-xl transition-all ${activeDropdown === 'messages' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <button onClick={() => toggleDropdown("messages")} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "messages" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}>
               <FiMail size={20} />
+              {(conversations.filter((c) => c.unread).length > 0) && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                  {conversations.filter((c) => c.unread).length > 99 ? "99+" : conversations.filter((c) => c.unread).length}
+                </span>
+              )}
             </button>
-            {activeDropdown === 'messages' && (
+            {activeDropdown === "messages" && (
               <div className={dropdownStyles}>
-                <p className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 border-b border-slate-50">Messages</p>
-                <div className="max-h-64 overflow-y-auto italic text-center py-6 text-[10px] text-slate-400">Boîte vide</div>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
+                  <p className="text-[10px] font-black uppercase text-slate-400">Messages</p>
+                  <Link to="/posts" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                    Voir tout
+                  </Link>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {conversationsLoading ? (
+                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                  ) : conversations.length === 0 ? (
+                    <div className="italic text-center py-6 text-[10px] text-slate-400">Boîte vide</div>
+                  ) : (
+                    <div className="py-1">
+                      {conversations.map((conv) => (
+                        <Link
+                          key={conv.user._id}
+                          to={`/posts?chat=${conv.user._id}`}
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold shrink-0 overflow-hidden">
+                            {conv.user.profilePicture ? (
+                              <img src={resolveAvatarUrl(conv.user.profilePicture)} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              (conv.user.name || "?")[0]
+                            )}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="flex justify-between items-baseline gap-2">
+                              <span className="text-[12px] font-bold text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
+                              <span className="text-[10px] text-slate-400 shrink-0">{formatMessageTime(conv.lastMessage?.createdAt)}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 truncate">{conv.lastMessage?.content || "Aucun message"}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

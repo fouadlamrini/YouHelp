@@ -8,7 +8,7 @@ import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 import VideoCall from "./VideoCall.jsx";
 
-const Messaging = () => {
+const Messaging = ({ openChatUserId = null }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isMinimized, setIsMinimized] = useState(true);
@@ -38,6 +38,16 @@ const Messaging = () => {
   }, [user?.id]);
 
   useEffect(() => {
+    if (!openChatUserId || conversations.length === 0) return;
+    const conv = conversations.find((c) => (c.user._id || c.user).toString() === openChatUserId.toString());
+    if (conv) {
+      setActiveChat(conv);
+      setIsMinimized(false);
+      navigate("/posts", { replace: true });
+    }
+  }, [openChatUserId, conversations, navigate]);
+
+  useEffect(() => {
     if (!showNewChat || !user?.id) return;
     setFriendsLoading(true);
     friendsApi
@@ -55,7 +65,10 @@ const Messaging = () => {
     setLoading(true);
     messagesApi
       .getConversation(activeChat.user._id)
-      .then((res) => setMessages(res.data.data || []))
+      .then((res) => {
+        setMessages(res.data.data || []);
+        window.dispatchEvent(new CustomEvent("messages-read"));
+      })
       .catch(() => setMessages([]))
       .finally(() => setLoading(false));
   }, [activeChat?.user?._id]);
