@@ -7,6 +7,7 @@ import { messagesApi, friendsApi } from "../services/api";
 import { getSocket } from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 import VideoCall from "./VideoCall.jsx";
+import VoiceCall from "./VoiceCall.jsx";
 
 const Messaging = ({ openChatUserId = null }) => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const Messaging = ({ openChatUserId = null }) => {
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [videoCall, setVideoCall] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [voiceCall, setVoiceCall] = useState(null);
+  const [incomingVoiceCall, setIncomingVoiceCall] = useState(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -97,10 +100,19 @@ const Messaging = ({ openChatUserId = null }) => {
     };
 
     const onVideoCallRequest = (data) => {
-      console.log('📹 Video call request received:', data);
-      
-      if (data.to === user?.id && !videoCall && !incomingCall) {
+      if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
         setIncomingCall({
+          currentUserId: user.id,
+          otherUserId: data.from,
+          isInitiator: false,
+          otherUserName: data.fromUser?.name || data.fromUser?.email
+        });
+      }
+    };
+
+    const onVoiceCallRequest = (data) => {
+      if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
+        setIncomingVoiceCall({
           currentUserId: user.id,
           otherUserId: data.from,
           isInitiator: false,
@@ -111,12 +123,14 @@ const Messaging = ({ openChatUserId = null }) => {
 
     socket.on("message", onMessage);
     socket.on("video-call-request", onVideoCallRequest);
+    socket.on("voice-call-request", onVoiceCallRequest);
     
     return () => {
       socket.off("message", onMessage);
       socket.off("video-call-request", onVideoCallRequest);
+      socket.off("voice-call-request", onVoiceCallRequest);
     };
-  }, [activeChat?.user?._id, user?.id, videoCall, incomingCall]);
+  }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
 
   const handleSelectChat = (conv) => {
     setActiveChat(conv);
@@ -149,9 +163,7 @@ const Messaging = ({ openChatUserId = null }) => {
   };
 
   const handleVideoCall = () => {
-    if (!activeChat?.user?._id || !user?.id || videoCall) return;
-    
-    // Send notification to other user
+    if (!activeChat?.user?._id || !user?.id || videoCall || voiceCall) return;
     const socket = getSocket();
     if (socket) {
       socket.emit("video-call-request", {
@@ -160,9 +172,25 @@ const Messaging = ({ openChatUserId = null }) => {
         fromUser: user
       });
     }
-    
-    // Start call as initiator
     setVideoCall({
+      currentUserId: user.id,
+      otherUserId: activeChat.user._id,
+      isInitiator: true,
+      otherUserName: activeChat.user.name || activeChat.user.email
+    });
+  };
+
+  const handleVoiceCall = () => {
+    if (!activeChat?.user?._id || !user?.id || videoCall || voiceCall) return;
+    const socket = getSocket();
+    if (socket) {
+      socket.emit("voice-call-request", {
+        from: user.id,
+        to: activeChat.user._id,
+        fromUser: user
+      });
+    }
+    setVoiceCall({
       currentUserId: user.id,
       otherUserId: activeChat.user._id,
       isInitiator: true,
@@ -181,8 +209,23 @@ const Messaging = ({ openChatUserId = null }) => {
     setIncomingCall(null);
   };
 
+  const handleAcceptVoiceCall = () => {
+    if (incomingVoiceCall) {
+      setVoiceCall(incomingVoiceCall);
+      setIncomingVoiceCall(null);
+    }
+  };
+
+  const handleRejectVoiceCall = () => {
+    setIncomingVoiceCall(null);
+  };
+
   const handleEndVideoCall = () => {
     setVideoCall(null);
+  };
+
+  const handleEndVoiceCall = () => {
+    setVoiceCall(null);
   };
 
   const formatTime = (dateStr) => {
@@ -195,7 +238,7 @@ const Messaging = ({ openChatUserId = null }) => {
 
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
-      {/* Incoming Call Notification */}
+      {/* Incoming Video Call Notification */}
       {incomingCall && (
         <div className="fixed top-20 right-8 bg-white rounded-lg shadow-2xl border border-slate-200 p-4 z-[102] w-80">
           <div className="flex items-center gap-3 mb-3">
@@ -203,7 +246,7 @@ const Messaging = ({ openChatUserId = null }) => {
               <FiVideo className="text-green-600" size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-slate-800">Incoming Video Call</h4>
+              <h4 className="text-sm font-bold text-slate-800">Appel vidéo entrant</h4>
               <p className="text-xs text-slate-500">{incomingCall.otherUserName}</p>
             </div>
           </div>
@@ -213,14 +256,44 @@ const Messaging = ({ openChatUserId = null }) => {
               className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 flex items-center justify-center gap-2"
             >
               <FiPhone size={14} />
-              Accept
+              Accepter
             </button>
             <button
               onClick={handleRejectCall}
               className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-2"
             >
               <FiX size={14} />
-              Reject
+              Refuser
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Incoming Voice Call Notification */}
+      {incomingVoiceCall && (
+        <div className="fixed top-20 right-8 bg-white rounded-lg shadow-2xl border border-slate-200 p-4 z-[102] w-80">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+              <FiPhone className="text-indigo-600" size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Appel vocal entrant</h4>
+              <p className="text-xs text-slate-500">{incomingVoiceCall.otherUserName}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAcceptVoiceCall}
+              className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 flex items-center justify-center gap-2"
+            >
+              <FiPhone size={14} />
+              Accepter
+            </button>
+            <button
+              onClick={handleRejectVoiceCall}
+              className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-2"
+            >
+              <FiX size={14} />
+              Refuser
             </button>
           </div>
         </div>
@@ -347,11 +420,17 @@ const Messaging = ({ openChatUserId = null }) => {
               </div>
             </div>
             <div className="flex items-center gap-2 text-indigo-600">
-              <FiPhone size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
+              <FiPhone
+                size={14}
+                className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
+                onClick={handleVoiceCall}
+                title="Appel vocal"
+              />
               <FiVideo
                 size={14}
                 className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
                 onClick={handleVideoCall}
+                title="Appel vidéo"
               />
               <FiMinus onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
               <FiX onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
@@ -398,9 +477,16 @@ const Messaging = ({ openChatUserId = null }) => {
       
       {/* Video Call Modal */}
       {videoCall && (
-        <VideoCall 
-          callData={videoCall} 
+        <VideoCall
+          callData={videoCall}
           onEnd={handleEndVideoCall}
+        />
+      )}
+      {/* Voice Call Modal */}
+      {voiceCall && (
+        <VoiceCall
+          callData={voiceCall}
+          onEnd={handleEndVoiceCall}
         />
       )}
     </div>

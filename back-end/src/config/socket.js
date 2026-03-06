@@ -90,6 +90,34 @@ function setupSocket(server) {
       console.log('[socket] 📞 callee-ready from', socket.userId, 'to', data.to);
       emitToUser(data.to, "callee-ready", { from: socket.userId });
     });
+
+    // Voice Call Events (same logic as video, separate events to avoid mixing)
+    socket.on("voice-call-request", (data) => {
+      console.log('📞 Voice call request received:', data);
+      const { from, to, fromUser } = data;
+      emitToUser(to, "voice-call-request", { from, to, fromUser });
+    });
+
+    socket.on("join-voice-call", (data) => {
+      console.log('🎧 Join voice call:', data);
+      const { userId, otherUserId } = data;
+      const room = "voice-" + [userId, otherUserId].sort().join("-");
+      socket.join(room);
+      console.log(`📞 Voice: users ${userId} and ${otherUserId} joined room ${room}`);
+    });
+
+    socket.on("voice-offer", (data) => {
+      emitToUser(data.to, "voice-offer", { offer: data.offer, from: socket.userId });
+    });
+    socket.on("voice-answer", (data) => {
+      emitToUser(data.to, "voice-answer", { answer: data.answer, from: socket.userId });
+    });
+    socket.on("voice-ice-candidate", (data) => {
+      emitToUser(data.to, "voice-ice-candidate", { candidate: data.candidate, from: socket.userId });
+    });
+    socket.on("voice-callee-ready", (data) => {
+      emitToUser(data.to, "voice-callee-ready", { from: socket.userId });
+    });
   });
 
   /** Send event to one user (all his sockets) */
