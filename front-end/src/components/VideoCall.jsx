@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhone } from 'react-icons/fi';
+import { FiX, FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhone, FiMonitor } from 'react-icons/fi';
 import { getSocket } from '../services/socket';
 
 const VideoCall = ({ callData, onEnd, onConnected }) => {
@@ -7,6 +7,7 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isInitiator, setIsInitiator] = useState(false);
   const [connectionState, setConnectionState] = useState('connecting');
@@ -20,6 +21,8 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
   const pendingOfferRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
   const onConnectedCalledRef = useRef(false);
+  const cameraStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
 
   const attachAndPlay = (el, stream) => {
     if (!el || !stream) return;
@@ -211,6 +214,7 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
       }
 
       localStreamRef.current = stream;
+      cameraStreamRef.current = stream;
       setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -279,17 +283,86 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
     }
   };
 
+  const stopScreenShare = async () => {
+    const screenStream = screenStreamRef.current;
+    if (screenStream) {
+      screenStream.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
+    const pc = peerConnection.current;
+    const cameraStream = cameraStreamRef.current;
+    if (pc && cameraStream) {
+      const videoTrack = cameraStream.getVideoTracks()[0];
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack);
+      }
+    }
+    localStreamRef.current = cameraStreamRef.current;
+    setLocalStream(cameraStreamRef.current);
+    setIsScreenSharing(false);
+    if (localVideoRef.current && cameraStreamRef.current) {
+      localVideoRef.current.srcObject = cameraStreamRef.current;
+      localVideoRef.current.play().catch(() => {});
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    if (isScreenSharing) {
+      await stopScreenShare();
+      return;
+    }
+    const pc = peerConnection.current;
+    const cameraStream = cameraStreamRef.current;
+    if (!pc || !cameraStream) return;
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      screenStreamRef.current = screenStream;
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (!sender || !screenVideoTrack) {
+        screenStream.getTracks().forEach(t => t.stop());
+        return;
+      }
+      await sender.replaceTrack(screenVideoTrack);
+      const combinedStream = new MediaStream();
+      cameraStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+      combinedStream.addTrack(screenVideoTrack);
+      localStreamRef.current = combinedStream;
+      setLocalStream(combinedStream);
+      setIsScreenSharing(true);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = combinedStream;
+        localVideoRef.current.play().catch(() => {});
+      }
+      screenVideoTrack.onended = () => {
+        stopScreenShare();
+      };
+    } catch (err) {
+      console.error('[VideoCall] Screen share error:', err);
+    }
+  };
+
   const endCall = () => {
     cleanup();
     onEnd();
   };
 
   const cleanup = () => {
+    const screenStream = screenStreamRef.current;
+    if (screenStream) {
+      screenStream.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
     const stream = localStreamRef.current;
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
+    cameraStreamRef.current = null;
     remoteStreamRef.current = null;
     if (peerConnection.current) {
       peerConnection.current.close();
@@ -391,8 +464,20 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
           className={`p-4 rounded-full transition-colors ${
             isVideoOff ? 'bg-red-500 text-white' : 'bg-slate-600 text-white hover:bg-slate-700'
           }`}
+          disabled={isScreenSharing}
+          title={isScreenSharing ? 'Arrêtez le partage d\'écran d\'abord' : (isVideoOff ? 'Activer la caméra' : 'Désactiver la caméra')}
         >
           {isVideoOff ? <FiVideoOff size={20} /> : <FiVideo size={20} />}
+        </button>
+
+        <button
+          onClick={toggleScreenShare}
+          className={`p-4 rounded-full transition-colors ${
+            isScreenSharing ? 'bg-indigo-500 text-white' : 'bg-slate-600 text-white hover:bg-slate-700'
+          }`}
+          title={isScreenSharing ? 'Arrêter le partage d\'écran' : 'Partager l\'écran'}
+        >
+          <FiMonitor size={20} />
         </button>
         
         <button
