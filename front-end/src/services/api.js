@@ -64,15 +64,6 @@ export const rolesApi = {
   getAll: () => api.get("/roles"),
 };
 
-// —— Request Role ——
-export const requestRoleApi = {
-  send: () => api.post("/requestRole/request-role"),
-  getAll: () => api.get("/requestRole/role-requests"),
-  reject: (requestId) => api.put(`/requestRole/role-requests/${requestId}/reject`),
-  acceptFormateur: (requestId) => api.put(`/requestRole/role-requests/${requestId}/accept/formateur`),
-  acceptEtudiant: (requestId) => api.put(`/requestRole/role-requests/${requestId}/accept/etudiant`),
-};
-
 // —— Campus (super_admin) ——
 export const campusApi = {
   getAll: () => api.get("/campus"),

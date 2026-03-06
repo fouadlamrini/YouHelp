@@ -4,7 +4,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiGrid,
-  FiUserCheck,
   FiUsers,
   FiBarChart2,
   FiMapPin,
@@ -102,8 +101,7 @@ const Sidebar = () => {
 
         <div className="my-4 border-t border-slate-50"></div>
 
-        {/* Roles & Users */}
-        <NavItem icon={FiUserCheck} label="Request Role" to="/role-request" isOpen={isOpen} />
+        {/* Users */}
         <NavItem icon={FiUsers} label="Users List" to="/users" isOpen={isOpen} />
       </div>
 

@@ -53,7 +53,6 @@ const Dashboard = () => {
             <Link to="/post-management" className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl text-center block">Post Management</Link>
             <Link to="/knowledge-management" className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl text-center block">Knowledge Management</Link>
             <Link to="/user-management" className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl text-center block">User Management</Link>
-            <Link to="/request-role-management" className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl text-center block">Role Requests</Link>
             <Link to="/reclamation-management" className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl text-center block">Reclamations</Link>
           </div>
         

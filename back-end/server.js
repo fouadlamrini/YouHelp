@@ -24,7 +24,6 @@ app.use("/avatars", express.static(path.join(__dirname, "src/photo-avatar")));
 
 // ======== ROUTES ========
 const authRoutes = require("./src/routes/auth.routes");
-const requestRole = require("./src/routes/requestRole.routes");
 const campusRoutes = require("./src/routes/campus.routes");
 const classRoutes = require("./src/routes/class.routes");
 const levelRoutes = require("./src/routes/level.routes");
@@ -45,7 +44,6 @@ const favoriteRoutes = require("./src/routes/favorite.routes");
 const avatarRoutes = require("./src/routes/avatar.routes");
 
 app.use("/api/auth", authRoutes);
-app.use("/api/requestRole", requestRole);
 app.use("/api/campus", campusRoutes);
 app.use("/api/class", classRoutes);
 app.use("/api/level", levelRoutes);

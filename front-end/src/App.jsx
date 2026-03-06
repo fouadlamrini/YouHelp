@@ -13,7 +13,6 @@ import Register from "./pages/Register";
 import PostPage from "./pages/PostPage";
 import CategoryManager from "./pages/CategoryManager";
 import KnowledgePage from "./pages/KnowledgePage.jsx";
-import RoleRequestsPage from "./pages/RoleRequestsPage.jsx";
 import MyPost from "./pages/MyPosts.jsx";
 import MyKnowledge from "./pages/MyKnowledge.jsx";
 import MyFavorites from "./pages/MyFavorites.jsx";
@@ -97,14 +96,6 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <KnowledgePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/role-request"
-            element={
-              <ProtectedRoute>
-                <RoleRequestsPage />
               </ProtectedRoute>
             }
           />
