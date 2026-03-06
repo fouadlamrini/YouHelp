@@ -18,6 +18,7 @@ const VideoCall = ({ callData, onEnd }) => {
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
   const pendingOfferRef = useRef(null);
+  const pendingIceCandidatesRef = useRef([]);
 
   const attachAndPlay = (el, stream) => {
     if (!el || !stream) return;
@@ -59,6 +60,7 @@ const VideoCall = ({ callData, onEnd }) => {
     try {
       console.log('🎥 Initializing video call...', callData);
       pendingOfferRef.current = null;
+      pendingIceCandidatesRef.current = [];
 
       // 1. Socket first (sync)
       socketRef.current = getSocket();
@@ -96,28 +98,44 @@ const VideoCall = ({ callData, onEnd }) => {
 
       socketRef.current.on('answer', async ({ answer, from }) => {
         const match = String(from) === String(callData.otherUserId);
-        console.log('[VideoCall] 📥 Socket "answer" received:', { from, expected: callData.otherUserId, match });
         if (match) {
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
-            console.log('[VideoCall] ✅ Remote description (answer) set');
             setConnectionState('waiting-for-connection');
+            await flushPendingIceCandidates();
           } catch (e) {
             console.error('[VideoCall] ❌ setRemoteDescription error:', e);
           }
         }
       });
 
-      socketRef.current.on('ice-candidate', async ({ candidate, from }) => {
-        const match = String(from) === String(callData.otherUserId);
-        if (match && pc.signalingState !== 'closed') {
+      const addIceCandidateSafe = async (cand) => {
+        if (pc.signalingState === 'closed') return;
+        if (!pc.remoteDescription) {
+          pendingIceCandidatesRef.current.push(cand);
+          return;
+        }
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(cand));
+        } catch (e) {
+          console.error('[VideoCall] ❌ Error adding ICE candidate:', e);
+        }
+      };
+      const flushPendingIceCandidates = async () => {
+        const pending = pendingIceCandidatesRef.current;
+        pendingIceCandidatesRef.current = [];
+        for (const cand of pending) {
           try {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log('[VideoCall] ✅ ICE candidate added');
+            if (pc.signalingState !== 'closed') await pc.addIceCandidate(new RTCIceCandidate(cand));
           } catch (e) {
-            console.error('[VideoCall] ❌ Error adding ICE candidate:', e);
+            console.error('[VideoCall] ❌ Error adding pending ICE candidate:', e);
           }
         }
+      };
+
+      socketRef.current.on('ice-candidate', async ({ candidate, from }) => {
+        if (String(from) !== String(callData.otherUserId)) return;
+        await addIceCandidateSafe(candidate);
       });
 
       // Callee: tell caller we're ready so they send the offer (avoids offer sent before we listen)
@@ -129,6 +147,7 @@ const VideoCall = ({ callData, onEnd }) => {
       const handleOffer = async (offer) => {
         setConnectionState('receiving-offer');
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        await flushPendingIceCandidates();
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socketRef.current.emit('answer', { answer, to: callData.otherUserId });
