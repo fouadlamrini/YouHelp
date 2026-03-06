@@ -13,6 +13,14 @@ import VoiceMessageBubble from "./VoiceMessageBubble.jsx";
 const RINGTONE_OUTGOING = "/sounds/bruit tonalité du telephone.mp3";
 const RINGTONE_INCOMING = "/sounds/Toque Galaxy Bells (Samsung).mp3";
 
+function resolveAvatarUrl(src) {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  return `${API_BASE}/avatars/${src}`;
+}
+
 const Messaging = ({ openChatUserId = null }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -34,9 +42,15 @@ const Messaging = ({ openChatUserId = null }) => {
   const outgoingRingtoneRef = useRef(null);
   const incomingRingtoneRef = useRef(null);
   const fileInputRef = useRef(null);
+  const messageInputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordingStreamRef = useRef(null);
+
+  const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
+  const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
   const stopOutgoingRingtone = () => {
     const audio = outgoingRingtoneRef.current;
@@ -170,17 +184,25 @@ const Messaging = ({ openChatUserId = null }) => {
     const onMessageDeleted = ({ messageId }) => {
       setMessages((prev) => prev.filter((m) => (m._id || m.id) !== messageId));
     };
+    const onMessageReaction = ({ message: updatedMessage }) => {
+      if (!updatedMessage) return;
+      setMessages((prev) =>
+        prev.map((m) => (m._id === updatedMessage._id || m.id === updatedMessage._id ? { ...m, reactions: updatedMessage.reactions || [] } : m))
+      );
+    };
 
     socket.on("message", onMessage);
     socket.on("video-call-request", onVideoCallRequest);
     socket.on("voice-call-request", onVoiceCallRequest);
     socket.on("message-deleted", onMessageDeleted);
+    socket.on("message-reaction", onMessageReaction);
 
     return () => {
       socket.off("message", onMessage);
       socket.off("video-call-request", onVideoCallRequest);
       socket.off("voice-call-request", onVoiceCallRequest);
       socket.off("message-deleted", onMessageDeleted);
+      socket.off("message-reaction", onMessageReaction);
     };
   }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
 
@@ -238,6 +260,35 @@ const Messaging = ({ openChatUserId = null }) => {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const insertEmoji = (emoji) => {
+    setInputText((t) => t + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleToggleReaction = async (messageId, emoji) => {
+    setReactionPickerMsgId(null);
+    try {
+      const res = await messagesApi.reaction(messageId, emoji);
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId || m.id === messageId ? { ...m, reactions: res.data.data?.reactions || [] } : m))
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const getReactionsGrouped = (reactions) => {
+    if (!reactions?.length) return [];
+    const byEmoji = {};
+    reactions.forEach((r) => {
+      const e = r.emoji || "👍";
+      if (!byEmoji[e]) byEmoji[e] = { emoji: e, count: 0, hasMe: false };
+      byEmoji[e].count++;
+      if (r.user && String(r.user._id || r.user) === String(user?.id)) byEmoji[e].hasMe = true;
+    });
+    return Object.values(byEmoji);
   };
 
   const startVoiceRecording = () => {
@@ -424,7 +475,11 @@ const Messaging = ({ openChatUserId = null }) => {
         >
           <div className="flex items-center gap-2">
             <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
-              {user?.name?.[0] && <span className="flex items-center justify-center h-full text-sm font-bold text-indigo-600">{user.name[0]}</span>}
+              {user?.profilePicture ? (
+                <img src={resolveAvatarUrl(user.profilePicture)} alt="" className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.[0] && <span className="flex items-center justify-center h-full text-sm font-bold text-indigo-600">{user.name[0]}</span>
+              )}
             </div>
             <span className="text-sm font-black text-slate-800 tracking-tight">Messaging</span>
           </div>
@@ -461,8 +516,12 @@ const Messaging = ({ openChatUserId = null }) => {
                     onClick={() => handleSelectChat(conv)}
                     className={`flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50 ${activeChat?.user?._id === conv.user._id ? "bg-indigo-50" : ""}`}
                   >
-                    <div className="relative flex-shrink-0 w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
-                      {conv.user.name?.[0] || "?"}
+                    <div className="relative flex-shrink-0 w-12 h-12 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+                      {conv.user.profilePicture ? (
+                        <img src={resolveAvatarUrl(conv.user.profilePicture)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        conv.user.name?.[0] || "?"
+                      )}
                     </div>
                     <div className="flex-grow min-w-0">
                       <div className="flex justify-between items-baseline">
@@ -508,8 +567,12 @@ const Messaging = ({ openChatUserId = null }) => {
                   onClick={() => handleStartChatWithFriend(f)}
                   className="w-full flex items-center gap-3 py-2 text-left hover:bg-slate-50 px-1"
                 >
-                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold">
-                    {f.name?.[0] || "?"}
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold shrink-0">
+                    {f.profilePicture ? (
+                      <img src={resolveAvatarUrl(f.profilePicture)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      f.name?.[0] || "?"
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-semibold text-slate-800">
@@ -530,8 +593,12 @@ const Messaging = ({ openChatUserId = null }) => {
         <div className="w-80 h-[450px] bg-white shadow-2xl rounded-t-xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
           <div className="p-2.5 flex items-center justify-between border-b border-slate-100 bg-white rounded-t-xl">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
-                {activeChat.user.name?.[0] || "?"}
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+                {activeChat.user.profilePicture ? (
+                  <img src={resolveAvatarUrl(activeChat.user.profilePicture)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  activeChat.user.name?.[0] || "?"
+                )}
               </div>
               <div>
                 <h4 className="text-xs font-black text-slate-800 leading-none">{activeChat.user.name || activeChat.user.email}</h4>
@@ -574,10 +641,11 @@ const Messaging = ({ openChatUserId = null }) => {
                   </div>
                 );
               }
+              const reactionsGrouped = getReactionsGrouped(msg.reactions);
               return (
                 <div
                   key={msg._id}
-                  className={`group p-3 rounded-2xl max-w-[85%] shadow-sm ${isMe ? "bg-indigo-600 text-white rounded-tr-none self-end" : "bg-white border border-slate-100 rounded-tl-none"}`}
+                  className={`group relative p-3 rounded-2xl max-w-[85%] shadow-sm ${isMe ? "bg-indigo-600 text-white rounded-tr-none self-end" : "bg-white border border-slate-100 rounded-tl-none"}`}
                 >
                   {att && attachmentUrl && (
                     <div className="mb-2">
@@ -596,17 +664,49 @@ const Messaging = ({ openChatUserId = null }) => {
                       )}
                     </div>
                   )}
-                  {msg.content ? <p className="text-xs font-medium leading-relaxed">{msg.content}</p> : null}
+                  {msg.content ? <p className="text-xs font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p> : null}
+                  {reactionsGrouped.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {reactionsGrouped.map((r) => (
+                        <button
+                          key={r.emoji}
+                          type="button"
+                          onClick={() => handleToggleReaction(msg._id, r.emoji)}
+                          className={`text-xs px-1.5 py-0.5 rounded ${r.hasMe ? "bg-white/30" : "bg-black/10 hover:bg-black/20"} ${isMe ? "" : "bg-slate-100 hover:bg-slate-200"}`}
+                          title={r.hasMe ? "Retirer la réaction" : "Réagir"}
+                        >
+                          {r.emoji} {r.count > 1 ? r.count : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center justify-end gap-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg._id ? null : msg._id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 transition-opacity text-sm"
+                      title="Réagir"
+                    >
+                      😊
+                    </button>
                     {isMe && (
                       <button
                         type="button"
                         onClick={() => handleDeleteMessage(msg._id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 transition-opacity"
+                        className="p-1 rounded hover:bg-white/20 opacity-90"
                         title="Supprimer"
                       >
                         <FiTrash2 size={12} />
                       </button>
+                    )}
+                    {reactionPickerMsgId === msg._id && (
+                      <div className="absolute bottom-full left-0 mb-1 flex gap-0.5 p-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
+                        {QUICK_REACTIONS.map((emoji) => (
+                          <button key={emoji} type="button" onClick={() => handleToggleReaction(msg._id, emoji)} className="p-1 text-lg hover:bg-slate-100 rounded">
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     )}
                     <p className={`text-[9px] ${isMe ? "text-indigo-200" : "text-slate-400"}`}>{formatTime(msg.createdAt)}</p>
                   </div>
@@ -616,7 +716,7 @@ const Messaging = ({ openChatUserId = null }) => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 bg-white border-t border-slate-100">
+          <div className="p-3 bg-white border-t border-slate-100 relative">
             <input
               ref={fileInputRef}
               type="file"
@@ -648,8 +748,26 @@ const Messaging = ({ openChatUserId = null }) => {
               <button onClick={() => handleSend()} disabled={sending || !inputText.trim()} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
                 <FiSend size={18} />
               </button>
-              <FiSmile size={18} className="cursor-pointer text-slate-400" />
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker((v) => !v)}
+                className={`p-1.5 rounded-lg ${showEmojiPicker ? "bg-slate-200 text-indigo-600" : "text-slate-400 hover:bg-slate-200"}`}
+                title="Emoji"
+              >
+                <FiSmile size={18} />
+              </button>
             </div>
+            {showEmojiPicker && (
+              <div className="absolute bottom-full left-3 right-3 mb-1 p-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
+                <div className="flex flex-wrap gap-1">
+                  {EMOJI_LIST.map((emoji, index) => (
+                    <button key={`emoji-${index}`} type="button" onClick={() => insertEmoji(emoji)} className="p-1 text-lg hover:bg-slate-100 rounded leading-none">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

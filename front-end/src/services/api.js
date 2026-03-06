@@ -199,6 +199,7 @@ export const messagesApi = {
   getConversations: () => api.get("/messages/conversations"),
   getConversation: (userId) => api.get(`/messages/conversation/${userId}`),
   delete: (id) => api.delete(`/messages/${id}`),
+  reaction: (id, emoji) => api.post(`/messages/${id}/reaction`, { emoji }),
 };
 
 export const API_BASE = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, "") : "http://localhost:3000";

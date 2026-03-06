@@ -9,5 +9,6 @@ router.post("/", auth, requireRole(["super_admin", "admin", "formateur", "etudia
 router.get("/conversations", auth, controller.getConversations);
 router.get("/conversation/:userId", auth, controller.getConversation);
 router.delete("/:id", auth, controller.deleteMessage);
+router.post("/:id/reaction", auth, requireRole(["super_admin", "admin", "formateur", "etudiant"]), controller.toggleReaction);
 
 module.exports = router;

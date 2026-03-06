@@ -138,6 +138,44 @@ class MessageController {
       res.status(500).json({ message: "Server error" });
     }
   }
+
+  async toggleReaction(req, res) {
+    try {
+      const { id } = req.params;
+      const { emoji } = req.body;
+      if (!emoji || typeof emoji !== "string" || emoji.length > 8) {
+        return res.status(400).json({ message: "emoji required (string, max 8 chars)" });
+      }
+      const message = await Message.findById(id);
+      if (!message) return res.status(404).json({ message: "Message not found" });
+      const me = req.user.id;
+      const partnerId = message.sender.toString() === me ? message.receiver.toString() : message.sender.toString();
+      const friends = await areFriends(me, partnerId);
+      if (!friends) return res.status(403).json({ message: "Can only react in friend conversation" });
+      const reactions = message.reactions || [];
+      const myIndex = reactions.findIndex((r) => r.user && r.user.toString() === me);
+      if (myIndex >= 0 && reactions[myIndex].emoji === emoji) {
+        reactions.splice(myIndex, 1);
+      } else {
+        if (myIndex >= 0) reactions.splice(myIndex, 1);
+        reactions.push({ user: me, emoji: emoji.trim() });
+      }
+      message.reactions = reactions;
+      await message.save();
+      const updated = await Message.findById(id)
+        .populate("sender", "name email")
+        .populate("receiver", "name email")
+        .populate("reactions.user", "name");
+      const emitToUser = req.app.get("emitToUser");
+      if (emitToUser) {
+        emitToUser(partnerId, "message-reaction", { message: updated });
+      }
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
 }
 
 module.exports = new MessageController();
