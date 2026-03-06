@@ -96,9 +96,11 @@ const UserManagement = () => {
 
   const isAdmin = currentUser?.role?.name === "admin" || authUser?.role === "admin";
   const isFormateur = currentUser?.role?.name === "formateur" || authUser?.role === "formateur";
+  const isSuperAdmin = currentUser?.role?.name === "super_admin" || authUser?.role === "super_admin";
   const adminCampusId = currentUser?.campus?._id ?? currentUser?.campus ?? null;
   const adminCampusName = currentUser?.campus?.name ?? (currentUser?.campus ? "—" : null);
   const rolesForAdmin = roles.filter((r) => r.name === "formateur" || r.name === "etudiant");
+  const rolesForSuperAdmin = roles.filter((r) => r.name === "admin" || r.name === "formateur" || r.name === "etudiant");
   const roleEtudiant = roles.find((r) => r.name === "etudiant") || null;
   const formateurCampusId = currentUser?.campus?._id ?? currentUser?.campus ?? null;
   const formateurCampusName = currentUser?.campus?.name ?? (currentUser?.campus ? "—" : null);
@@ -342,7 +344,7 @@ const UserManagement = () => {
                           className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
                         >
                           <option value="">Sélectionner</option>
-                          {(isAdmin ? rolesForAdmin : roles).map((r) => (
+                          {(isAdmin ? rolesForAdmin : isSuperAdmin ? rolesForSuperAdmin : roles).map((r) => (
                             <option key={r._id} value={r._id}>
                               {r.name}
                             </option>
