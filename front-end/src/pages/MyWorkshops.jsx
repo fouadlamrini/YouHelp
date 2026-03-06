@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import HeaderProfile from "../components/HeaderProfile";
 import { workshopsApi } from "../services/api";
 import { FiTool, FiCalendar, FiClock } from "react-icons/fi";
 
@@ -29,8 +30,10 @@ const MyWorkshops = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <NavbarLoggedIn />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-grow overflow-y-auto custom-scrollbar">
+          <HeaderProfile />
+          <main className="p-4 md:p-8">
+            <div className="max-w-4xl mx-auto">
             <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-6 flex items-center gap-3">
               <FiTool className="text-violet-600" size={28} />
               Mes workchops
@@ -78,8 +81,9 @@ const MyWorkshops = () => {
                 })}
               </div>
             )}
-          </div>
-        </main>
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );
