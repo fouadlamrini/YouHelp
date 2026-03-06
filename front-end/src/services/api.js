@@ -64,6 +64,11 @@ export const rolesApi = {
   getAll: () => api.get("/roles"),
 };
 
+// —— Stats (super_admin / admin / formateur) ——
+export const statsApi = {
+  get: () => api.get("/stats"),
+};
+
 // —— Campus (super_admin) ——
 export const campusApi = {
   getAll: () => api.get("/campus"),
