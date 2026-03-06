@@ -95,15 +95,33 @@ const UserManagement = () => {
   }, [authUser?.id]);
 
   const isAdmin = currentUser?.role?.name === "admin" || authUser?.role === "admin";
+  const isFormateur = currentUser?.role?.name === "formateur" || authUser?.role === "formateur";
   const adminCampusId = currentUser?.campus?._id ?? currentUser?.campus ?? null;
   const adminCampusName = currentUser?.campus?.name ?? (currentUser?.campus ? "—" : null);
   const rolesForAdmin = roles.filter((r) => r.name === "formateur" || r.name === "etudiant");
+  const roleEtudiant = roles.find((r) => r.name === "etudiant") || null;
+  const formateurCampusId = currentUser?.campus?._id ?? currentUser?.campus ?? null;
+  const formateurCampusName = currentUser?.campus?.name ?? (currentUser?.campus ? "—" : null);
+  const formateurClassId = currentUser?.class?._id ?? currentUser?.class ?? null;
+  const formateurClassName = currentUser?.class?.name ?? (currentUser?.class ? "—" : null);
+  const formateurLevelId = currentUser?.level?._id ?? currentUser?.level ?? null;
+  const formateurLevelName = currentUser?.level?.name ?? (currentUser?.level ? "—" : null);
 
   useEffect(() => {
     if (isAdmin && adminCampusId && formData.campus !== adminCampusId) {
       setFormData((prev) => ({ ...prev, campus: adminCampusId }));
     }
   }, [isAdmin, adminCampusId]);
+
+  useEffect(() => {
+    if (!isFormateur) return;
+    const updates = {};
+    if (formateurCampusId && formData.campus !== formateurCampusId) updates.campus = formateurCampusId;
+    if (roleEtudiant?._id && formData.role !== roleEtudiant._id) updates.role = roleEtudiant._id;
+    if (formateurClassId && formData.class !== formateurClassId) updates.class = formateurClassId;
+    if (formateurLevelId && formData.level !== formateurLevelId) updates.level = formateurLevelId;
+    if (Object.keys(updates).length) setFormData((prev) => ({ ...prev, ...updates }));
+  }, [isFormateur, formateurCampusId, formateurClassId, formateurLevelId, roleEtudiant?._id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -149,10 +167,10 @@ const UserManagement = () => {
       name: formData.name.trim(),
       email: formData.email.trim(),
       password: formData.password || undefined,
-      role: formData.role || undefined,
-      campus: isAdmin && adminCampusId ? adminCampusId : (formData.campus || undefined),
-      class: formData.class || undefined,
-      level: formData.level || undefined,
+      role: isFormateur && roleEtudiant?._id ? roleEtudiant._id : (formData.role || undefined),
+      campus: isFormateur && formateurCampusId ? formateurCampusId : (isAdmin && adminCampusId ? adminCampusId : (formData.campus || undefined)),
+      class: isFormateur && formateurClassId ? formateurClassId : (formData.class || undefined),
+      level: isFormateur && formateurLevelId ? formateurLevelId : (formData.level || undefined),
       profilePicture: formData.profilePicture || undefined,
     };
     usersApi
@@ -284,12 +302,12 @@ const UserManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Campus</label>
-                      {isAdmin ? (
+                      {isAdmin || isFormateur ? (
                         <div
                           className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
                           title="Votre campus (lecture seule)"
                         >
-                          {adminCampusName || "—"}
+                          {(isAdmin ? adminCampusName : formateurCampusName) || "—"}
                         </div>
                       ) : (
                         <select
@@ -309,53 +327,80 @@ const UserManagement = () => {
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Rôle</label>
-                      <select
-                        name="role"
-                        value={formData.role}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                      >
-                        <option value="">Sélectionner</option>
-                        {(isAdmin ? rolesForAdmin : roles).map((r) => (
-                          <option key={r._id} value={r._id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      {isFormateur ? (
+                        <div
+                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                          title="Un formateur ne peut créer que des étudiants"
+                        >
+                          Étudiant
+                        </div>
+                      ) : (
+                        <select
+                          name="role"
+                          value={formData.role}
+                          onChange={handleInputChange}
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                        >
+                          <option value="">Sélectionner</option>
+                          {(isAdmin ? rolesForAdmin : roles).map((r) => (
+                            <option key={r._id} value={r._id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
-                      <select
-                        name="class"
-                        value={formData.class}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                      >
-                        <option value="">Sélectionner</option>
-                        {classes.map((cl) => (
-                          <option key={cl._id} value={cl._id}>
-                            {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
-                          </option>
-                        ))}
-                      </select>
+                      {isFormateur ? (
+                        <div
+                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                          title="Votre classe (lecture seule)"
+                        >
+                          {formateurClassName || "—"}
+                        </div>
+                      ) : (
+                        <select
+                          name="class"
+                          value={formData.class}
+                          onChange={handleInputChange}
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                        >
+                          <option value="">Sélectionner</option>
+                          {classes.map((cl) => (
+                            <option key={cl._id} value={cl._id}>
+                              {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Level</label>
-                      <select
-                        name="level"
-                        value={formData.level}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                      >
-                        <option value="">Sélectionner</option>
-                        {levels.map((l) => (
-                          <option key={l._id} value={l._id}>
-                            {l.name}
-                          </option>
-                        ))}
-                      </select>
+                      {isFormateur ? (
+                        <div
+                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                          title="Votre level (lecture seule)"
+                        >
+                          {formateurLevelName || "—"}
+                        </div>
+                      ) : (
+                        <select
+                          name="level"
+                          value={formData.level}
+                          onChange={handleInputChange}
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                        >
+                          <option value="">Sélectionner</option>
+                          {levels.map((l) => (
+                            <option key={l._id} value={l._id}>
+                              {l.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
