@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave, FiCheck } from "react-icons/fi";
 import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const roleBadgeClass = (roleName) => {
   const r = roleName?.toLowerCase?.() ?? "";
@@ -19,6 +20,8 @@ const statusBadgeClass = (status) => {
 };
 
 const UserManagement = () => {
+  const { user: authUser } = useAuth();
+  const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [campuses, setCampuses] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -83,6 +86,25 @@ const UserManagement = () => {
     ]).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!authUser?.id) return;
+    usersApi
+      .getMe()
+      .then((r) => setCurrentUser(r.data?.data ?? null))
+      .catch(() => setCurrentUser(null));
+  }, [authUser?.id]);
+
+  const isAdmin = currentUser?.role?.name === "admin" || authUser?.role === "admin";
+  const adminCampusId = currentUser?.campus?._id ?? currentUser?.campus ?? null;
+  const adminCampusName = currentUser?.campus?.name ?? (currentUser?.campus ? "—" : null);
+  const rolesForAdmin = roles.filter((r) => r.name === "formateur" || r.name === "etudiant");
+
+  useEffect(() => {
+    if (isAdmin && adminCampusId && formData.campus !== adminCampusId) {
+      setFormData((prev) => ({ ...prev, campus: adminCampusId }));
+    }
+  }, [isAdmin, adminCampusId]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -128,7 +150,7 @@ const UserManagement = () => {
       email: formData.email.trim(),
       password: formData.password || undefined,
       role: formData.role || undefined,
-      campus: formData.campus || undefined,
+      campus: isAdmin && adminCampusId ? adminCampusId : (formData.campus || undefined),
       class: formData.class || undefined,
       level: formData.level || undefined,
       profilePicture: formData.profilePicture || undefined,
@@ -262,19 +284,28 @@ const UserManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Campus</label>
-                      <select
-                        name="campus"
-                        value={formData.campus}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                      >
-                        <option value="">Sélectionner</option>
-                        {campuses.map((c) => (
-                          <option key={c._id} value={c._id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                      {isAdmin ? (
+                        <div
+                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                          title="Votre campus (lecture seule)"
+                        >
+                          {adminCampusName || "—"}
+                        </div>
+                      ) : (
+                        <select
+                          name="campus"
+                          value={formData.campus}
+                          onChange={handleInputChange}
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                        >
+                          <option value="">Sélectionner</option>
+                          {campuses.map((c) => (
+                            <option key={c._id} value={c._id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Rôle</label>
@@ -285,7 +316,7 @@ const UserManagement = () => {
                         className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
                       >
                         <option value="">Sélectionner</option>
-                        {roles.map((r) => (
+                        {(isAdmin ? rolesForAdmin : roles).map((r) => (
                           <option key={r._id} value={r._id}>
                             {r.name}
                           </option>
@@ -305,7 +336,7 @@ const UserManagement = () => {
                         <option value="">Sélectionner</option>
                         {classes.map((cl) => (
                           <option key={cl._id} value={cl._id}>
-                            {cl.name}
+                            {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
                           </option>
                         ))}
                       </select>
@@ -653,7 +684,7 @@ const UserManagement = () => {
                     <option value="">—</option>
                     {classes.map((cl) => (
                       <option key={cl._id} value={cl._id}>
-                        {cl.name}
+                        {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
                       </option>
                     ))}
                   </select>
