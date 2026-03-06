@@ -191,11 +191,22 @@ const Messaging = ({ openChatUserId = null }) => {
       );
     };
 
+    const onVideoCallEnded = () => {
+      stopOutgoingRingtone();
+      setVideoCall(null);
+    };
+    const onVoiceCallEnded = () => {
+      stopOutgoingRingtone();
+      setVoiceCall(null);
+    };
+
     socket.on("message", onMessage);
     socket.on("video-call-request", onVideoCallRequest);
     socket.on("voice-call-request", onVoiceCallRequest);
     socket.on("message-deleted", onMessageDeleted);
     socket.on("message-reaction", onMessageReaction);
+    socket.on("video-call-ended", onVideoCallEnded);
+    socket.on("voice-call-ended", onVoiceCallEnded);
 
     return () => {
       socket.off("message", onMessage);
@@ -203,6 +214,8 @@ const Messaging = ({ openChatUserId = null }) => {
       socket.off("voice-call-request", onVoiceCallRequest);
       socket.off("message-deleted", onMessageDeleted);
       socket.off("message-reaction", onMessageReaction);
+      socket.off("video-call-ended", onVideoCallEnded);
+      socket.off("voice-call-ended", onVoiceCallEnded);
     };
   }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
 
@@ -366,6 +379,8 @@ const Messaging = ({ openChatUserId = null }) => {
 
   const handleRejectCall = () => {
     stopIncomingRingtone();
+    const otherUserId = incomingCall?.otherUserId;
+    if (otherUserId) getSocket()?.emit("video-call-ended", { to: otherUserId });
     setIncomingCall(null);
   };
 
@@ -379,16 +394,20 @@ const Messaging = ({ openChatUserId = null }) => {
 
   const handleRejectVoiceCall = () => {
     stopIncomingRingtone();
+    const otherUserId = incomingVoiceCall?.otherUserId;
+    if (otherUserId) getSocket()?.emit("voice-call-ended", { to: otherUserId });
     setIncomingVoiceCall(null);
   };
 
   const handleEndVideoCall = () => {
     stopOutgoingRingtone();
+    if (videoCall?.otherUserId) getSocket()?.emit("video-call-ended", { to: videoCall.otherUserId });
     setVideoCall(null);
   };
 
   const handleEndVoiceCall = () => {
     stopOutgoingRingtone();
+    if (voiceCall?.otherUserId) getSocket()?.emit("voice-call-ended", { to: voiceCall.otherUserId });
     setVoiceCall(null);
   };
 

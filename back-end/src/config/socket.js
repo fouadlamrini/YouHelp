@@ -91,6 +91,11 @@ function setupSocket(server) {
       emitToUser(data.to, "callee-ready", { from: socket.userId });
     });
 
+    socket.on("video-call-ended", (data) => {
+      const to = data.to;
+      if (to) emitToUser(to, "video-call-ended", { from: socket.userId });
+    });
+
     // Voice Call Events (same logic as video, separate events to avoid mixing)
     socket.on("voice-call-request", (data) => {
       console.log('📞 Voice call request received:', data);
@@ -117,6 +122,11 @@ function setupSocket(server) {
     });
     socket.on("voice-callee-ready", (data) => {
       emitToUser(data.to, "voice-callee-ready", { from: socket.userId });
+    });
+
+    socket.on("voice-call-ended", (data) => {
+      const to = data.to;
+      if (to) emitToUser(to, "voice-call-ended", { from: socket.userId });
     });
   });
 
