@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     },
     coverPicture: { 
       type: String, 
-      default: "default-cover.jpg" 
+      default: "couverture-default.jpg" 
     },
     status: {
       type: String,

@@ -27,6 +27,7 @@ import LevelManager from "./pages/LevelManager.jsx";
 import ClassManager from "./pages/ClassManager.jsx";
 import FriendsList from "./pages/FriendsList.jsx";
 import Info from "./pages/Info.jsx";
+import Settings from "./pages/Settings.jsx";
 import WaitingPage from "./pages/WaitingPage.jsx";
 import OAuthCallback from "./pages/OAuthCallback.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
@@ -201,6 +202,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Info />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

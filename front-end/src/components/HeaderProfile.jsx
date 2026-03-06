@@ -1,12 +1,58 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { 
-  FiCamera, FiEdit2, FiPlus, FiEdit3, 
-  FiHeart, FiBookOpen, FiInfo, FiUsers, FiShare2, FiTool
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  FiCamera,
+  FiEdit2,
+  FiEdit3,
+  FiHeart,
+  FiBookOpen,
+  FiUsers,
+  FiShare2,
+  FiTool,
+  FiMaximize2,
+  FiX,
 } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import { usersApi, friendsApi, API_BASE } from "../services/api";
+
+function resolveAvatarUrl(src, defaultPath = "default-avatar.jpg") {
+  if (!src) return `${API_BASE}/avatars/${defaultPath}`;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  return `${API_BASE}/avatars/${src}`;
+}
 
 const HeaderProfile = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [coverFullscreen, setCoverFullscreen] = useState(false);
+
+  useEffect(() => {
+    usersApi
+      .getMe()
+      .then((res) => {
+        const data = res.data?.data;
+        if (data) setProfile(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    friendsApi
+      .list()
+      .then((res) => {
+        const list = res.data?.data ?? [];
+        setFriendsCount(list.length);
+      })
+      .catch(() => setFriendsCount(0));
+  }, []);
+
+  const displayName = profile?.name ?? authUser?.name ?? "";
+  const profilePicture = profile?.profilePicture ?? authUser?.profilePicture;
+  const coverPicture = profile?.coverPicture;
 
   const tabs = [
     { label: "Mes Posts", to: "/my-posts", icon: <FiEdit3 size={18} /> },
@@ -15,22 +61,65 @@ const HeaderProfile = () => {
     { label: "Mes Favourites", to: "/my-favourites", icon: <FiHeart size={18} /> },
     { label: "Mes Workchop", to: "/my-workshops", icon: <FiTool size={18} /> },
     { label: "Mes Amis", to: "/profile/friends", icon: <FiUsers size={18} /> },
-    { label: "Infos", to: "/profile/info", icon: <FiInfo size={18} /> },
   ];
 
   return (
     <div className="bg-white shadow-sm border-b border-slate-100">
-      {/* 1. Cover Image */}
-      <div className="relative h-48 md:h-80 bg-slate-200 overflow-hidden">
-        <img 
-          src="https://images.unsplash.com/photo-1557683316-973673baf926?w=1200" 
-          className="w-full h-full object-cover" 
-          alt="cover" 
+      {/* 1. Cover Image — clic pour afficher l'image en entier */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setCoverFullscreen(true)}
+        onKeyDown={(e) => e.key === "Enter" && setCoverFullscreen(true)}
+        className="relative h-48 md:h-80 bg-slate-200 overflow-hidden cursor-pointer group"
+      >
+        <img
+          src={resolveAvatarUrl(coverPicture, "couverture-default.jpg")}
+          className="w-full h-full object-cover"
+          alt="couverture"
         />
-        <button className="absolute bottom-4 right-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-white transition-all shadow-md">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2">
+            <FiMaximize2 size={16} /> Voir l'image en entier
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate("/settings");
+          }}
+          className="absolute bottom-4 right-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-white transition-all shadow-md"
+        >
           <FiCamera size={16} /> Modifier la photo de couverture
         </button>
       </div>
+
+      {/* Lightbox : image de couverture en entier */}
+      {coverFullscreen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setCoverFullscreen(false)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Escape" && setCoverFullscreen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setCoverFullscreen(false)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            aria-label="Fermer"
+          >
+            <FiX size={24} />
+          </button>
+          <img
+            src={resolveAvatarUrl(coverPicture, "couverture-default.jpg")}
+            alt="Couverture en entier"
+            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* 2. Profile Info Section */}
       <div className="max-w-6xl mx-auto px-4 md:px-8">
@@ -38,25 +127,36 @@ const HeaderProfile = () => {
           {/* Profile Picture */}
           <div className="relative group">
             <div className="w-32 h-32 md:w-44 md:h-44 rounded-full border-4 border-white overflow-hidden shadow-xl bg-white">
-              <img src="https://i.pravatar.cc/150?u=youcoder" className="w-full h-full object-cover" alt="profile" />
+              <img
+                src={resolveAvatarUrl(profilePicture)}
+                className="w-full h-full object-cover"
+                alt="profile"
+              />
             </div>
-            <button className="absolute bottom-2 right-2 p-2.5 bg-slate-100 rounded-full border-2 border-white hover:bg-white transition-all shadow-md">
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              className="absolute bottom-2 right-2 p-2.5 bg-slate-100 rounded-full border-2 border-white hover:bg-white transition-all shadow-md"
+            >
               <FiCamera size={18} className="text-slate-600" />
             </button>
           </div>
 
           {/* Name & Actions */}
-          <div className="flex-grow flex flex-col md:flex-row justify-between items-center md:items-end pb-2 w-full gap-4 text-center md:text-left">
+          <div className="grow flex flex-col md:flex-row justify-between items-center md:items-end pb-2 w-full gap-4 text-center md:text-left">
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Fouad Lamrini</h1>
-              <p className="text-slate-500 font-bold text-sm">311 amis</p>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter">{displayName || "Profil"}</h1>
+              <p className="text-slate-500 font-bold text-sm">
+                {friendsCount} {friendsCount === 1 ? "ami" : "amis"}
+              </p>
             </div>
 
             <div className="flex gap-2">
-              <button className="bg-indigo-600 text-white px-5 py-2 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all">
-                <FiPlus size={16} /> Ajouter à la story
-              </button>
-              <button className="bg-slate-100 text-slate-800 px-5 py-2 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-slate-200 transition-all">
+              <button
+                type="button"
+                onClick={() => navigate("/settings")}
+                className="bg-slate-100 text-slate-800 px-5 py-2 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-slate-200 transition-all"
+              >
                 <FiEdit2 size={16} /> Modifier le profil
               </button>
             </div>
