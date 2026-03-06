@@ -62,11 +62,7 @@ const CategoryManager = () => {
 
   const [targetCategoryId, setTargetCategoryId] = useState(null);
   const [editingSubId, setEditingSubId] = useState(null);
-  const [subForm, setSubForm] = useState({
-    name: "",
-    icon: "",
-    color: "",
-  });
+  const [subForm, setSubForm] = useState({ name: "" });
 
   const loadData = async () => {
     try {
@@ -131,7 +127,7 @@ const CategoryManager = () => {
   const resetSubForm = () => {
     setTargetCategoryId(null);
     setEditingSubId(null);
-    setSubForm({ name: "", icon: "", color: "" });
+    setSubForm({ name: "" });
   };
 
   const handleSubSubmit = async (e) => {
@@ -144,15 +140,11 @@ const CategoryManager = () => {
         await subcategoryApi.update(editingSubId, {
           name: subForm.name,
           category: targetCategory.name,
-          icon: subForm.icon,
-          color: subForm.color,
         });
       } else {
         await subcategoryApi.create({
           name: subForm.name,
-          category: targetCategory.name, // backend expects category name
-          icon: subForm.icon,
-          color: subForm.color,
+          category: targetCategory.name,
         });
       }
       resetSubForm();
@@ -175,11 +167,7 @@ const CategoryManager = () => {
   const handleSubEdit = (sub, parentCategoryId) => {
     setTargetCategoryId(parentCategoryId);
     setEditingSubId(sub._id);
-    setSubForm({
-      name: sub.name || "",
-      icon: sub.icon || "",
-      color: sub.color || "",
-    });
+    setSubForm({ name: sub.name || "" });
   };
 
   const isHexColor = (v) => typeof v === "string" && v.startsWith("#");
@@ -421,14 +409,6 @@ const CategoryManager = () => {
                               setSubForm((prev) => ({ ...prev, name: e.target.value }))
                             }
                             className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 w-full max-w-xs"
-                          />
-                          <IconPicker
-                            value={subForm.icon}
-                            onChange={(icon) => setSubForm((prev) => ({ ...prev, icon }))}
-                          />
-                          <ColorPicker
-                            value={subForm.color}
-                            onChange={(color) => setSubForm((prev) => ({ ...prev, color }))}
                           />
                           <div className="flex gap-2">
                             <button
