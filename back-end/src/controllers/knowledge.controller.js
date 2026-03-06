@@ -96,8 +96,9 @@ class KnowledgeController {
       const viewFilter = allowedFilters.includes(rawFilter) ? rawFilter : "all";
 
       const currentUser = await User.findById(req.user.id)
-        .select("status campus class level")
-        .populate("campus class level");
+        .select("status campus class level role")
+        .populate("campus class level")
+        .populate("role", "name");
       if (!currentUser) {
         return res.status(403).json({ message: "Utilisateur introuvable" });
       }
@@ -134,7 +135,7 @@ class KnowledgeController {
 
       const knowledgeDocs = await Knowledge.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email role profilePicture campus class level")
+        .populate({ path: "author", select: "name email role profilePicture campus class level", populate: { path: "role", select: "name" } })
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -165,10 +166,7 @@ class KnowledgeController {
       const { id } = req.params;
 
       const knowledge = await Knowledge.findById(id)
-        .populate(
-          "author",
-          "name email role profilePicture campus class level"
-        )
+        .populate({ path: "author", select: "name email role profilePicture campus class level", populate: { path: "role", select: "name" } })
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -178,8 +176,9 @@ class KnowledgeController {
       }
 
       const currentUser = await User.findById(req.user.id)
-        .select("status campus class level")
-        .populate("campus class level");
+        .select("status campus class level role")
+        .populate("campus class level")
+        .populate("role", "name");
       if (!currentUser) {
         return res.status(403).json({ message: "Utilisateur introuvable" });
       }
@@ -342,8 +341,9 @@ class KnowledgeController {
   async toggleReaction(req, res) {
     try {
       const currentUser = await User.findById(req.user.id)
-        .select("status campus class level")
-        .populate("campus class level");
+        .select("status campus class level role")
+        .populate("campus class level")
+        .populate("role", "name");
       if (!currentUser || currentUser.status !== "active") {
         return res
           .status(403)
@@ -354,15 +354,18 @@ class KnowledgeController {
       }
 
       const { id } = req.params;
-      const knowledge = await Knowledge.findById(id).populate(
-        "author",
-        "campus class level"
-      );
+      const knowledge = await Knowledge.findById(id).populate({
+        path: "author",
+        select: "campus class level role",
+        populate: { path: "role", select: "name" },
+      });
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;
+      const isAuthorSuperAdmin = knowledge.author?.role?.name === "super_admin";
+      const isCurrentUserSuperAdmin = req.user.role === "super_admin";
 
-      // Même règle que pour les posts : étudiant doit être même campus + classe + niveau OU ami
-      if (currentUser.role === "etudiant") {
+      // Même règle que pour les posts : étudiant doit être même campus + classe + niveau OU ami (sauf super_admin ou auteur super_admin)
+      if (!isCurrentUserSuperAdmin && !isAuthorSuperAdmin && (currentUser.role?.name === "etudiant" || req.user.role === "etudiant")) {
         const author = knowledge.author;
         const sameCampus =
           currentUser.campus &&
@@ -444,6 +447,9 @@ class KnowledgeController {
     const author = knowledge.author;
     if (!author) return false;
     const authorId = author._id || author;
+    if (currentUserId.toString() === authorId.toString()) return true;
+    if (currentUser.role?.name === "super_admin") return true;
+    if (author?.role?.name === "super_admin") return true;
 
     if (viewFilter === "friends") return true;
 

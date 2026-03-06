@@ -140,8 +140,9 @@ class PostController {
       const viewFilter = allowedFilters.includes(filter) ? filter : "all";
 
       const currentUser = await User.findById(req.user.id)
-        .select("status campus class level")
-        .populate("campus class level");
+        .select("status campus class level role")
+        .populate("campus class level")
+        .populate("role", "name");
       if (!currentUser) return res.status(403).json({ message: "User not found" });
 
       let authorFilter = {};
@@ -173,7 +174,7 @@ class PostController {
 
       const posts = await Post.find(authorFilter)
         .sort({ createdAt: -1 })
-        .populate("author", "name email campus class level profilePicture")
+        .populate({ path: "author", select: "name email campus class level profilePicture role", populate: { path: "role", select: "name" } })
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -209,7 +210,10 @@ class PostController {
     if (currentUser.status !== "active") return false;
     const authorId = post.author?._id || post.author;
     if (!authorId) return false;
+    if (currentUserId.toString() === authorId.toString()) return true;
     const author = post.author?.toObject ? post.author.toObject() : post.author;
+    if (currentUser.role?.name === "super_admin") return true;
+    if (author?.role?.name === "super_admin") return true;
     if (viewFilter === "friends") return true;
     const sameCampus =
       currentUser.campus && author?.campus &&
@@ -232,7 +236,7 @@ class PostController {
   async getPostById(req, res) {
     try {
       const post = await Post.findById(req.params.id)
-        .populate("author", "name email campus class level profilePicture")
+        .populate({ path: "author", select: "name email campus class level profilePicture role", populate: { path: "role", select: "name" } })
         .populate("category", "name")
         .populate("subCategory", "name")
         .populate("comments");
@@ -250,7 +254,7 @@ class PostController {
         const allowed = authorFilter.author.$in.some(id => id.toString() === authorId);
         if (!allowed) return res.status(403).json({ message: "Forbidden" });
       }
-      const fullUser = await User.findById(req.user.id).select("status campus class level").populate("campus class level");
+      const fullUser = await User.findById(req.user.id).select("status campus class level role").populate("campus class level").populate("role", "name");
       const authorId = post.author?._id || post.author;
       const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, authorId);
       const totalSameContext = await this._totalSameContextCount(authorId);
@@ -439,10 +443,11 @@ class PostController {
         return res.status(403).json({ message: "Seuls les comptes activés peuvent réagir aux posts." });
       }
       const { id } = req.params;
-      const post = await Post.findById(id).populate("author");
+      const post = await Post.findById(id).populate({ path: "author", populate: { path: "role", select: "name" } });
       if (!post) return res.status(404).json({ message: "Post not found" });
       const userId = req.user.id;
-      if (req.user.role === "etudiant") {
+      const isAuthorSuperAdmin = post.author?.role?.name === "super_admin";
+      if (req.user.role !== "super_admin" && !isAuthorSuperAdmin && req.user.role === "etudiant") {
         const author = await User.findById(post.author._id || post.author).populate("campus class level");
         const me = await User.findById(userId).populate("campus class level");
         const sameCampus = me.campus && author.campus && me.campus._id.toString() === author.campus._id.toString();
