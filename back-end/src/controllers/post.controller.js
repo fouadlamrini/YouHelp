@@ -111,6 +111,28 @@ class PostController {
     });
   }
 
+  async _totalSameContextCount(authorId) {
+    const author = await User.findById(authorId).select("campus class level");
+    if (!author || (!author.campus && !author.class && !author.level)) return 0;
+    const filter = {};
+    if (author.campus) filter.campus = author.campus;
+    if (author.class) filter.class = author.class;
+    if (author.level) filter.level = author.level;
+    return User.countDocuments(filter);
+  }
+
+  _sameContextAsAuthor(currentUser, post) {
+    const author = post.author?.toObject ? post.author : post.author;
+    if (!author?.campus && !author?.class && !author?.level) return false;
+    const sameCampus = !!(currentUser.campus && author?.campus &&
+      (currentUser.campus._id?.toString() || currentUser.campus.toString()) === (author.campus?._id?.toString() || author.campus?.toString()));
+    const sameClass = !!(currentUser.class && author?.class &&
+      (currentUser.class._id?.toString() || currentUser.class.toString()) === (author.class?._id?.toString() || author.class?.toString()));
+    const sameLevel = !!(currentUser.level && author?.level &&
+      (currentUser.level._id?.toString() || currentUser.level.toString()) === (author.level?._id?.toString() || author.level?.toString()));
+    return sameCampus && sameClass && sameLevel;
+  }
+
   async getAllPosts(req, res) {
     try {
       const filter = (req.query.filter || "all").toLowerCase();
@@ -158,10 +180,22 @@ class PostController {
 
       const withMeta = await Promise.all(
         posts.map(async (p) => {
-          const sameContextReactionCount = await this._sameContextReactionCount(p._id, p.author?._id || p.author);
+          const authorId = p.author?._id || p.author;
+          const sameContextReactionCount = await this._sameContextReactionCount(p._id, authorId);
+          const totalSameContext = await this._totalSameContextCount(authorId);
           const commentCount = await Comment.countDocuments({ post: p._id });
           const canReact = await this._postCanReact(req.user.id, currentUser, p, viewFilter);
-          return { ...p.toObject(), sameContextReactionCount, commentCount, canReact };
+          const sameContextAsAuthor = this._sameContextAsAuthor(currentUser, p);
+          const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+          return {
+            ...p.toObject(),
+            sameContextReactionCount,
+            totalSameContext,
+            commentCount,
+            canReact,
+            sameContextAsAuthor,
+            showDemandeWorkchopButton,
+          };
         })
       );
       res.json({ success: true, data: withMeta });
@@ -207,7 +241,7 @@ class PostController {
       if (currentUser?.status !== "active") {
         const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
         const commentCount = await Comment.countDocuments({ post: req.params.id });
-        return res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact: false } });
+        return res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact: false, showDemandeWorkchopButton: false, sameContextAsAuthor: false } });
       }
       const authorFilter = await this._postsAuthorFilter(req);
       if (authorFilter._id === -1) return res.status(403).json({ message: "Forbidden" });
@@ -216,10 +250,26 @@ class PostController {
         const allowed = authorFilter.author.$in.some(id => id.toString() === authorId);
         if (!allowed) return res.status(403).json({ message: "Forbidden" });
       }
-      const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
+      const fullUser = await User.findById(req.user.id).select("status campus class level").populate("campus class level");
+      const authorId = post.author?._id || post.author;
+      const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, authorId);
+      const totalSameContext = await this._totalSameContextCount(authorId);
       const commentCount = await Comment.countDocuments({ post: req.params.id });
-      const canReact = await this._postCanReact(req.user.id, await User.findById(req.user.id).select("status campus class level").populate("campus class level"), post, "all");
-      res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact } });
+      const canReact = await this._postCanReact(req.user.id, fullUser, post, "all");
+      const sameContextAsAuthor = this._sameContextAsAuthor(fullUser, post);
+      const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+      res.json({
+        success: true,
+        data: {
+          ...post.toObject(),
+          sameContextReactionCount,
+          totalSameContext,
+          commentCount,
+          canReact,
+          sameContextAsAuthor,
+          showDemandeWorkchopButton,
+        },
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Server error" });

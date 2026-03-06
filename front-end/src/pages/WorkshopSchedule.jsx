@@ -1,48 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { 
-  FiCheck, FiX, FiExternalLink, FiClock, 
-  FiCalendar, FiEye, FiEdit3
-} from "react-icons/fi";
+import { FiCheck, FiX, FiExternalLink, FiClock, FiCalendar, FiEye, FiEdit3 } from "react-icons/fi";
+import { workshopsApi } from "../services/api";
+
+const API_BASE = "http://localhost:3000";
+const resolveAvatar = (src) => {
+  if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/")) return `${API_BASE}${src}`;
+  return `${API_BASE}/avatars/${src}`;
+};
 
 const WorkshopSchedule = () => {
-  // States
-  const [selectedRequest, setSelectedRequest] = useState(null); // Bach n-charjiw l-data dyal l-user
-  const [showDetailModal, setShowDetailModal] = useState(false); // Bach n-7ello l-modal dyal l-3in
-  const [showProgramPanel, setShowProgramPanel] = useState(false); // Bach n-7ello l-panel dyal l-k7el
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showProgramPanel, setShowProgramPanel] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [scheduleData, setScheduleData] = useState({ date: "", time: "", customSubject: "", description: "" });
+  const [submitting, setSubmitting] = useState(false);
 
-  const [events, setEvents] = useState([
-    { 
-      id: '1', 
-      title: 'Formation React Redux', 
-      start: '2026-01-20T14:30:00',
-      backgroundColor: '#4f46e5',
-      borderColor: '#4338ca'
-    },
-  ]);
+  const loadPending = () => {
+    workshopsApi
+      .pendingForFormateur()
+      .then((r) => setRequests(r.data?.data ?? []))
+      .catch(() => setRequests([]))
+      .finally(() => setLoading(false));
+  };
 
-  const [requests, setRequests] = useState([
-    { 
-      id: 1, 
-      student: "Amine Rhazali", 
-      postContent: "Salam, 3ndi mochkil f l-store dyal Redux, bghit chi workshop i-fhemna hadchi mzyan...",
-      postLink: "/post/1", 
-      avatar: "https://i.pravatar.cc/150?u=11" 
-    }
-  ]);
+  useEffect(() => {
+    loadPending();
+  }, []);
 
-  const [scheduleData, setScheduleData] = useState({ 
-    date: "", 
-    time: "", 
-    customSubject: "" 
-  });
-
-  // Handlers
   const handleViewDetail = (req) => {
     setSelectedRequest(req);
     setShowDetailModal(true);
@@ -50,36 +45,63 @@ const WorkshopSchedule = () => {
 
   const handleOpenProgrammer = (req) => {
     setSelectedRequest(req);
+    setScheduleData({ date: "", time: "", customSubject: "", description: "" });
     setShowProgramPanel(true);
-    
   };
 
   const handleDateClick = (arg) => {
-    setScheduleData(prev => ({ ...prev, date: arg.dateStr }));
+    setScheduleData((prev) => ({ ...prev, date: arg.dateStr }));
   };
 
-  const handleAccept = () => {
-    if (!scheduleData.date || !scheduleData.time || !scheduleData.customSubject) {
-      alert("Kamal l-m3lomat: Sujet, Date (cliquer 3la calendrier) o Heure!");
+  const handleAccept = async () => {
+    if (!selectedRequest?._id || !scheduleData.customSubject?.trim()) {
+      alert("Titre du workchop requis.");
       return;
     }
+    setSubmitting(true);
+    try {
+      const dateTime = scheduleData.date && scheduleData.time
+        ? `${scheduleData.date}T${scheduleData.time}:00`
+        : undefined;
+      await workshopsApi.acceptRequest(selectedRequest._id, {
+        title: scheduleData.customSubject.trim(),
+        description: scheduleData.description?.trim() || "",
+        date: dateTime,
+      });
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          title: scheduleData.customSubject.trim(),
+          start: dateTime || new Date().toISOString(),
+          backgroundColor: "#4f46e5",
+          borderColor: "#4338ca",
+          textColor: "#ffffff",
+        },
+      ]);
+      setRequests((prev) => prev.filter((r) => r._id !== selectedRequest._id));
+      setShowProgramPanel(false);
+      setSelectedRequest(null);
+      setScheduleData({ date: "", time: "", customSubject: "", description: "" });
+    } catch (e) {
+      alert(e.response?.data?.message || "Erreur");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    const combinedStart = `${scheduleData.date}T${scheduleData.time}:00`;
-
-    const newEvent = {
-      id: String(Date.now()),
-      title: scheduleData.customSubject,
-      start: combinedStart,
-      backgroundColor: '#4f46e5',
-      borderColor: '#4338ca',
-      textColor: '#ffffff'
-    };
-
-    setEvents([...events, newEvent]);
-    setRequests(requests.filter(r => r.id !== selectedRequest.id));
-    setShowProgramPanel(false);
-    setSelectedRequest(null);
-    setScheduleData({ date: "", time: "", customSubject: "" });
+  const handleReject = async (req) => {
+    if (!req?._id) return;
+    if (!confirm("Refuser cette demande ?")) return;
+    try {
+      await workshopsApi.rejectRequest(req._id);
+      setRequests((prev) => prev.filter((r) => r._id !== req._id));
+      setShowDetailModal(false);
+      setShowProgramPanel(false);
+      setSelectedRequest(null);
+    } catch (e) {
+      alert(e.response?.data?.message || "Erreur");
+    }
   };
 
   return (
@@ -116,30 +138,32 @@ const WorkshopSchedule = () => {
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Demandes d'étudiants</h3>
-                <div className="space-y-3">
-                  {requests.map(req => (
-                    <div key={req.id} className="p-4 rounded-2xl bg-slate-50 border border-transparent flex items-center justify-between group">
-                      <div className="flex items-center gap-3">
-                        <img src={req.avatar} className="w-10 h-10 rounded-xl" alt="" />
-                        <p className="text-[11px] font-black text-slate-800">{req.student}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleViewDetail(req)} 
-                          className="p-2 bg-white text-indigo-600 rounded-lg shadow-sm hover:bg-indigo-600 hover:text-white transition-all"
-                        >
-                          <FiEye size={14}/>
-                        </button>
-                        <button 
-                          onClick={() => handleOpenProgrammer(req)} 
-                          className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest"
-                        >
-                          Programmer
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {loading ? (
+                  <p className="text-slate-500 text-sm">Chargement...</p>
+                ) : (
+                  <div className="space-y-3">
+                    {requests.length === 0 ? (
+                      <p className="text-slate-500 text-sm">Aucune demande en attente.</p>
+                    ) : (
+                      requests.map((req) => (
+                        <div key={req._id} className="p-4 rounded-2xl bg-slate-50 border border-transparent flex items-center justify-between group">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img src={resolveAvatar(req.user?.profilePicture)} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
+                            <p className="text-[11px] font-black text-slate-800 truncate">{req.user?.name || req.user?.email || "Étudiant"}</p>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button onClick={() => handleViewDetail(req)} className="p-2 bg-white text-indigo-600 rounded-lg shadow-sm hover:bg-indigo-600 hover:text-white transition-all" title="Voir détail">
+                              <FiEye size={14} />
+                            </button>
+                            <button onClick={() => handleOpenProgrammer(req)} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">
+                              Accepter
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* PROGRAMMING PANEL */}
@@ -150,14 +174,25 @@ const WorkshopSchedule = () => {
                       <button onClick={() => setShowProgramPanel(false)}><FiX size={20}/></button>
                    </div>
 
-                   <div className="space-y-4">
+                      <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2"><FiEdit3 className="text-indigo-400"/> Sujet du Workshop</label>
-                        <input 
-                          type="text" 
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2"><FiEdit3 className="text-indigo-400"/> Titre du Workshop *</label>
+                        <input
+                          type="text"
                           value={scheduleData.customSubject}
                           className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-bold text-white outline-none focus:border-indigo-500 transition-all"
-                          onChange={(e) => setScheduleData({...scheduleData, customSubject: e.target.value})}
+                          onChange={(e) => setScheduleData((s) => ({ ...s, customSubject: e.target.value }))}
+                          placeholder="Ex: Introduction à React"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Description</label>
+                        <textarea
+                          value={scheduleData.description}
+                          className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-bold text-white outline-none focus:border-indigo-500 transition-all resize-none"
+                          onChange={(e) => setScheduleData((s) => ({ ...s, description: e.target.value }))}
+                          placeholder="Description du workchop..."
+                          rows={3}
                         />
                       </div>
 
@@ -177,8 +212,8 @@ const WorkshopSchedule = () => {
                       </div>
 
                       <div className="flex gap-3 pt-2">
-                        <button onClick={handleAccept} className="flex-1 bg-emerald-500 hover:bg-emerald-600 p-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
-                          <FiCheck size={18} /> <span className="text-[10px] font-black uppercase tracking-widest">Valider</span>
+                        <button onClick={handleAccept} disabled={submitting || !scheduleData.customSubject?.trim()} className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 p-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
+                          <FiCheck size={18} /> <span className="text-[10px] font-black uppercase tracking-widest">{submitting ? "Envoi..." : "Valider"}</span>
                         </button>
                         <button onClick={() => setShowProgramPanel(false)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-rose-500 hover:bg-rose-500/20 transition-all">
                           <FiX size={18} />
@@ -195,27 +230,34 @@ const WorkshopSchedule = () => {
       {/* --- MODAL DETAILS --- */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 shadow-2xl text-left">
             <div className="flex justify-between items-start mb-8 border-b pb-6">
               <div className="flex items-center gap-4">
-                <img src={selectedRequest.avatar} className="w-14 h-14 rounded-2xl shadow-lg object-cover" alt="" />
+                <img src={resolveAvatar(selectedRequest.user?.profilePicture)} className="w-14 h-14 rounded-2xl shadow-lg object-cover" alt="" />
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">{selectedRequest.student}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Auteur du post</p>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">{selectedRequest.user?.name || selectedRequest.user?.email || "Étudiant"}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Demande workchop</p>
                 </div>
               </div>
               <button onClick={() => setShowDetailModal(false)} className="p-2 bg-slate-50 rounded-xl hover:text-rose-500 transition-colors">
-                <FiX size={24}/>
+                <FiX size={24} />
               </button>
             </div>
-            
             <div className="space-y-6">
-               <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">{selectedRequest.postContent}</p>
-               </div>
-               <a href={selectedRequest.postLink} className="flex items-center justify-center gap-3 w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
-                 <FiExternalLink size={16} /> Allez au post complet
-               </a>
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">{selectedRequest.post?.content || "—"}</p>
+              </div>
+              <a href={`/posts?post=${selectedRequest.post?._id}`} className="flex items-center justify-center gap-3 w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
+                <FiExternalLink size={16} /> Voir le post
+              </a>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowDetailModal(false); handleOpenProgrammer(selectedRequest); }} className="flex-1 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase">
+                  Accepter & programmer
+                </button>
+                <button onClick={() => handleReject(selectedRequest)} className="py-3 px-4 bg-rose-100 text-rose-600 rounded-2xl text-xs font-black uppercase hover:bg-rose-200">
+                  Refuser
+                </button>
+              </div>
             </div>
           </div>
         </div>

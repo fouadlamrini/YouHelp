@@ -18,7 +18,7 @@ import {
   FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
-import { postApi, commentApi, solutionApi, favoritesApi } from "../services/api";
+import { postApi, commentApi, solutionApi, favoritesApi, workshopsApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
 
@@ -104,6 +104,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   const [localSolved, setLocalSolved] = useState(rawPost?.isSolved ?? false);
   const [togglingSolved, setTogglingSolved] = useState(false);
   const [solutionText, setSolutionText] = useState("");
+  const [workchopRequested, setWorkchopRequested] = useState(false);
+  const [loadingWorkchop, setLoadingWorkchop] = useState(false);
 
   useEffect(() => {
     setLocalSolved(rawPost?.isSolved ?? false);
@@ -681,6 +683,33 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
           <FiShare2 size={18} /> Partager
         </button>
       </div>
+
+      {rawPost?.showDemandeWorkchopButton && rawPost?.sameContextAsAuthor && (
+        <div className="px-2 pb-2 border-t border-slate-100 pt-2">
+          <button
+            type="button"
+            onClick={async () => {
+              if (readOnly || loadingWorkchop || workchopRequested || !post.id) return;
+              setLoadingWorkchop(true);
+              try {
+                await workshopsApi.requestFromPost(post.id);
+                setWorkchopRequested(true);
+                onRefresh?.();
+              } catch (e) {
+                const msg = e.response?.data?.message || "Erreur";
+                alert(msg);
+              } finally {
+                setLoadingWorkchop(false);
+              }
+            }}
+            disabled={readOnly || loadingWorkchop || workchopRequested}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-600 text-white hover:bg-violet-700 font-black text-xs disabled:opacity-50 disabled:pointer-events-none transition-all"
+          >
+            <FiTool size={18} />
+            {workchopRequested ? "Demande envoyée" : "Demande de workchop"}
+          </button>
+        </div>
+      )}
 
       {readOnly && (
         <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500">

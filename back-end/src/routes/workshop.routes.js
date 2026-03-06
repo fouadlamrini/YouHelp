@@ -9,4 +9,10 @@ router.post("/", auth, requireRole(["super_admin", "admin", "formateur"]), contr
 router.post("/:workshopId/request", auth, requireRole(["super_admin", "admin", "formateur", "etudiant"]), controller.requestWorkshop);
 router.get("/my-requests", auth, controller.getMyRequests);
 
+router.post("/request-from-post", auth, requireRole(["etudiant"]), controller.requestFromPost);
+router.get("/requests/pending", auth, requireRole(["formateur"]), controller.getPendingForFormateur);
+router.patch("/requests/:id/accept", auth, requireRole(["formateur"]), controller.acceptRequest);
+router.patch("/requests/:id/reject", auth, requireRole(["formateur"]), controller.rejectRequest);
+router.get("/my-workshops", auth, controller.getMyWorkshops);
+
 module.exports = router;

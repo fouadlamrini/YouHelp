@@ -203,6 +203,11 @@ export const workshopsApi = {
   create: (data) => api.post("/workshops", data),
   request: (workshopId) => api.post(`/workshops/${workshopId}/request`),
   myRequests: () => api.get("/workshops/my-requests"),
+  requestFromPost: (postId) => api.post("/workshops/request-from-post", { postId }),
+  pendingForFormateur: () => api.get("/workshops/requests/pending"),
+  acceptRequest: (id, data) => api.patch(`/workshops/requests/${id}/accept`, data),
+  rejectRequest: (id) => api.patch(`/workshops/requests/${id}/reject`),
+  myWorkshops: () => api.get("/workshops/my-workshops"),
 };
 
 // —— Friends ——

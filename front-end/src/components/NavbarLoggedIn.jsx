@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   FiUser, FiSettings, FiBell, FiMail, FiUserPlus, FiBookOpen, FiLogOut,
-  FiEdit, FiCalendar, FiCheck, FiX
+  FiEdit, FiCalendar, FiCheck, FiX, FiTool
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import api, { friendRequestsApi } from "../services/api";
@@ -19,6 +19,9 @@ function resolveAvatarUrl(src) {
 
 function NavbarLoggedIn() {
   const { user, logout } = useAuth();
+  const roleName = user?.role?.name ?? user?.role;
+  const isEtudiant = roleName === "etudiant";
+  const isFormateur = roleName === "formateur";
   const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [invitations, setInvitations] = useState([]);
@@ -90,10 +93,17 @@ function NavbarLoggedIn() {
           <Link to="/knowledge" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
             <FiBookOpen size={18} /> Knowledge
           </Link>
-          {/* Knowledge - Icon: FiBookOpen */}
-          <Link to="/Shedule" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-            <FiCalendar size={18} /> Workchop Shedule
-          </Link>
+          {/* Workchop: Schedule (formateur) / Mes workchops (etudiant) */}
+          {isFormateur && (
+            <Link to="/Shedule" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+              <FiCalendar size={18} /> Workchop Schedule
+            </Link>
+          )}
+          {isEtudiant && (
+            <Link to="/my-workshops" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+              <FiTool size={18} /> Mes workchops
+            </Link>
+          )}
 
           {/* Vertical Divider */}
           <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>

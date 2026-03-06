@@ -21,6 +21,7 @@ import MyShares from "./pages/MyShares.jsx";
 import InfoComplet from "./pages/InfoComplet.jsx";
 import Stats from "./pages/Stats.jsx";
 import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
+import MyWorkshops from "./pages/MyWorkshops.jsx";
 import UserManagement from "./pages/UserManagement.jsx";
 import CampusManager from "./pages/CampusManager.jsx";
 import LevelManager from "./pages/LevelManager.jsx";
@@ -153,6 +154,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <WorkshopSchedule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-workshops"
+            element={
+              <ProtectedRoute>
+                <MyWorkshops />
               </ProtectedRoute>
             }
           />
