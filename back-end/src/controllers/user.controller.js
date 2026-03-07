@@ -301,8 +301,17 @@ class UserController {
         return res.status(403).json({ message: "Forbidden" });
       }
       const { name, email, password, role: roleId, campus, class: classId, level, profilePicture } = req.body;
-      if (!email || !name) return res.status(400).json({ message: "Name and email required" });
-      const existing = await User.findOne({ email: email.toLowerCase() });
+      const trimmedName = typeof name === "string" ? name.trim() : "";
+      const trimmedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+      if (!trimmedName) return res.status(400).json({ message: "Le nom est requis." });
+      if (trimmedName.length < 2) return res.status(400).json({ message: "Le nom doit contenir au moins 2 caractères." });
+      if (!trimmedEmail) return res.status(400).json({ message: "L'email est requis." });
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) return res.status(400).json({ message: "Veuillez entrer une adresse email valide." });
+      const pwd = password != null ? String(password) : "";
+      if (!pwd) return res.status(400).json({ message: "Le mot de passe est requis." });
+      if (pwd.length < 6) return res.status(400).json({ message: "Le mot de passe doit contenir au moins 6 caractères." });
+      const existing = await User.findOne({ email: trimmedEmail });
       if (existing) return res.status(400).json({ message: "Email already in use" });
       const roleDoc = roleId ? await Role.findById(roleId) : null;
       const newRoleName = roleDoc?.name || null;
@@ -311,9 +320,9 @@ class UserController {
       if (roleName === "formateur" && newRoleName !== "etudiant")
         return res.status(403).json({ message: "Formateur can only create etudiant" });
       const user = await User.create({
-        name,
-        email: email.toLowerCase(),
-        password: password || undefined,
+        name: trimmedName,
+        email: trimmedEmail,
+        password: pwd,
         role: roleDoc?._id || null,
         campus: campus || null,
         class: classId || null,

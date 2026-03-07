@@ -43,7 +43,9 @@ const UserManagement = () => {
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
   const [availableAvatars, setAvailableAvatars] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null);
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
@@ -160,25 +162,66 @@ const UserManagement = () => {
   const handleCreateUser = (e) => {
     e.preventDefault();
     setFormError("");
-    if (!formData.name?.trim() || !formData.email?.trim()) {
-      setFormError("Nom et email requis");
+    setFormSuccess("");
+    const name = formData.name?.trim() || "";
+    const email = formData.email?.trim() || "";
+    const password = formData.password || "";
+
+    if (!name) {
+      setFormError("Le nom est requis.");
+      return;
+    }
+    if (name.length < 2) {
+      setFormError("Le nom doit contenir au moins 2 caractères.");
+      return;
+    }
+    if (!email) {
+      setFormError("L'email est requis.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setFormError("Veuillez entrer une adresse email valide.");
+      return;
+    }
+    if (!password) {
+      setFormError("Le mot de passe est requis.");
+      return;
+    }
+    if (password.length < 6) {
+      setFormError("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+    if (!isFormateur && !formData.role) {
+      setFormError("Le rôle est requis.");
+      return;
+    }
+    const selectedRoleName = roles.find((r) => r._id === formData.role)?.name || "";
+    if (!isFormateur && selectedRoleName !== "admin" && (!formData.class || !formData.level)) {
+      setFormError("Classe et niveau sont requis pour ce rôle.");
+      return;
+    }
+    if (!isAdmin && !isFormateur && !formData.campus) {
+      setFormError("Le campus est requis.");
       return;
     }
     setSubmitLoading(true);
+    const isRoleAdmin = selectedRoleName === "admin";
     const payload = {
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      password: formData.password || undefined,
+      name,
+      email,
+      password,
       role: isFormateur && roleEtudiant?._id ? roleEtudiant._id : (formData.role || undefined),
       campus: isFormateur && formateurCampusId ? formateurCampusId : (isAdmin && adminCampusId ? adminCampusId : (formData.campus || undefined)),
-      class: isFormateur && formateurClassId ? formateurClassId : (formData.class || undefined),
-      level: isFormateur && formateurLevelId ? formateurLevelId : (formData.level || undefined),
+      class: isRoleAdmin ? undefined : (isFormateur && formateurClassId ? formateurClassId : (formData.class || undefined)),
+      level: isRoleAdmin ? undefined : (isFormateur && formateurLevelId ? formateurLevelId : (formData.level || undefined)),
       profilePicture: formData.profilePicture || undefined,
     };
     usersApi
       .create(payload)
       .then(() => {
         setFormData({ name: "", email: "", password: "", campus: "", class: "", level: "", role: "", profilePicture: "" });
+        setFormSuccess("Utilisateur créé avec succès.");
         fetchUsers();
       })
       .catch((err) => setFormError(err.response?.data?.message || "Erreur"))
@@ -186,11 +229,22 @@ const UserManagement = () => {
   };
 
   const handleDelete = (user) => {
-    if (!window.confirm("Supprimer l'utilisateur " + user.name + " ?")) return;
-    usersApi
-      .delete(user._id)
-      .then(() => fetchUsers())
-      .catch((err) => alert(err.response?.data?.message || "Erreur"));
+    setConfirmAction({ type: "delete", user });
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmAction?.user) return;
+    if (confirmAction.type === "delete") {
+      usersApi
+        .delete(confirmAction.user._id)
+        .then(() => { setConfirmAction(null); fetchUsers(); })
+        .catch((err) => alert(err.response?.data?.message || "Erreur"));
+    } else if (confirmAction.type === "reject") {
+      usersApi
+        .rejectUser(confirmAction.user._id)
+        .then(() => { setConfirmAction(null); fetchUsers(); })
+        .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
+    }
   };
 
   const handleAcceptUser = (user) => {
@@ -201,11 +255,7 @@ const UserManagement = () => {
   };
 
   const handleRejectUser = (user) => {
-    if (!window.confirm(`Refuser l'utilisateur ${user.name || user.email} ?`)) return;
-    usersApi
-      .rejectUser(user._id)
-      .then(() => fetchUsers())
-      .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
+    setConfirmAction({ type: "reject", user });
   };
 
   const openEditModal = (user) => {
@@ -282,7 +332,6 @@ const UserManagement = () => {
                       onChange={handleInputChange}
                       className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                       placeholder="Nom et Prénom"
-                      required
                     />
                   </div>
                   <div className="space-y-1">
@@ -297,7 +346,6 @@ const UserManagement = () => {
                         onChange={handleInputChange}
                         className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                         placeholder="email@youcode.ma"
-                        required
                       />
                       <input
                         type="password"
@@ -361,58 +409,64 @@ const UserManagement = () => {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
-                      {isFormateur ? (
-                        <div
-                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                          title="Votre classe (lecture seule)"
-                        >
-                          {formateurClassName || "—"}
+                  {(() => {
+                    const selectedRoleName = roles.find((r) => r._id === formData.role)?.name || "";
+                    if (selectedRoleName === "admin") return null;
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
+                          {isFormateur ? (
+                            <div
+                              className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                              title="Votre classe (lecture seule)"
+                            >
+                              {formateurClassName || "—"}
+                            </div>
+                          ) : (
+                            <select
+                              name="class"
+                              value={formData.class}
+                              onChange={handleInputChange}
+                              className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                            >
+                              <option value="">Sélectionner</option>
+                              {classes.map((cl) => (
+                                <option key={cl._id} value={cl._id}>
+                                  {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
-                      ) : (
-                        <select
-                          name="class"
-                          value={formData.class}
-                          onChange={handleInputChange}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                        >
-                          <option value="">Sélectionner</option>
-                          {classes.map((cl) => (
-                            <option key={cl._id} value={cl._id}>
-                              {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Level</label>
-                      {isFormateur ? (
-                        <div
-                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                          title="Votre level (lecture seule)"
-                        >
-                          {formateurLevelName || "—"}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Level</label>
+                          {isFormateur ? (
+                            <div
+                              className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
+                              title="Votre level (lecture seule)"
+                            >
+                              {formateurLevelName || "—"}
+                            </div>
+                          ) : (
+                            <select
+                              name="level"
+                              value={formData.level}
+                              onChange={handleInputChange}
+                              className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                            >
+                              <option value="">Sélectionner</option>
+                              {levels.map((l) => (
+                                <option key={l._id} value={l._id}>
+                                  {l.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
-                      ) : (
-                        <select
-                          name="level"
-                          value={formData.level}
-                          onChange={handleInputChange}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                        >
-                          <option value="">Sélectionner</option>
-                          {levels.map((l) => (
-                            <option key={l._id} value={l._id}>
-                              {l.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-2 block">
                       Photo de profil / Avatar
@@ -458,7 +512,22 @@ const UserManagement = () => {
                       />
                     </div>
                   </div>
-                  {formError && <p className="text-red-500 text-xs">{formError}</p>}
+                  {formError && (
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                      <span>{formError}</span>
+                      <button type="button" onClick={() => setFormError("")} className="p-1 hover:bg-rose-100 rounded">
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  )}
+                  {formSuccess && (
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                      <span>{formSuccess}</span>
+                      <button type="button" onClick={() => setFormSuccess("")} className="p-1 hover:bg-emerald-100 rounded">
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={submitLoading}
@@ -779,6 +848,36 @@ const UserManagement = () => {
                 <FiSave size={16} /> Mettre à jour
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {confirmAction && confirmAction.user && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-2xl">
+            <div className="text-center space-y-4">
+              <p className="text-slate-700 font-bold">
+                {confirmAction.type === "delete"
+                  ? `Supprimer l'utilisateur ${confirmAction.user.name || confirmAction.user.email} ?`
+                  : `Refuser l'utilisateur ${confirmAction.user.name || confirmAction.user.email} ?`}
+              </p>
+              <div className="flex gap-4 justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction(null)}
+                  className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAction}
+                  className="px-6 py-3 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700"
+                >
+                  Confirmer
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
