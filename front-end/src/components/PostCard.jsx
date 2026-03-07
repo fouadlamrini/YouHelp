@@ -105,12 +105,23 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   const [localSolved, setLocalSolved] = useState(rawPost?.isSolved ?? false);
   const [togglingSolved, setTogglingSolved] = useState(false);
   const [solutionText, setSolutionText] = useState("");
-  const [workchopRequested, setWorkchopRequested] = useState(false);
+  const [workchopRequested, setWorkchopRequested] = useState(!!rawPost?.workchopRequestAlreadySent);
   const [loadingWorkchop, setLoadingWorkchop] = useState(false);
+  const [workchopSuccessMessage, setWorkchopSuccessMessage] = useState(false);
 
   useEffect(() => {
     setLocalSolved(rawPost?.isSolved ?? false);
   }, [rawPost?.isSolved]);
+
+  useEffect(() => {
+    setWorkchopRequested(!!rawPost?.workchopRequestAlreadySent);
+  }, [rawPost?.workchopRequestAlreadySent]);
+
+  useEffect(() => {
+    if (!workchopSuccessMessage) return;
+    const t = setTimeout(() => setWorkchopSuccessMessage(false), 5000);
+    return () => clearTimeout(t);
+  }, [workchopSuccessMessage]);
 
   if (!post || !post.user) return null;
 
@@ -701,28 +712,38 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
       </div>
 
       {rawPost?.showDemandeWorkchopButton && rawPost?.sameContextAsAuthor && (
-        <div className="px-2 pb-2 border-t border-slate-100 pt-2">
+        <div className="px-2 pb-2 border-t border-slate-100 pt-2 space-y-2">
+          {workchopSuccessMessage && (
+            <div className="flex items-center justify-between gap-2 py-2.5 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+              <span>Demande envoyée avec succès.</span>
+              <button type="button" onClick={() => setWorkchopSuccessMessage(false)} className="text-emerald-600 hover:text-emerald-800 p-0.5">×</button>
+            </div>
+          )}
           <button
             type="button"
-            onClick={async () => {
-              if (readOnly || loadingWorkchop || workchopRequested || !post.id) return;
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const alreadySent = workchopRequested || rawPost?.workchopRequestAlreadySent;
+              if (readOnly || loadingWorkchop || alreadySent || !post.id) return;
               setLoadingWorkchop(true);
               try {
                 await workshopsApi.requestFromPost(post.id);
                 setWorkchopRequested(true);
-                onRefresh?.();
-              } catch (e) {
-                const msg = e.response?.data?.message || "Erreur";
+                setWorkchopSuccessMessage(true);
+                // Pas d'appel à onRefresh pour éviter le rechargement de la liste (scroll, etc.)
+              } catch (err) {
+                const msg = err.response?.data?.message || "Erreur";
                 alert(msg);
               } finally {
                 setLoadingWorkchop(false);
               }
             }}
-            disabled={readOnly || loadingWorkchop || workchopRequested}
+            disabled={readOnly || loadingWorkchop || workchopRequested || rawPost?.workchopRequestAlreadySent}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-600 text-white hover:bg-violet-700 font-black text-xs disabled:opacity-50 disabled:pointer-events-none transition-all"
           >
             <FiTool size={18} />
-            {workchopRequested ? "Demande envoyée" : "Demande de workchop"}
+            {workchopRequested || rawPost?.workchopRequestAlreadySent ? "Demande envoyée" : "Demande de workchop"}
           </button>
         </div>
       )}

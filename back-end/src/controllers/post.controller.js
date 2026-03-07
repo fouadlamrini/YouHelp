@@ -7,6 +7,7 @@ const Comment = require("../models/Comment");
 const Engagement = require("../models/Engagement");
 const Solution = require("../models/Solution");
 const Notification = require("../models/Notification");
+const WorkshopRequest = require("../models/WorkshopRequest");
 const { notifyPostDeleted, notifyPostSolved } = require("../services/notification.service");
 const { areFriends, getMyFriendIds } = require("./friend.controller");
 
@@ -191,6 +192,9 @@ class PostController {
           const canModerate = await this._canModeratePost(req.user.id, currentUser, p);
           const sameContextAsAuthor = this._sameContextAsAuthor(currentUser, p);
           const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+          const workchopRequestAlreadySent = showDemandeWorkchopButton
+            ? !!(await WorkshopRequest.findOne({ user: req.user.id, post: p._id }))
+            : false;
           return {
             ...p.toObject(),
             sameContextReactionCount,
@@ -200,6 +204,7 @@ class PostController {
             canModerate,
             sameContextAsAuthor,
             showDemandeWorkchopButton,
+            workchopRequestAlreadySent,
           };
         })
       );
@@ -279,7 +284,7 @@ class PostController {
       if (currentUser?.status !== "active") {
         const sameContextReactionCount = await this._sameContextReactionCount(req.params.id, post.author?._id || post.author);
         const commentCount = await Comment.countDocuments({ post: req.params.id });
-        return res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact: false, showDemandeWorkchopButton: false, sameContextAsAuthor: false } });
+        return res.json({ success: true, data: { ...post.toObject(), sameContextReactionCount, commentCount, canReact: false, showDemandeWorkchopButton: false, sameContextAsAuthor: false, workchopRequestAlreadySent: false } });
       }
       const authorFilter = await this._postsAuthorFilter(req);
       if (authorFilter._id === -1) return res.status(403).json({ message: "Forbidden" });
@@ -297,6 +302,9 @@ class PostController {
       const canModerate = await this._canModeratePost(req.user.id, fullUser, post);
       const sameContextAsAuthor = this._sameContextAsAuthor(fullUser, post);
       const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+      const workchopRequestAlreadySent = showDemandeWorkchopButton
+        ? !!(await WorkshopRequest.findOne({ user: req.user.id, post: req.params.id }))
+        : false;
       res.json({
         success: true,
         data: {
@@ -308,6 +316,7 @@ class PostController {
           canModerate,
           sameContextAsAuthor,
           showDemandeWorkchopButton,
+          workchopRequestAlreadySent,
         },
       });
     } catch (err) {
