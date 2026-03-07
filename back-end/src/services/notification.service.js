@@ -176,8 +176,115 @@ async function notifyUserRefused(actorDoc, studentDoc) {
   if (notifications.length) await Notification.insertMany(notifications);
 }
 
+/**
+ * Recipients when an admin or formateur deletes/solves a post (to inform staff):
+ * - super_admin (all)
+ * - admin (same campus as post author)
+ * - formateur (same campus, class, level as post author)
+ * authorDoc: { _id, campus, class, level } (post author)
+ */
+async function getRecipientsForPostAction(authorDoc) {
+  const campusId = refId(authorDoc?.campus);
+  const classId = refId(authorDoc?.class);
+  const levelId = refId(authorDoc?.level);
+
+  const superAdminRole = await Role.findOne({ name: "super_admin" });
+  const adminRole = await Role.findOne({ name: "admin" });
+  const formateurRole = await Role.findOne({ name: "formateur" });
+
+  const recipientIds = new Set();
+
+  if (superAdminRole) {
+    const superAdmins = await User.find({ role: superAdminRole._id }).select("_id");
+    superAdmins.forEach((u) => recipientIds.add(u._id.toString()));
+  }
+  if (adminRole && campusId) {
+    const admins = await User.find({ role: adminRole._id, campus: campusId }).select("_id");
+    admins.forEach((u) => recipientIds.add(u._id.toString()));
+  }
+  if (formateurRole && campusId && classId && levelId) {
+    const formateurs = await User.find({
+      role: formateurRole._id,
+      campus: campusId,
+      class: classId,
+      level: levelId,
+    }).select("_id");
+    formateurs.forEach((u) => recipientIds.add(u._id.toString()));
+  }
+
+  return Array.from(recipientIds);
+}
+
+/**
+ * Notify when a post is deleted: author + (if actor is admin/formateur) super_admin, admin same campus, formateur same context.
+ * actorDoc: { _id, name, role: { name } }
+ * authorDoc: { _id, campus, class, level }
+ */
+async function notifyPostDeleted(actorDoc, authorDoc, postId) {
+  const actorRoleName = actorDoc?.role?.name ?? actorDoc?.role ?? null;
+  const actorName = actorDoc?.name ?? "Un responsable";
+  const authorId = refId(authorDoc?._id ?? authorDoc);
+
+  const toAuthor =
+    actorRoleName === "super_admin"
+      ? "Le super admin a supprimé votre post."
+      : actorRoleName === "admin"
+        ? "L'administrateur a supprimé votre post."
+        : "Le formateur a supprimé votre post.";
+
+  const notifications = [{ recipient: authorId, actor: actorDoc._id, type: "post_deleted_by_admin", message: toAuthor, link: "/posts" }];
+
+  if (actorRoleName === "admin" || actorRoleName === "formateur") {
+    const staffIds = await getRecipientsForPostAction(authorDoc);
+    const staffMessage =
+      actorRoleName === "admin"
+        ? `L'administrateur ${actorName} a supprimé un post.`
+        : `Le formateur ${actorName} a supprimé un post.`;
+    const actorId = refId(actorDoc?._id);
+    staffIds.forEach((recipientId) => {
+      if (recipientId !== authorId && recipientId !== actorId) notifications.push({ recipient: recipientId, actor: actorDoc._id, type: "post_deleted_by_admin", message: staffMessage, link: "/posts" });
+    });
+  }
+
+  if (notifications.length) await Notification.insertMany(notifications);
+}
+
+/**
+ * Notify when a post is marked solved: author + (if actor is admin/formateur) super_admin, admin same campus, formateur same context.
+ */
+async function notifyPostSolved(actorDoc, authorDoc, postId) {
+  const actorRoleName = actorDoc?.role?.name ?? actorDoc?.role ?? null;
+  const actorName = actorDoc?.name ?? "Un responsable";
+  const authorId = refId(authorDoc?._id ?? authorDoc);
+
+  const toAuthor =
+    actorRoleName === "super_admin"
+      ? "Le super admin a marqué votre post comme résolu."
+      : actorRoleName === "admin"
+        ? "L'administrateur a marqué votre post comme résolu."
+        : "Le formateur a marqué votre post comme résolu.";
+
+  const notifications = [{ recipient: authorId, actor: actorDoc._id, type: "post_solved_by_admin", message: toAuthor, link: `/posts/${postId}` }];
+
+  if (actorRoleName === "admin" || actorRoleName === "formateur") {
+    const staffIds = await getRecipientsForPostAction(authorDoc);
+    const staffMessage =
+      actorRoleName === "admin"
+        ? `L'administrateur ${actorName} a marqué un post comme résolu.`
+        : `Le formateur ${actorName} a marqué un post comme résolu.`;
+    const actorId = refId(actorDoc?._id);
+    staffIds.forEach((recipientId) => {
+      if (recipientId !== authorId && recipientId !== actorId) notifications.push({ recipient: recipientId, actor: actorDoc._id, type: "post_solved_by_admin", message: staffMessage, link: `/posts/${postId}` });
+    });
+  }
+
+  if (notifications.length) await Notification.insertMany(notifications);
+}
+
 module.exports = {
   notifyNewRegistration,
   notifyUserActivated,
   notifyUserRefused,
+  notifyPostDeleted,
+  notifyPostSolved,
 };

@@ -7,6 +7,7 @@ const Comment = require("../models/Comment");
 const Engagement = require("../models/Engagement");
 const Solution = require("../models/Solution");
 const Notification = require("../models/Notification");
+const { notifyPostDeleted, notifyPostSolved } = require("../services/notification.service");
 const { areFriends, getMyFriendIds } = require("./friend.controller");
 
 class PostController {
@@ -187,6 +188,7 @@ class PostController {
           const totalSameContext = await this._totalSameContextCount(authorId);
           const commentCount = await Comment.countDocuments({ post: p._id });
           const canReact = await this._postCanReact(req.user.id, currentUser, p, viewFilter);
+          const canModerate = await this._canModeratePost(req.user.id, currentUser, p);
           const sameContextAsAuthor = this._sameContextAsAuthor(currentUser, p);
           const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
           return {
@@ -195,6 +197,7 @@ class PostController {
             totalSameContext,
             commentCount,
             canReact,
+            canModerate,
             sameContextAsAuthor,
             showDemandeWorkchopButton,
           };
@@ -205,6 +208,36 @@ class PostController {
       console.error(err);
       res.status(500).json({ message: "Server error" });
     }
+  }
+
+  /**
+   * Whether current user can delete or mark solved this post (same rules as middleware + _canToggleSolved).
+   */
+  async _canModeratePost(currentUserId, currentUser, post) {
+    if (!currentUserId || !currentUser) return false;
+    const roleName = currentUser.role?.name ?? currentUser.role ?? null;
+    if (roleName === "super_admin") return true;
+    const authorId = post.author?._id?.toString() || post.author?.toString();
+    if (authorId === currentUserId.toString()) return true;
+    if (roleName !== "admin" && roleName !== "formateur") return false;
+    const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
+    if (!author) return false;
+    const authorRoleName = author?.role?.name ?? author?.role ?? null;
+    const sameCampus =
+      [currentUser.campus?._id ?? currentUser.campus, author.campus?._id ?? author.campus]
+        .every(Boolean) &&
+      (currentUser.campus?._id ?? currentUser.campus).toString() === (author.campus?._id ?? author.campus).toString();
+    if (roleName === "admin") {
+      if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
+      return sameCampus;
+    }
+    if (roleName === "formateur") {
+      if (authorRoleName !== "etudiant") return false;
+      const sameClass = [currentUser.class?._id ?? currentUser.class, author.class?._id ?? author.class].every(Boolean) && (currentUser.class?._id ?? currentUser.class).toString() === (author.class?._id ?? author.class).toString();
+      const sameLevel = [currentUser.level?._id ?? currentUser.level, author.level?._id ?? author.level].every(Boolean) && (currentUser.level?._id ?? currentUser.level).toString() === (author.level?._id ?? author.level).toString();
+      return sameCampus && sameClass && sameLevel;
+    }
+    return false;
   }
 
   async _postCanReact(currentUserId, currentUser, post, viewFilter) {
@@ -261,6 +294,7 @@ class PostController {
       const totalSameContext = await this._totalSameContextCount(authorId);
       const commentCount = await Comment.countDocuments({ post: req.params.id });
       const canReact = await this._postCanReact(req.user.id, fullUser, post, "all");
+      const canModerate = await this._canModeratePost(req.user.id, fullUser, post);
       const sameContextAsAuthor = this._sameContextAsAuthor(fullUser, post);
       const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
       res.json({
@@ -271,6 +305,7 @@ class PostController {
           totalSameContext,
           commentCount,
           canReact,
+          canModerate,
           sameContextAsAuthor,
           showDemandeWorkchopButton,
         },
@@ -353,21 +388,15 @@ class PostController {
   async deletePost(req, res) {
     try {
       const { id } = req.params;
-      const post = await Post.findById(id).lean();
+      const post = await Post.findById(id).populate({ path: "author", populate: { path: "role", select: "name" }, select: "campus class level role" });
       if (!post) return res.status(404).json({ message: "Post not found" });
 
-      const authorId = post.author?.toString?.() || post.author?.toString?.();
+      const authorId = (post.author?._id || post.author)?.toString?.();
       const deleterId = req.user?.id?.toString?.();
-
-      // Si c'est le super_admin qui supprime, notifier l'auteur du post
-      if (req.user?.role === "super_admin" && authorId && authorId !== deleterId) {
-        await Notification.create({
-          recipient: authorId,
-          actor: deleterId,
-          type: "post_deleted_by_admin",
-          message: "Le super admin a supprimé votre post.",
-          link: "/posts",
-        });
+      if (authorId && deleterId !== authorId) {
+        const actorDoc = await User.findById(req.user.id).populate("role", "name").lean();
+        const authorDoc = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
+        await notifyPostDeleted(actorDoc || { _id: req.user.id, name: req.user.name || "?", role: req.user.role }, authorDoc || { _id: post.author, campus: null, class: null, level: null }, id);
       }
 
       await Post.findByIdAndDelete(id);
@@ -382,7 +411,7 @@ class PostController {
 
   /**
    * Check if current user can toggle solved status.
-   * Allowed: super_admin, post owner, admin (same campus as author), formateur (same campus + class + level as author).
+   * super_admin: any post. Owner: own post. Admin: post by etudiant/formateur same campus. Formateur: post by etudiant same campus/class/level.
    */
   async _canToggleSolved(req, post) {
     const userId = req.user?.id;
@@ -395,25 +424,32 @@ class PostController {
     const role = req.user.role;
     if (role !== "admin" && role !== "formateur") return false;
 
-    const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
+    const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
     const me = await User.findById(userId).populate("campus class level").lean();
     if (!me || !author) return false;
 
+    const authorRoleName = author?.role?.name ?? author?.role ?? null;
     const sameCampus = [me.campus?._id ?? me.campus, author.campus?._id ?? author.campus]
       .every(Boolean) && (me.campus?._id ?? me.campus).toString() === (author.campus?._id ?? author.campus).toString();
-    if (role === "admin") return sameCampus;
 
-    const sameClass = [me.class?._id ?? me.class, author.class?._id ?? author.class]
-      .every(Boolean) && (me.class?._id ?? me.class).toString() === (author.class?._id ?? author.class).toString();
-    const sameLevel = [me.level?._id ?? me.level, author.level?._id ?? author.level]
-      .every(Boolean) && (me.level?._id ?? me.level).toString() === (author.level?._id ?? author.level).toString();
-    return sameCampus && sameClass && sameLevel;
+    if (role === "admin") {
+      if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
+      return sameCampus;
+    }
+
+    if (role === "formateur") {
+      if (authorRoleName !== "etudiant") return false;
+      const sameClass = [me.class?._id ?? me.class, author.class?._id ?? author.class].every(Boolean) && (me.class?._id ?? me.class).toString() === (author.class?._id ?? author.class).toString();
+      const sameLevel = [me.level?._id ?? me.level, author.level?._id ?? author.level].every(Boolean) && (me.level?._id ?? me.level).toString() === (author.level?._id ?? author.level).toString();
+      return sameCampus && sameClass && sameLevel;
+    }
+    return false;
   }
 
   async toggleSolved(req, res) {
     try {
       const { id } = req.params;
-      const post = await Post.findById(id).populate("author", "campus class level");
+      const post = await Post.findById(id).populate({ path: "author", populate: { path: "role", select: "name" }, select: "campus class level role" });
       if (!post) return res.status(404).json({ message: "Post not found" });
 
       const canToggle = await this._canToggleSolved(req, post);
@@ -441,6 +477,14 @@ class PostController {
         markedBy: req.user.id,
       });
       await Post.findByIdAndUpdate(id, { isSolved: true });
+
+      const postAuthorId = post.author?._id?.toString() || post.author?.toString();
+      if (postAuthorId && postAuthorId !== req.user.id.toString()) {
+        const actorDoc = await User.findById(req.user.id).populate("role", "name").lean();
+        const authorDoc = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
+        await notifyPostSolved(actorDoc || { _id: req.user.id, name: req.user.name || "?", role: req.user.role }, authorDoc || { _id: post.author, campus: null, class: null, level: null }, id);
+      }
+
       return res.json({ success: true, data: { isSolved: true }, message: "Post marqué comme résolu" });
     } catch (err) {
       console.error(err);

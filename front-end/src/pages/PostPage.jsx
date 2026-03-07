@@ -405,7 +405,7 @@ const PostPage = () => {
                     key={singlePost._id || singlePost.id}
                     post={singlePost}
                     onRefresh={loadPosts}
-                    readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false)}
+                    readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false && !singlePost.canModerate)}
                   />
                 ))
               ) : (
