@@ -6,7 +6,6 @@ class CategoryController {
       const categories = await Category.find().sort({ createdAt: -1 });
       res.json({ success: true, data: categories });
     } catch (err) {
-      console.error(err);
       res.status(500).json({ message: 'Server error' });
     }
   }
@@ -14,20 +13,23 @@ class CategoryController {
   async createCategory(req, res) {
     try {
       const { name, icon, color } = req.body;
-      const existing = await Category.findOne({ name });
+      const trimmedName = typeof name === 'string' ? name.trim() : '';
+      if (!trimmedName) {
+        return res.status(400).json({ message: 'Le nom de la catégorie est requis.' });
+      }
+      const existing = await Category.findOne({ name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
       if (existing) {
-        return res.status(400).json({ message: 'Category already exists' });
+        return res.status(400).json({ message: 'Une catégorie avec ce nom existe déjà.' });
       }
 
       const category = await Category.create({
-        name,
+        name: trimmedName,
         icon: icon || null,
         color: color || null,
       });
       res.status(201).json({ success: true, data: category });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: err.message || 'Server error' });
     }
   }
 
@@ -53,7 +55,6 @@ async updateCategory(req, res) {
 
     res.json({ success: true, data: category });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 }
@@ -71,7 +72,6 @@ async deleteCategory(req, res) {
 
     res.json({ success: true, message: 'Category deleted successfully' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }}
 }

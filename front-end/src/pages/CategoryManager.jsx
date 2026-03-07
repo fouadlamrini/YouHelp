@@ -63,6 +63,17 @@ const CategoryManager = () => {
   const [targetCategoryId, setTargetCategoryId] = useState(null);
   const [editingSubId, setEditingSubId] = useState(null);
   const [subForm, setSubForm] = useState({ name: "" });
+  const [categoryMessage, setCategoryMessage] = useState({ type: null, text: "" });
+  const [subMessage, setSubMessage] = useState({ type: null, text: "" });
+
+  const setCategoryFeedback = (type, text) => {
+    setCategoryMessage({ type, text });
+    setTimeout(() => setCategoryMessage({ type: null, text: "" }), 5000);
+  };
+  const setSubFeedback = (type, text) => {
+    setSubMessage({ type, text });
+    setTimeout(() => setSubMessage({ type: null, text: "" }), 5000);
+  };
 
   const loadData = async () => {
     try {
@@ -91,17 +102,26 @@ const CategoryManager = () => {
 
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
-    if (!categoryForm.name.trim()) return;
+    const trimmedName = categoryForm.name.trim();
+    if (!trimmedName) {
+      setCategoryFeedback("error", "Le nom de la catégorie est requis.");
+      return;
+    }
+    setCategoryMessage({ type: null, text: "" });
+    const payload = { ...categoryForm, name: trimmedName };
     try {
       if (editingCategoryId) {
-        await categoryApi.update(editingCategoryId, categoryForm);
+        await categoryApi.update(editingCategoryId, payload);
+        setCategoryFeedback("success", "Catégorie mise à jour avec succès.");
       } else {
-        await categoryApi.create(categoryForm);
+        await categoryApi.create(payload);
+        setCategoryFeedback("success", "Catégorie créée avec succès.");
       }
       resetCategoryForm();
       await loadData();
     } catch (err) {
-      console.error("Failed to save category", err);
+      const msg = err.response?.data?.message || "Erreur lors de l'enregistrement de la catégorie.";
+      setCategoryFeedback("error", msg);
     }
   };
 
@@ -118,9 +138,11 @@ const CategoryManager = () => {
     if (!window.confirm("Supprimer cette catégorie ?")) return;
     try {
       await categoryApi.delete(id);
+      setCategoryFeedback("success", "Catégorie supprimée avec succès.");
       await loadData();
     } catch (err) {
-      console.error("Failed to delete category", err);
+      const msg = err.response?.data?.message || "Erreur lors de la suppression de la catégorie.";
+      setCategoryFeedback("error", msg);
     }
   };
 
@@ -132,25 +154,32 @@ const CategoryManager = () => {
 
   const handleSubSubmit = async (e) => {
     e.preventDefault();
-    if (!subForm.name.trim() || !targetCategoryId) return;
+    if (!subForm.name.trim() || !targetCategoryId) {
+      setSubFeedback("error", "Le nom et la catégorie parente sont requis.");
+      return;
+    }
     const targetCategory = categories.find((c) => c._id === targetCategoryId);
     if (!targetCategory) return;
+    setSubMessage({ type: null, text: "" });
     try {
       if (editingSubId) {
         await subcategoryApi.update(editingSubId, {
-          name: subForm.name,
+          name: subForm.name.trim(),
           category: targetCategory.name,
         });
+        setSubFeedback("success", "Sous-catégorie mise à jour avec succès.");
       } else {
         await subcategoryApi.create({
-          name: subForm.name,
+          name: subForm.name.trim(),
           category: targetCategory.name,
         });
+        setSubFeedback("success", "Sous-catégorie créée avec succès.");
       }
       resetSubForm();
       await loadData();
     } catch (err) {
-      console.error("Failed to create subcategory", err);
+      const msg = err.response?.data?.message || "Erreur lors de l'enregistrement de la sous-catégorie.";
+      setSubFeedback("error", msg);
     }
   };
 
@@ -158,9 +187,11 @@ const CategoryManager = () => {
     if (!window.confirm("Supprimer cette sous-catégorie ?")) return;
     try {
       await subcategoryApi.delete(subId);
+      setSubFeedback("success", "Sous-catégorie supprimée avec succès.");
       await loadData();
     } catch (err) {
-      console.error("Failed to delete subcategory", err);
+      const msg = err.response?.data?.message || "Erreur lors de la suppression de la sous-catégorie.";
+      setSubFeedback("error", msg);
     }
   };
 
@@ -253,6 +284,17 @@ const CategoryManager = () => {
                 onSubmit={handleCategorySubmit}
                 className="flex flex-col gap-4"
               >
+                {categoryMessage.text && (
+                  <div
+                    className={`px-4 py-3 rounded-xl text-xs font-bold ${
+                      categoryMessage.type === "success"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
+                    }`}
+                  >
+                    {categoryMessage.text}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                   <input
                     type="text"
@@ -292,6 +334,18 @@ const CategoryManager = () => {
                 />
               </form>
             </div>
+
+            {subMessage.text && (
+              <div
+                className={`mb-6 px-4 py-3 rounded-xl text-xs font-bold ${
+                  subMessage.type === "success"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border border-rose-200"
+                }`}
+              >
+                {subMessage.text}
+              </div>
+            )}
 
             {/* --- GRID OF CATEGORIES --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">

@@ -12,7 +12,6 @@ class SubCategoryController {
 
       res.json({ success: true, data: subCategories });
     } catch (err) {
-      console.error(err);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -29,7 +28,6 @@ class SubCategoryController {
         .sort({ createdAt: -1 });
       return res.json({ success: true, data: subCategories });
     } catch (err) {
-      console.error(err);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -38,14 +36,16 @@ class SubCategoryController {
 async createSubCategory(req, res) {
   try {
     const { name, category, icon, color } = req.body;
-
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    if (!trimmedName) {
+      return res.status(400).json({ message: "Le nom de la sous-catégorie est requis." });
+    }
     const existingCategory = await Category.findOne({ name: category });
-
     if (!existingCategory) {
-      return res.status(400).json({ message: "Category not found" });
+      return res.status(400).json({ message: "Catégorie parente introuvable." });
     }
     const subCategory = await SubCategory.create({
-      name,
+      name: trimmedName,
       category: existingCategory._id,
       icon: icon || null,
       color: color || null,
@@ -54,8 +54,10 @@ async createSubCategory(req, res) {
     res.status(201).json({ success: true, data: subCategory });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Cette sous-catégorie existe déjà dans cette catégorie." });
+    }
+    res.status(500).json({ message: err.message || "Server error" });
   }
 }
 // ================= UPDATE =================
@@ -84,8 +86,6 @@ async updateSubCategory(req, res) {
 
     res.json({ success: true, data: subCategory });
   } catch (err) {
-    console.error(err);
-
     if (err.code === 11000) {
       return res.status(400).json({
         message: "SubCategory already exists in this category",
@@ -112,7 +112,6 @@ async deleteSubCategory(req, res) {
       message: "SubCategory deleted successfully",
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 }

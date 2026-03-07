@@ -7,7 +7,7 @@ const subCategorySchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     icon: { type: String, default: null },
     color: { type: String, default: null },
   },
