@@ -2,7 +2,7 @@ const User = require("../models/User");
 const favoriteService = require("../services/favorite.service");
 
 class FavoriteController {
-  async addToFavorites(req, res) {
+  addToFavorites = async (req, res) => {
     try {
       const currentUser = await User.findById(req.user.id).select("status").lean();
       if (currentUser?.status !== "active") {
@@ -21,9 +21,9 @@ class FavoriteController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur lors de l'ajout aux favoris" });
     }
-  }
+  };
 
-  async removeFromFavorites(req, res) {
+  removeFromFavorites = async (req, res) => {
     try {
       const currentUser = await User.findById(req.user.id).select("status").lean();
       if (currentUser?.status !== "active") {
@@ -38,9 +38,9 @@ class FavoriteController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur lors de la suppression du favori" });
     }
-  }
+  };
 
-  async getUserFavorites(req, res) {
+  getUserFavorites = async (req, res) => {
     try {
       const result = await favoriteService.getUserFavorites(req.user.id, req.query);
       if (result.error) {
@@ -55,9 +55,9 @@ class FavoriteController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur lors de la récupération des favoris" });
     }
-  }
+  };
 
-  async checkIfFavorite(req, res) {
+  checkIfFavorite = async (req, res) => {
     try {
       const result = await favoriteService.checkIfFavorite(
         req.user.id,
@@ -72,7 +72,7 @@ class FavoriteController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur lors de la vérification du favori" });
     }
-  }
+  };
 }
 
 module.exports = new FavoriteController();

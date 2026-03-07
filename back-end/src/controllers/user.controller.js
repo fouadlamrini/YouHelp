@@ -1,7 +1,7 @@
 const userService = require("../services/user.service");
 
 class UserController {
-  async getMe(req, res) {
+  getMe = async (req, res) => {
     try {
       const result = await userService.getMe(req.user.id);
       if (result.error) {
@@ -12,9 +12,9 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async updateProfile(req, res) {
+  updateProfile = async (req, res) => {
     try {
       const result = await userService.updateProfile(req.user.id, req.body);
       if (result.error) {
@@ -25,9 +25,9 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getAll(req, res) {
+  getAll = async (req, res) => {
     try {
       const result = await userService.getAll(req.user.id);
       if (result.error) {
@@ -38,9 +38,9 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getById(req, res) {
+  getById = async (req, res) => {
     try {
       const result = await userService.getById(req.user.id, req.params.id);
       if (result.error) {
@@ -64,9 +64,9 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async delete(req, res) {
+  delete = async (req, res) => {
     try {
       const result = await userService.deleteUser(req.user.id, req.params.id);
       if (result.error) {
@@ -77,9 +77,9 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async acceptUser(req, res) {
+  acceptUser = async (req, res) => {
     try {
       const result = await userService.acceptUser(req.user.id, req.params.id);
       if (result.error) {
@@ -90,9 +90,9 @@ class UserController {
       console.error("acceptUser error:", err);
       return res.status(500).json({ message: err.message || "Server error" });
     }
-  }
+  };
 
-  async rejectUser(req, res) {
+  rejectUser = async (req, res) => {
     try {
       const result = await userService.rejectUser(req.user.id, req.params.id);
       if (result.error) {
@@ -103,9 +103,9 @@ class UserController {
       console.error("rejectUser error:", err);
       return res.status(500).json({ message: err.message || "Server error" });
     }
-  }
+  };
 
-  async create(req, res) {
+  create = async (req, res) => {
     try {
       const result = await userService.create(req.user.id, req.body);
       if (result.error) {
@@ -116,7 +116,7 @@ class UserController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new UserController();

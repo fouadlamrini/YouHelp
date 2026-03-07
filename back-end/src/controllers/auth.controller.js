@@ -2,7 +2,7 @@ const blacklistedTokens = require("../utils/blacklist");
 const authService = require("../services/auth.service");
 
 class AuthController {
-  async register(req, res) {
+  register = async (req, res) => {
     try {
       const { name, email, password } = req.body;
       const result = await authService.register({ name, email, password });
@@ -22,9 +22,9 @@ class AuthController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async login(req, res) {
+  login = async (req, res) => {
     try {
       const { email, password } = req.body;
       const result = await authService.login({ email, password });
@@ -44,9 +44,9 @@ class AuthController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async changePassword(req, res) {
+  changePassword = async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
       const result = await authService.changePassword(req.user.id, { currentPassword, newPassword });
@@ -58,9 +58,9 @@ class AuthController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async logout(req, res) {
+  logout = async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -75,9 +75,9 @@ class AuthController {
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
-  }
+  };
 
-  async googleCallback(req, res) {
+  googleCallback = async (req, res) => {
     try {
       const user = req.user;
       const { redirectUrl } = await authService.buildOAuthRedirectPayload(user);
@@ -86,9 +86,9 @@ class AuthController {
       console.error("Google OAuth error:", err);
       res.status(500).json({ message: "Google login failed" });
     }
-  }
+  };
 
-  async githubCallback(req, res) {
+  githubCallback = async (req, res) => {
     try {
       const user = req.user;
       const { redirectUrl } = await authService.buildOAuthRedirectPayload(user);
@@ -97,9 +97,9 @@ class AuthController {
       console.error(err);
       res.status(500).json({ message: "GitHub login failed" });
     }
-  }
+  };
 
-  async getCompleteProfileOptions(req, res) {
+  getCompleteProfileOptions = async (req, res) => {
     try {
       const data = await authService.getCompleteProfileOptions();
       return res.json({ success: true, data });
@@ -107,9 +107,9 @@ class AuthController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async completeProfile(req, res) {
+  completeProfile = async (req, res) => {
     try {
       const result = await authService.completeProfile(req.user.id, req.body);
       if (result.error) {
@@ -120,7 +120,7 @@ class AuthController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new AuthController();

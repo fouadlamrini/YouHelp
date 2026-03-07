@@ -2,7 +2,7 @@ const { mapFilesToMedia } = require("../utils/media");
 const knowledgeService = require("../services/knowledge.service");
 
 class KnowledgeController {
-  async createKnowledge(req, res) {
+  createKnowledge = async (req, res) => {
     try {
       const mediaFiles = mapFilesToMedia(req.files);
       const result = await knowledgeService.createKnowledge(req.user.id, req.body, mediaFiles);
@@ -18,9 +18,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getAllKnowledge(req, res) {
+  getAllKnowledge = async (req, res) => {
     try {
       const filter = req.query.filter || "all";
       const result = await knowledgeService.getAllKnowledge(req.user.id, filter);
@@ -32,9 +32,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getKnowledgeById(req, res) {
+  getKnowledgeById = async (req, res) => {
     try {
       const result = await knowledgeService.getKnowledgeById(req.user.id, req.params.id);
       if (result.error) {
@@ -45,9 +45,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async updateKnowledge(req, res) {
+  updateKnowledge = async (req, res) => {
     try {
       const uploadedMedia = mapFilesToMedia(req.files);
       const result = await knowledgeService.updateKnowledge(req.user.id, req.params.id, req.body, uploadedMedia);
@@ -63,9 +63,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async deleteKnowledge(req, res) {
+  deleteKnowledge = async (req, res) => {
     try {
       const result = await knowledgeService.deleteKnowledge(req.user.id, req.params.id);
       if (result.error) {
@@ -76,9 +76,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async toggleReaction(req, res) {
+  toggleReaction = async (req, res) => {
     try {
       const result = await knowledgeService.toggleReaction(req.user.id, req.params.id);
       if (result.error) {
@@ -90,9 +90,9 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async toggleShare(req, res) {
+  toggleShare = async (req, res) => {
     try {
       const result = await knowledgeService.toggleShare(req.user.id, req.params.id);
       if (result.error) {
@@ -107,7 +107,7 @@ class KnowledgeController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 }
 
 module.exports = new KnowledgeController();

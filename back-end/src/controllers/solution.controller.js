@@ -1,7 +1,7 @@
 const solutionService = require("../services/solution.service");
 
 class SolutionController {
-  async markPostAsSolved(req, res) {
+  markPostAsSolved = async (req, res) => {
     try {
       const result = await solutionService.markPostAsSolved(req.user.id, req.params.id, req.body);
       if (result.error) {
@@ -19,9 +19,9 @@ class SolutionController {
       }
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async unmarkPostAsSolved(req, res) {
+  unmarkPostAsSolved = async (req, res) => {
     try {
       const result = await solutionService.unmarkPostAsSolved(req.user.id, req.params.id);
       if (result.error) {
@@ -35,9 +35,9 @@ class SolutionController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getSolutionByPostId(req, res) {
+  getSolutionByPostId = async (req, res) => {
     try {
       const result = await solutionService.getSolutionByPostId(req.params.id);
       if (result.error) {
@@ -48,9 +48,9 @@ class SolutionController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getAllSolvedPosts(req, res) {
+  getAllSolvedPosts = async (req, res) => {
     try {
       const result = await solutionService.getAllSolvedPosts();
       if (result.error) {
@@ -61,9 +61,9 @@ class SolutionController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async updateSolutionDescription(req, res) {
+  updateSolutionDescription = async (req, res) => {
     try {
       const result = await solutionService.updateSolutionDescription(req.user.id, req.params.id, req.body);
       if (result.error) {
@@ -78,7 +78,7 @@ class SolutionController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 }
 
 module.exports = new SolutionController();

@@ -2,7 +2,7 @@ const { mapFilesToMedia } = require("../utils/media");
 const postService = require("../services/post.service");
 
 class PostController {
-  async createPost(req, res) {
+  createPost = async (req, res) => {
     try {
       const mediaFiles = mapFilesToMedia(req.files);
       const result = await postService.createPost(req.user.id, req.body, mediaFiles);
@@ -14,9 +14,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getAllPosts(req, res) {
+  getAllPosts = async (req, res) => {
     try {
       const filter = req.query.filter || "all";
       const result = await postService.getAllPosts(req.user.id, filter);
@@ -28,9 +28,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getPostById(req, res) {
+  getPostById = async (req, res) => {
     try {
       const result = await postService.getPostById(req.user.id, req.params.id);
       if (result.error) {
@@ -41,9 +41,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async updatePost(req, res) {
+  updatePost = async (req, res) => {
     try {
       const uploadedMedia = mapFilesToMedia(req.files);
       const result = await postService.updatePost(req.params.id, req.body, uploadedMedia);
@@ -55,9 +55,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async deletePost(req, res) {
+  deletePost = async (req, res) => {
     try {
       const result = await postService.deletePost(req.user.id, req.params.id);
       if (result.error) {
@@ -68,9 +68,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async toggleSolved(req, res) {
+  toggleSolved = async (req, res) => {
     try {
       const result = await postService.toggleSolved(req.user.id, req.params.id, req.body);
       if (result.error) {
@@ -84,9 +84,9 @@ class PostController {
       }
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async toggleReaction(req, res) {
+  toggleReaction = async (req, res) => {
     try {
       const result = await postService.toggleReaction(req.user.id, req.params.id);
       if (result.error) {
@@ -98,9 +98,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getMySharedPosts(req, res) {
+  getMySharedPosts = async (req, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Non authentifié" });
@@ -113,9 +113,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async deleteShare(req, res) {
+  deleteShare = async (req, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Non authentifié" });
@@ -128,9 +128,9 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async toggleShare(req, res) {
+  toggleShare = async (req, res) => {
     try {
       const result = await postService.toggleShare(req.user.id, req.params.id);
       if (result.error) {
@@ -145,7 +145,7 @@ class PostController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 }
 
 module.exports = new PostController();

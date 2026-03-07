@@ -1,7 +1,7 @@
 const subcategoryService = require("../services/subcategory.service");
 
 class SubCategoryController {
-  async getAllSubCategories(req, res) {
+  getAllSubCategories = async (req, res) => {
     try {
       const result = await subcategoryService.getAll();
       if (result.error) {
@@ -11,9 +11,9 @@ class SubCategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getByCategory(req, res) {
+  getByCategory = async (req, res) => {
     try {
       const result = await subcategoryService.getByCategory(req.params.categoryId);
       if (result.error) {
@@ -23,9 +23,9 @@ class SubCategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async createSubCategory(req, res) {
+  createSubCategory = async (req, res) => {
     try {
       const result = await subcategoryService.create(req.body);
       if (result.error) {
@@ -38,9 +38,9 @@ class SubCategoryController {
       }
       return res.status(500).json({ message: err.message || "Server error" });
     }
-  }
+  };
 
-  async updateSubCategory(req, res) {
+  updateSubCategory = async (req, res) => {
     try {
       const result = await subcategoryService.update(req.params.id, req.body);
       if (result.error) {
@@ -53,9 +53,9 @@ class SubCategoryController {
       }
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async deleteSubCategory(req, res) {
+  deleteSubCategory = async (req, res) => {
     try {
       const result = await subcategoryService.deleteSubCategory(req.params.id);
       if (result.error) {
@@ -65,7 +65,7 @@ class SubCategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new SubCategoryController();

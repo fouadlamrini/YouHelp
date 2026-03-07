@@ -1,7 +1,7 @@
 const classJoinRequestService = require("../services/classJoinRequest.service");
 
 class ClassJoinRequestController {
-  async create(req, res) {
+  create = async (req, res) => {
     try {
       const result = await classJoinRequestService.create(req.user.id, req.body);
       if (result.error) {
@@ -13,9 +13,9 @@ class ClassJoinRequestController {
       if (err.code === 11000) return res.status(400).json({ message: "Request already exists" });
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getRequestsForMyClass(req, res) {
+  getRequestsForMyClass = async (req, res) => {
     try {
       const result = await classJoinRequestService.getRequestsForMyClass(req.user.id);
       if (result.error) {
@@ -26,9 +26,9 @@ class ClassJoinRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async accept(req, res) {
+  accept = async (req, res) => {
     try {
       const result = await classJoinRequestService.accept(req.user.id, req.params.id);
       if (result.error) {
@@ -39,9 +39,9 @@ class ClassJoinRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async reject(req, res) {
+  reject = async (req, res) => {
     try {
       const result = await classJoinRequestService.reject(req.user.id, req.params.id);
       if (result.error) {
@@ -52,7 +52,7 @@ class ClassJoinRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new ClassJoinRequestController();

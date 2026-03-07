@@ -1,7 +1,7 @@
 const levelService = require("../services/level.service");
 
 class LevelController {
-  async getAll(req, res) {
+  getAll = async (req, res) => {
     try {
       const result = await levelService.getAll();
       if (result.error) {
@@ -12,9 +12,9 @@ class LevelController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getById(req, res) {
+  getById = async (req, res) => {
     try {
       const result = await levelService.getById(req.params.id);
       if (result.error) {
@@ -25,9 +25,9 @@ class LevelController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async create(req, res) {
+  create = async (req, res) => {
     try {
       const result = await levelService.create(req.body);
       if (result.error) {
@@ -41,9 +41,9 @@ class LevelController {
       }
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async update(req, res) {
+  update = async (req, res) => {
     try {
       const result = await levelService.update(req.params.id, req.body);
       if (result.error) {
@@ -57,9 +57,9 @@ class LevelController {
       }
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async delete(req, res) {
+  delete = async (req, res) => {
     try {
       const result = await levelService.deleteLevel(req.params.id);
       if (result.error) {
@@ -70,7 +70,7 @@ class LevelController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new LevelController();

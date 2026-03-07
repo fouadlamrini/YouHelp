@@ -1,7 +1,7 @@
 const statsService = require("../services/stats.service");
 
 class StatsController {
-  async getStats(req, res) {
+  getStats = async (req, res) => {
     try {
       const userId = req.user?.id ?? req.user?._id;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -14,7 +14,7 @@ class StatsController {
       console.error("Stats error:", err);
       return res.status(500).json({ message: "Server error", error: err.message });
     }
-  }
+  };
 }
 
 module.exports = new StatsController();

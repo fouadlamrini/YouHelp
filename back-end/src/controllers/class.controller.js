@@ -1,7 +1,7 @@
 const classService = require("../services/class.service");
 
 class ClassController {
-  async getAll(req, res) {
+  getAll = async (req, res) => {
     try {
       const result = await classService.getAll();
       if (result.error) {
@@ -12,9 +12,9 @@ class ClassController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getById(req, res) {
+  getById = async (req, res) => {
     try {
       const result = await classService.getById(req.params.id);
       if (result.error) {
@@ -25,9 +25,9 @@ class ClassController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async create(req, res) {
+  create = async (req, res) => {
     try {
       const result = await classService.create(req.body);
       if (result.error) {
@@ -38,9 +38,9 @@ class ClassController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async update(req, res) {
+  update = async (req, res) => {
     try {
       const result = await classService.update(req.params.id, req.body);
       if (result.error) {
@@ -51,9 +51,9 @@ class ClassController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async delete(req, res) {
+  delete = async (req, res) => {
     try {
       const result = await classService.deleteClass(req.params.id);
       if (result.error) {
@@ -64,7 +64,7 @@ class ClassController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new ClassController();

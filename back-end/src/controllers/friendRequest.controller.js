@@ -1,7 +1,7 @@
 const friendRequestService = require("../services/friendRequest.service");
 
 class FriendRequestController {
-  async send(req, res) {
+  send = async (req, res) => {
     try {
       const result = await friendRequestService.send(req.user.id, req.body);
       if (result.error) {
@@ -12,9 +12,9 @@ class FriendRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async listReceived(req, res) {
+  listReceived = async (req, res) => {
     try {
       const result = await friendRequestService.listReceived(req.user.id);
       if (result.error) {
@@ -25,9 +25,9 @@ class FriendRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async accept(req, res) {
+  accept = async (req, res) => {
     try {
       const result = await friendRequestService.accept(req.user.id, req.params.id);
       if (result.error) {
@@ -38,9 +38,9 @@ class FriendRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async reject(req, res) {
+  reject = async (req, res) => {
     try {
       const result = await friendRequestService.reject(req.user.id, req.params.id);
       if (result.error) {
@@ -51,9 +51,9 @@ class FriendRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async availableUsers(req, res) {
+  availableUsers = async (req, res) => {
     try {
       const result = await friendRequestService.availableUsers(req.user.id);
       if (result.error) {
@@ -64,7 +64,7 @@ class FriendRequestController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new FriendRequestController();

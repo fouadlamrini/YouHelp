@@ -5,7 +5,7 @@ const areFriends = friendService.areFriends;
 const getMyFriendIds = friendService.getMyFriendIds;
 
 class FriendController {
-  async add(req, res) {
+  add = async (req, res) => {
     try {
       const result = await friendService.add(req.user.id, req.body);
       if (result.error) {
@@ -16,9 +16,9 @@ class FriendController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async remove(req, res) {
+  remove = async (req, res) => {
     try {
       const result = await friendService.remove(req.user.id, req.params.userId);
       if (result.error) {
@@ -29,9 +29,9 @@ class FriendController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async list(req, res) {
+  list = async (req, res) => {
     try {
       const result = await friendService.list(req.user.id);
       if (result.error) {
@@ -42,7 +42,7 @@ class FriendController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = {

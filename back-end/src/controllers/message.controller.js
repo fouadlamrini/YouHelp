@@ -1,7 +1,7 @@
 const messageService = require("../services/message.service");
 
 class MessageController {
-  async send(req, res) {
+  send = async (req, res) => {
     try {
       const emitToUser = req.app.get("emitToUser");
       const result = await messageService.send(req.user.id, req.body, req.file, emitToUser);
@@ -13,9 +13,9 @@ class MessageController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getConversation(req, res) {
+  getConversation = async (req, res) => {
     try {
       const result = await messageService.getConversation(req.user.id, req.params.userId);
       if (result.error) {
@@ -26,9 +26,9 @@ class MessageController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getConversations(req, res) {
+  getConversations = async (req, res) => {
     try {
       const result = await messageService.getConversations(req.user.id);
       if (result.error) {
@@ -53,9 +53,9 @@ class MessageController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async toggleReaction(req, res) {
+  toggleReaction = async (req, res) => {
     try {
       const emitToUser = req.app.get("emitToUser");
       const result = await messageService.toggleReaction(req.user.id, req.params.id, req.body, emitToUser);
@@ -67,7 +67,7 @@ class MessageController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new MessageController();

@@ -9,24 +9,24 @@ const validate = require("../middlewares/validate");
 const { createPostSchema, updatePostSchema } = require("../validators/post.validator");
 
 /* ===== READ ===== (auth required for visibility filter; role null = campus filter read-only) */
-router.get("/", auth, PostController.getAllPosts.bind(PostController));
-router.get("/shares/mine", auth, PostController.getMySharedPosts.bind(PostController));
-router.get("/:id", auth, PostController.getPostById.bind(PostController));
+router.get("/", auth, PostController.getAllPosts);
+router.get("/shares/mine", auth, PostController.getMySharedPosts);
+router.get("/:id", auth, PostController.getPostById);
 
 /* ===== REACTION ===== */
 router.post(
   "/:id/reaction",
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
-  PostController.toggleReaction.bind(PostController)
+  PostController.toggleReaction
 );
 
 /* ===== SOLVED TOGGLE ===== */
-router.patch("/:id/solved", auth, PostController.toggleSolved.bind(PostController));
+router.patch("/:id/solved", auth, PostController.toggleSolved);
 
 /* ===== PARTAGE ===== */
-router.post("/:id/share", auth, PostController.toggleShare.bind(PostController));
-router.delete("/share/:shareId", auth, PostController.deleteShare.bind(PostController));
+router.post("/:id/share", auth, PostController.toggleShare);
+router.delete("/share/:shareId", auth, PostController.deleteShare);
 
 /* ===== CREATE ===== */
 router.post(
@@ -35,7 +35,7 @@ router.post(
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
   validate(createPostSchema),
-  PostController.createPost.bind(PostController)
+  PostController.createPost
 );
 
 /* ===== UPDATE ===== */
@@ -45,10 +45,10 @@ router.put(
   checkOwnerOrAdmin,
   upload.array("media", 10),
   validate(updatePostSchema),
-  PostController.updatePost.bind(PostController)
+  PostController.updatePost
 );
 
 /* ===== DELETE ===== */
-router.delete("/:id", auth, checkOwnerOrAdmin, PostController.deletePost.bind(PostController));
+router.delete("/:id", auth, checkOwnerOrAdmin, PostController.deletePost);
 
 module.exports = router;

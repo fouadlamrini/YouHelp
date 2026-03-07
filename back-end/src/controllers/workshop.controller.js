@@ -1,7 +1,7 @@
 const workshopService = require("../services/workshop.service");
 
 class WorkshopController {
-  async createWorkshop(req, res) {
+  createWorkshop = async (req, res) => {
     try {
       const result = await workshopService.createWorkshop(req.user.id, req.body);
       if (result.error) {
@@ -12,9 +12,9 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getAllWorkshops(req, res) {
+  getAllWorkshops = async (req, res) => {
     try {
       const result = await workshopService.getAllWorkshops();
       if (result.error) {
@@ -39,9 +39,9 @@ class WorkshopController {
       if (err.code === 11000) return res.status(400).json({ message: "Request already exists" });
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getMyRequests(req, res) {
+  getMyRequests = async (req, res) => {
     try {
       const result = await workshopService.getMyRequests(req.user.id);
       if (result.error) {
@@ -52,9 +52,9 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async requestFromPost(req, res) {
+  requestFromPost = async (req, res) => {
     try {
       if (req.user.role !== "etudiant") {
         return res.status(403).json({ message: "Seuls les étudiants peuvent demander un workchop depuis un post." });
@@ -69,9 +69,9 @@ class WorkshopController {
       if (err.code === 11000) return res.status(400).json({ message: "Demande déjà existante." });
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getPendingForFormateur(req, res) {
+  getPendingForFormateur = async (req, res) => {
     try {
       if (req.user.role !== "formateur") {
         return res.status(403).json({ message: "Réservé aux formateurs." });
@@ -85,9 +85,9 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async acceptRequest(req, res) {
+  acceptRequest = async (req, res) => {
     try {
       if (req.user.role !== "formateur") {
         return res.status(403).json({ message: "Réservé aux formateurs." });
@@ -101,9 +101,9 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async rejectRequest(req, res) {
+  rejectRequest = async (req, res) => {
     try {
       if (req.user.role !== "formateur") {
         return res.status(403).json({ message: "Réservé aux formateurs." });
@@ -117,9 +117,9 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async getMyWorkshops(req, res) {
+  getMyWorkshops = async (req, res) => {
     try {
       const result = await workshopService.getMyWorkshops(req.user.id);
       if (result.error) {
@@ -130,7 +130,7 @@ class WorkshopController {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new WorkshopController();

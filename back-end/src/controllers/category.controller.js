@@ -1,7 +1,7 @@
 const categoryService = require("../services/category.service");
 
 class CategoryController {
-  async getAllCategory(req, res) {
+  getAllCategory = async (req, res) => {
     try {
       const result = await categoryService.getAll();
       if (result.error) {
@@ -11,9 +11,9 @@ class CategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async createCategory(req, res) {
+  createCategory = async (req, res) => {
     try {
       const result = await categoryService.create(req.body);
       if (result.error) {
@@ -23,9 +23,9 @@ class CategoryController {
     } catch (err) {
       return res.status(500).json({ message: err.message || "Server error" });
     }
-  }
+  };
 
-  async updateCategory(req, res) {
+  updateCategory = async (req, res) => {
     try {
       const result = await categoryService.update(req.params.id, req.body);
       if (result.error) {
@@ -35,9 +35,9 @@ class CategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 
-  async deleteCategory(req, res) {
+  deleteCategory = async (req, res) => {
     try {
       const result = await categoryService.deleteCategory(req.params.id);
       if (result.error) {
@@ -47,7 +47,7 @@ class CategoryController {
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  };
 }
 
 module.exports = new CategoryController();

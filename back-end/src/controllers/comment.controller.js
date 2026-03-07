@@ -2,7 +2,7 @@ const User = require("../models/User");
 const commentService = require("../services/comment.service");
 
 class CommentController {
-  async createComment(req, res) {
+  createComment = async (req, res) => {
     try {
       const currentUser = await User.findById(req.user.id).select("status").lean();
       if (currentUser?.status !== "active") {
@@ -22,9 +22,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getCommentsByPost(req, res) {
+  getCommentsByPost = async (req, res) => {
     try {
       const result = await commentService.getCommentsByPost(req.params.postId);
       if (result.error) {
@@ -35,9 +35,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async toggleLike(req, res) {
+  toggleLike = async (req, res) => {
     try {
       const result = await commentService.toggleLike(req.user.id, req.params.id);
       if (result.error) {
@@ -53,9 +53,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async updateComment(req, res) {
+  updateComment = async (req, res) => {
     try {
       const result = await commentService.updateComment(
         req.user.id,
@@ -72,9 +72,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async deleteComment(req, res) {
+  deleteComment = async (req, res) => {
     try {
       const result = await commentService.deleteComment(req.user.id, req.user.role, req.params.id);
       if (result.error) {
@@ -85,9 +85,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async createCommentForKnowledge(req, res) {
+  createCommentForKnowledge = async (req, res) => {
     try {
       const currentUser = await User.findById(req.user.id).select("status").lean();
       if (!currentUser || currentUser.status !== "active") {
@@ -109,9 +109,9 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 
-  async getCommentsByKnowledge(req, res) {
+  getCommentsByKnowledge = async (req, res) => {
     try {
       const result = await commentService.getCommentsByKnowledge(req.params.knowledgeId);
       if (result.error) {
@@ -122,7 +122,7 @@ class CommentController {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
-  }
+  };
 }
 
 module.exports = new CommentController();
