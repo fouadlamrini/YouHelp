@@ -204,6 +204,23 @@ class CommentController {
       comment.likes = comment.likes || [];
       comment.likes.push(userId);
       await comment.save();
+
+      const commentAuthorId = (comment.author && comment.author.toString ? comment.author.toString() : comment.author?.toString?.()) || null;
+      if (commentAuthorId && commentAuthorId !== userId.toString()) {
+        const actor = await User.findById(userId).select("name").lean();
+        const actorName = actor?.name || "Quelqu'un";
+        const isReply = !!comment.parentComment;
+        const message = isReply ? `${actorName} a aimé votre réponse.` : `${actorName} a aimé votre commentaire.`;
+        const postId = comment.post?.toString?.() || comment.post?.toString?.();
+        await Notification.create({
+          recipient: commentAuthorId,
+          actor: userId,
+          type: "comment_like",
+          message,
+          link: postId ? `/posts?post=${postId}&comment=${comment._id}` : "/posts",
+        });
+      }
+
       return res.json({
         success: true,
         message: "Commentaire liké",
