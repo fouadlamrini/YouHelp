@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const levelSchema = new mongoose.Schema({
-  name: { type: String, enum: ["Sas","1A", "2A","Graduate"] },
+  name: { type: String, required: true },
 });
 
 module.exports = mongoose.model("Level", levelSchema);
