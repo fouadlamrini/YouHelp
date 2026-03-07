@@ -43,6 +43,8 @@ const mapKnowledgeToCardData = (knowledge) => {
     content: knowledge.content || "",
     media,
     comments: knowledge.comments || [],
+    commentCount: (knowledge.comments || []).length,
+    shareCount: knowledge.shareCount ?? 0,
     canReact: knowledge.canReact,
     canModerate: knowledge.canModerate,
   };

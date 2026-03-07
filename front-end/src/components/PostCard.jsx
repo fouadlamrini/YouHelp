@@ -341,6 +341,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
   };
 
   const commentCount = rawPost?.commentCount ?? 0;
+  const shareCount = rawPost?.shareCount ?? 0;
 
   const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
@@ -695,7 +696,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
           disabled={readOnly}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiShare2 size={18} /> Partager
+          <FiShare2 size={18} /> Partager <span className="text-emerald-600">({shareCount})</span>
         </button>
       </div>
 

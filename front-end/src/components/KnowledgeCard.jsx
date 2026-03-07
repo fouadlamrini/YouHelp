@@ -385,7 +385,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             }`}
           >
             <FiMessageCircle size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Comment</span>
+            <span className="text-[11px] font-black uppercase tracking-tight">Comment <span className="text-indigo-600">({data.commentCount ?? (data.comments || []).length ?? 0})</span></span>
           </button>
 
           <button
@@ -395,7 +395,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FiShare2 size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Share</span>
+            <span className="text-[11px] font-black uppercase tracking-tight">Share <span className="text-emerald-600">({data.shareCount ?? 0})</span></span>
           </button>
         </div>
 
