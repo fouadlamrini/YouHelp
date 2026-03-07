@@ -3,6 +3,8 @@ const WorkshopRequest = require("../models/WorkshopRequest");
 const User = require("../models/User");
 const Post = require("../models/Post");
 const Engagement = require("../models/Engagement");
+const Notification = require("../models/Notification");
+const Role = require("../models/Role");
 
 function sameContextAsAuthor(me, author) {
   if (!author || (!author.campus && !author.class && !author.level)) return false;
@@ -129,6 +131,28 @@ class WorkshopController {
       const populated = await WorkshopRequest.findById(request._id)
         .populate("user", "name email profilePicture")
         .populate("post", "content");
+      const student = await User.findById(req.user.id).select("name").lean();
+      const studentName = student?.name || "Un étudiant";
+      const campusId = me.campus?._id || me.campus;
+      const classId = me.class?._id || me.class;
+      const levelId = me.level?._id || me.level;
+      const formateurRole = await Role.findOne({ name: "formateur" });
+      if (formateurRole && campusId && classId && levelId) {
+        const formateurs = await User.find({
+          role: formateurRole._id,
+          campus: campusId,
+          class: classId,
+          level: levelId,
+        }).select("_id").lean();
+        const notifications = formateurs.map((f) => ({
+          recipient: f._id,
+          actor: req.user.id,
+          type: "workchop_request",
+          message: `${studentName} a demandé un workchop pour un post.`,
+          link: "/Shedule",
+        }));
+        if (notifications.length) await Notification.insertMany(notifications);
+      }
       res.status(201).json({ success: true, data: populated });
     } catch (err) {
       console.error(err);
@@ -182,6 +206,16 @@ class WorkshopController {
       request.workshop = workshop._id;
       request.status = "accepted";
       await request.save();
+      const studentId = request.user?.toString?.() || request.user;
+      if (studentId) {
+        await Notification.create({
+          recipient: studentId,
+          actor: req.user.id,
+          type: "workchop_accepted",
+          message: "Votre demande de workchop a été acceptée.",
+          link: "/my-workshops",
+        });
+      }
       const populated = await WorkshopRequest.findById(request._id)
         .populate("workshop", "title description date")
         .populate("user", "name email");
@@ -202,6 +236,16 @@ class WorkshopController {
       if (!sameContextAsAuthor(me, post.author)) return res.status(403).json({ message: "Forbidden." });
       request.status = "rejected";
       await request.save();
+      const studentId = request.user?.toString?.() || request.user;
+      if (studentId) {
+        await Notification.create({
+          recipient: studentId,
+          actor: req.user.id,
+          type: "workchop_rejected",
+          message: "Votre demande de workchop a été refusée.",
+          link: "/posts",
+        });
+      }
       res.json({ success: true, data: request });
     } catch (err) {
       console.error(err);

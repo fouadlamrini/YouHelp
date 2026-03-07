@@ -158,6 +158,9 @@ const WorkshopSchedule = () => {
                             <button onClick={() => handleOpenProgrammer(req)} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">
                               Accepter
                             </button>
+                            <button onClick={() => handleReject(req)} className="px-3 py-2 bg-rose-100 text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-200 transition-all">
+                              Refuser
+                            </button>
                           </div>
                         </div>
                       ))
