@@ -4,6 +4,8 @@ const CommentController = require("../controllers/comment.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
+const validate = require("../middlewares/validate");
+const { createCommentSchema } = require("../validators/comment.validator");
 
 // Récupérer tous les commentaires d'un post (lecture publique)
 router.get("/post/:postId", CommentController.getCommentsByPost);
@@ -15,6 +17,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
+  validate(createCommentSchema),
   CommentController.createComment
 );
 

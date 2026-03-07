@@ -25,9 +25,6 @@ class CampusController {
   async create(req, res) {
     try {
       const { name } = req.body;
-      if (!name || !name.trim()) {
-        return res.status(400).json({ message: "Name is required" });
-      }
       const existing = await Campus.findOne({ name: name.trim() });
       if (existing) {
         return res.status(400).json({ message: "Campus already exists" });
@@ -44,9 +41,6 @@ class CampusController {
     try {
       const { id } = req.params;
       const { name } = req.body;
-      if (!name || !name.trim()) {
-        return res.status(400).json({ message: "Name is required" });
-      }
       const campus = await Campus.findByIdAndUpdate(
         id,
         { name: name.trim() },

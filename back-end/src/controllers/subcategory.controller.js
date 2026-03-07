@@ -37,9 +37,6 @@ async createSubCategory(req, res) {
   try {
     const { name, category, icon, color } = req.body;
     const trimmedName = typeof name === 'string' ? name.trim() : '';
-    if (!trimmedName) {
-      return res.status(400).json({ message: "Le nom de la sous-catégorie est requis." });
-    }
     const existingCategory = await Category.findOne({ name: category });
     if (!existingCategory) {
       return res.status(400).json({ message: "Catégorie parente introuvable." });

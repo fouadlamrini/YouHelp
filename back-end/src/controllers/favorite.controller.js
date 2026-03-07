@@ -15,31 +15,6 @@ class FavoriteController {
       const { contentType, contentId } = req.body;
       const userId = req.user.id;
 
-      // Vérification basique du corps de la requête
-      if (!req.body || typeof contentType === "undefined") {
-        return res.status(400).json({ message: "Requête mal formée" });
-      }
-
-      // Vérifier que le type de contenu est valide
-      if (!["post", "knowledge"].includes(contentType)) {
-        return res.status(400).json({ 
-          message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" 
-        });
-      }
-
-      // Vérifier que l'ID du contenu est fourni
-      if (!contentId) {
-        return res.status(400).json({ 
-          message: "L'ID du contenu est requis" 
-        });
-      }
-
-      // s'assurer que l'on travaille avec un ObjectId valide avant de requêter
-      const mongoose = require("mongoose");
-      if (!mongoose.Types.ObjectId.isValid(contentId)) {
-        return res.status(400).json({ message: "ID de contenu invalide" });
-      }
-
       // Vérifier que le contenu existe
       let content;
       if (contentType === "post") {
@@ -109,13 +84,6 @@ class FavoriteController {
       }
       const { contentType, contentId } = req.body;
       const userId = req.user.id;
-
-      // Vérifier que le type de contenu est valide
-      if (!["post", "knowledge"].includes(contentType)) {
-        return res.status(400).json({ 
-          message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" 
-        });
-      }
 
       // Chercher et supprimer le favori
       const favorite = await Favorite.findOneAndDelete({

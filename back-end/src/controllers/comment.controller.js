@@ -17,13 +17,6 @@ class CommentController {
       const { postId } = req.params;
       const { content, parentComment } = req.body;
 
-      // Validation basique
-      if (!content || !content.trim()) {
-        return res
-          .status(400)
-          .json({ message: "Le contenu du commentaire est requis" });
-      }
-
       // Vérifier que le post existe
       const post = await Post.findById(postId);
       if (!post) return res.status(404).json({ message: "Post non trouvé" });
@@ -243,12 +236,6 @@ class CommentController {
       const { id } = req.params;
       const { content } = req.body;
 
-      if (!content || !content.trim()) {
-        return res
-          .status(400)
-          .json({ message: "Le contenu du commentaire est requis" });
-      }
-
       const comment = await Comment.findById(id);
       if (!comment)
         return res.status(404).json({ message: "Commentaire non trouvé" });
@@ -388,9 +375,6 @@ class CommentController {
 
       const { knowledgeId } = req.params;
       const { content, parentComment } = req.body;
-      if (!content || !content.trim()) {
-        return res.status(400).json({ message: "Le contenu du commentaire est requis" });
-      }
       const knowledge = await Knowledge.findById(knowledgeId);
       if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
       const mediaFiles = (req.files || []).map((file) => {

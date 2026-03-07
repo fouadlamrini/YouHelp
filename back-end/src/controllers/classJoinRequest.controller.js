@@ -5,7 +5,6 @@ class ClassJoinRequestController {
   async create(req, res) {
     try {
       const { classId } = req.body;
-      if (!classId) return res.status(400).json({ message: "classId required" });
       const classDoc = await require("../models/Class").findById(classId);
       if (!classDoc) return res.status(404).json({ message: "Class not found" });
       const existing = await ClassJoinRequest.findOne({ user: req.user.id, class: classId });

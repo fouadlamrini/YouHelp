@@ -29,7 +29,7 @@ class FriendController {
     try {
       const me = req.user.id;
       const { userId } = req.body;
-      if (!userId || userId === me) {
+      if (userId === me) {
         return res.status(400).json({ message: "Invalid userId" });
       }
       const toUser = await User.findById(userId).select("_id status");

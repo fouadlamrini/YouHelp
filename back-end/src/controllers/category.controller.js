@@ -14,9 +14,6 @@ class CategoryController {
     try {
       const { name, icon, color } = req.body;
       const trimmedName = typeof name === 'string' ? name.trim() : '';
-      if (!trimmedName) {
-        return res.status(400).json({ message: 'Le nom de la catégorie est requis.' });
-      }
       const existing = await Category.findOne({ name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
       if (existing) {
         return res.status(400).json({ message: 'Une catégorie avec ce nom existe déjà.' });

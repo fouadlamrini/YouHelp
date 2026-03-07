@@ -303,14 +303,7 @@ class UserController {
       const { name, email, password, role: roleId, campus, class: classId, level, profilePicture } = req.body;
       const trimmedName = typeof name === "string" ? name.trim() : "";
       const trimmedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
-      if (!trimmedName) return res.status(400).json({ message: "Le nom est requis." });
-      if (trimmedName.length < 2) return res.status(400).json({ message: "Le nom doit contenir au moins 2 caractères." });
-      if (!trimmedEmail) return res.status(400).json({ message: "L'email est requis." });
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(trimmedEmail)) return res.status(400).json({ message: "Veuillez entrer une adresse email valide." });
       const pwd = password != null ? String(password) : "";
-      if (!pwd) return res.status(400).json({ message: "Le mot de passe est requis." });
-      if (pwd.length < 6) return res.status(400).json({ message: "Le mot de passe doit contenir au moins 6 caractères." });
       const existing = await User.findOne({ email: trimmedEmail });
       if (existing) return res.status(400).json({ message: "Email already in use" });
       const roleDoc = roleId ? await Role.findById(roleId) : null;
@@ -322,7 +315,7 @@ class UserController {
       const user = await User.create({
         name: trimmedName,
         email: trimmedEmail,
-        password: pwd,
+        password: password,
         role: roleDoc?._id || null,
         campus: campus || null,
         class: classId || null,

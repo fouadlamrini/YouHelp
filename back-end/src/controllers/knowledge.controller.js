@@ -28,10 +28,6 @@ class KnowledgeController {
 
       const { content, category, subCategory } = req.body;
 
-      if (!content || content.trim() === "") {
-        return res.status(400).json({ message: "Le contenu est obligatoire" });
-      }
-
       // Vérifier que la catégorie existe
       const categoryDoc = await Category.findOne({ name: category });
       if (!categoryDoc) {

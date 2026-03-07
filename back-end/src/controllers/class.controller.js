@@ -28,15 +28,6 @@ class ClassController {
   async create(req, res) {
     try {
       const { name, nickName, year, campus } = req.body;
-      if (!name || !name.trim()) {
-        return res.status(400).json({ message: "Name is required" });
-      }
-      if (year !== undefined && year !== null && year !== "") {
-        const yearNum = Number(year);
-        if (!Number.isInteger(yearNum) || yearNum < 2018) {
-          return res.status(400).json({ message: "L'année doit être un nombre supérieur ou égal à 2018." });
-        }
-      }
       let campusId = null;
       if (campus) {
         const campusDoc = await Campus.findById(campus);
@@ -68,11 +59,7 @@ class ClassController {
         if (year === null || year === "") {
           updateData.year = null;
         } else {
-          const yearNum = Number(year);
-          if (!Number.isInteger(yearNum) || yearNum < 2018) {
-            return res.status(400).json({ message: "L'année doit être un nombre supérieur ou égal à 2018." });
-          }
-          updateData.year = yearNum;
+          updateData.year = Number(year);
         }
       }
       if (campus !== undefined) {

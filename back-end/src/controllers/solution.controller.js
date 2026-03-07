@@ -12,13 +12,6 @@ class SolutionController {
       const { id } = req.params; // id du post
       const { description } = req.body; // description de la solution
 
-      // Vérifier que la description est fournie
-      if (!description || description.trim() === "") {
-        return res.status(400).json({
-          message: "La description de la solution est obligatoire",
-        });
-      }
-
       // Vérifier que le post existe
       const post = await Post.findById(id);
       if (!post) {

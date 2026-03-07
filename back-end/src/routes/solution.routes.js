@@ -3,6 +3,8 @@ const router = express.Router();
 const SolutionController = require("../controllers/solution.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
+const validate = require("../middlewares/validate");
+const { markPostAsSolvedSchema } = require("../validators/solution.validator");
 
 /* ===== READ ===== */
 // Récupérer tous les posts résolus
@@ -19,6 +21,7 @@ router.post(
   "/:id/mark-solved",
   auth,
   requireRole(["admin", "formateur", "etudiant"]),
+  validate(markPostAsSolvedSchema),
   SolutionController.markPostAsSolved
 );
 

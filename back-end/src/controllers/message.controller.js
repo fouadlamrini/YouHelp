@@ -9,9 +9,6 @@ class MessageController {
       const content = (req.body.content || "").trim();
       const hasFile = req.file && req.file.path;
 
-      if (!receiverId) {
-        return res.status(400).json({ message: "receiverId required" });
-      }
       if (!content && !hasFile) {
         return res.status(400).json({ message: "content or attachment required" });
       }

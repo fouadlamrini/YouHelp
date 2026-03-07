@@ -6,6 +6,9 @@ const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
 const checkKnowledgeOwnerOrAdmin = require("../middlewares/checkKnowledgeOwnerOrAdmin.middleware");
+const validate = require("../middlewares/validate");
+const { createKnowledgeSchema, updateKnowledgeSchema } = require("../validators/knowledge.validator");
+const { createCommentSchema } = require("../validators/comment.validator");
 
 /* ===== READ ===== */
 // Récupérer toutes les connaissances (lecture avec filtrage par utilisateur connecté)
@@ -18,6 +21,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
+  validate(createCommentSchema),
   CommentController.createCommentForKnowledge
 );
 
@@ -34,6 +38,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
+  validate(createKnowledgeSchema),
   KnowledgeController.createKnowledge.bind(KnowledgeController)
 );
 
@@ -47,6 +52,7 @@ router.put(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
+  validate(updateKnowledgeSchema),
   KnowledgeController.updateKnowledge.bind(KnowledgeController)
 );
 

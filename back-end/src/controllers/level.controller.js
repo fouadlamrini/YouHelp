@@ -25,9 +25,6 @@ class LevelController {
   async create(req, res) {
     try {
       const { name } = req.body;
-      if (!name || !name.trim()) {
-        return res.status(400).json({ message: "Name is required" });
-      }
       const existing = await Level.findOne({ name: name.trim() });
       if (existing) {
         return res.status(400).json({ message: "Level already exists" });
@@ -47,9 +44,6 @@ class LevelController {
     try {
       const { id } = req.params;
       const { name } = req.body;
-      if (!name || !name.trim()) {
-        return res.status(400).json({ message: "Name is required" });
-      }
       const level = await Level.findByIdAndUpdate(
         id,
         { name: name.trim() },

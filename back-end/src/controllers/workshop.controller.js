@@ -21,7 +21,6 @@ class WorkshopController {
   async createWorkshop(req, res) {
     try {
       const { title, description, date } = req.body;
-      if (!title?.trim()) return res.status(400).json({ message: "Title required" });
       const workshop = await Workshop.create({
         title: title.trim(),
         description: description?.trim(),
@@ -95,7 +94,6 @@ class WorkshopController {
         return res.status(403).json({ message: "Seuls les étudiants peuvent demander un workchop depuis un post." });
       }
       const { postId } = req.body;
-      if (!postId) return res.status(400).json({ message: "postId required" });
       const post = await Post.findById(postId).populate("author", "campus class level");
       if (!post) return res.status(404).json({ message: "Post not found" });
       const author = post.author;
@@ -189,7 +187,6 @@ class WorkshopController {
       }
       const { id } = req.params;
       const { title, description, date } = req.body;
-      if (!title?.trim()) return res.status(400).json({ message: "Le titre du workchop est requis." });
       const request = await WorkshopRequest.findById(id).populate("post");
       if (!request || !request.post) return res.status(404).json({ message: "Demande introuvable." });
       const post = await Post.findById(request.post._id).populate("author", "campus class level");

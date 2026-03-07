@@ -3,6 +3,8 @@ const router = express.Router();
 const controller = require("../controllers/user.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
+const validate = require("../middlewares/validate");
+const { createUserSchema, updateUserSchema } = require("../validators/user.validator");
 
 // Profile (current user)
 router.get("/me", auth, controller.getMe);
@@ -25,12 +27,14 @@ router.post(
   "/",
   auth,
   requireRole(["super_admin", "admin", "formateur"]),
+  validate(createUserSchema),
   controller.create
 );
 router.put(
   "/:id",
   auth,
   requireRole(["super_admin", "admin", "formateur"]),
+  validate(updateUserSchema),
   controller.update
 );
 router.put(

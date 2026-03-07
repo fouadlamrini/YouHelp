@@ -3,6 +3,8 @@ const router = express.Router();
 const subCategoryController = require("../controllers/subcategory.controller");
 const authMiddleware = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
+const validate = require("../middlewares/validate");
+const { createSubCategorySchema, updateSubCategorySchema } = require("../validators/subcategory.validator");
 
 router.get(
   "/",
@@ -22,6 +24,7 @@ router.post(
   "/",
   authMiddleware,
   requireRole(["formateur", "admin", "super_admin"]),
+  validate(createSubCategorySchema),
   subCategoryController.createSubCategory
 );
 
@@ -29,6 +32,7 @@ router.put(
   "/:id",
   authMiddleware,
   requireRole(["formateur", "admin", "super_admin"]),
+  validate(updateSubCategorySchema),
   subCategoryController.updateSubCategory
 );
 

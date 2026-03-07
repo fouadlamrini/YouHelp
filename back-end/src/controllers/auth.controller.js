@@ -119,9 +119,6 @@ class AuthController {
   async changePassword(req, res) {
     try {
       const { currentPassword, newPassword } = req.body;
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: "Current password and new password required" });
-      }
       const user = await User.findById(req.user.id);
       if (!user) return res.status(404).json({ message: "User not found" });
       if (!user.password) {

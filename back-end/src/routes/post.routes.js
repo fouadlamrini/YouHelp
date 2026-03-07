@@ -5,6 +5,8 @@ const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const checkOwnerOrAdmin = require("../middlewares/checkOwnerOrAdmin.middleware");
 const upload = require("../middlewares/upload.middleware");
+const validate = require("../middlewares/validate");
+const { createPostSchema, updatePostSchema } = require("../validators/post.validator");
 
 /* ===== READ ===== (auth required for visibility filter; role null = campus filter read-only) */
 router.get("/", auth, PostController.getAllPosts.bind(PostController));
@@ -32,6 +34,7 @@ router.post(
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
   upload.array("media", 10),
+  validate(createPostSchema),
   PostController.createPost.bind(PostController)
 );
 
@@ -41,6 +44,7 @@ router.put(
   auth,
   checkOwnerOrAdmin,
   upload.array("media", 10),
+  validate(updatePostSchema),
   PostController.updatePost.bind(PostController)
 );
 
