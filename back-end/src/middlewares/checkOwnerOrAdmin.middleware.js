@@ -5,7 +5,7 @@ module.exports = async (req, res, next) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    if (req.user.role === "admin") return next();
+    if (req.user.role === "super_admin" || req.user.role === "admin") return next();
     if (post.author.toString() === req.user.id.toString()) return next();
 
     return res.status(403).json({ message: "Access denied" });
