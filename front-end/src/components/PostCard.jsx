@@ -18,6 +18,7 @@ import {
   FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
+import { useAuth } from "../context/AuthContext";
 import { postApi, commentApi, solutionApi, favoritesApi, workshopsApi } from "../services/api";
 
 const API_BASE = "http://localhost:3000";
@@ -68,7 +69,12 @@ const normalizePost = (post) => {
 };
 
 const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = null, scrollToCommentId = null }) => {
+  const { user } = useAuth();
   const post = normalizePost(rawPost);
+  const authorId = rawPost?.author?._id || rawPost?.author;
+  const isAuthor = !!(user?.id && authorId && String(user.id) === String(authorId));
+  const canModeratePost = !!rawPost?.canModerate;
+  const showOptionsMenu = (isAuthor || canModeratePost) && !readOnly;
   const [showComments, setShowComments] = useState(false);
   const cardRef = useRef(null);
   const [showOptions, setShowOptions] = useState(false);
@@ -479,42 +485,50 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
           </div>
         </div>
         <div className="relative">
-          <button type="button" onClick={() => setShowOptions(!showOptions)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all">
-            <FiMoreHorizontal size={22} />
-          </button>
-          {showOptions && !readOnly && (
+          {showOptionsMenu && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)} aria-hidden />
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
-                {isSharedInstance ? (
-                  <button
-                    type="button"
-                    onClick={handleDeleteShare}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold disabled:opacity-50"
-                    disabled={deleting}
-                  >
-                    <FiTrash2 /> Supprimer ce partage
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"
-                      onClick={openEditModal}
-                    >
-                      <FiEdit3 className="text-indigo-500" /> Update Post
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50 disabled:opacity-50"
-                      disabled={deleting}
-                    >
-                      <FiTrash2 /> Delete Post
-                    </button>
-                  </>
-                )}
-              </div>
+              <button type="button" onClick={() => setShowOptions(!showOptions)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all">
+                <FiMoreHorizontal size={22} />
+              </button>
+              {showOptions && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)} aria-hidden />
+                  <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
+                    {isSharedInstance ? (
+                      <button
+                        type="button"
+                        onClick={handleDeleteShare}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold disabled:opacity-50"
+                        disabled={deleting}
+                      >
+                        <FiTrash2 /> Supprimer ce partage
+                      </button>
+                    ) : (
+                      <>
+                        {isAuthor && (
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-bold"
+                            onClick={openEditModal}
+                          >
+                            <FiEdit3 className="text-indigo-500" /> Update Post
+                          </button>
+                        )}
+                        {(isAuthor || canModeratePost) && (
+                          <button
+                            type="button"
+                            onClick={handleDelete}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50 disabled:opacity-50"
+                            disabled={deleting}
+                          >
+                            <FiTrash2 /> Delete Post
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

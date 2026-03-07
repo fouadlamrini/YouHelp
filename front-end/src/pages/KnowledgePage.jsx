@@ -28,6 +28,7 @@ const mapKnowledgeToCardData = (knowledge) => {
   });
   return {
     id: knowledge._id,
+    authorId: author._id || author,
     userName: author.name || author.email || "?",
     userAvatar: author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"),
     category: knowledge.category?.name || knowledge.category || "",

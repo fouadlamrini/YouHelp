@@ -37,6 +37,9 @@ const EMOJI_LIST = [
 
 const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false, scrollToCommentId, canModerate = false }) => {
   const { user } = useAuth();
+  const isAuthor = !!(user?.id && data.authorId && String(user.id) === String(data.authorId));
+  const showMenu = isAuthor || canModerate;
+  const canDelete = isAuthor || canModerate;
   const cardRef = useRef(null);
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
@@ -247,8 +250,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             </div>
           </div>
 
-          {/* DROPDOWN MENU (Update / Delete) - visible only if canModerate */}
-          {canModerate && (
+          {/* DROPDOWN MENU (Update = auteur only, Delete + icon = auteur | super_admin | admin même campus | formateur même contexte) */}
+          {showMenu && (
             <div className="relative">
               <button 
                 onClick={() => setShowDropdown(!showDropdown)}
@@ -261,18 +264,22 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
                   <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <button 
-                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
-                      onClick={() => { console.log("Update"); setShowDropdown(false); }}
-                    >
-                      <FiEdit2 size={14} className="text-indigo-500" /> Update Knowledge
-                    </button>
-                    <button 
-                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
-                      onClick={() => { setShowDropdown(false); setShowDeleteConfirm(true); }}
-                    >
-                      <FiTrash2 size={14} className="text-rose-500" /> Delete Knowledge
-                    </button>
+                    {isAuthor && (
+                      <button 
+                        className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
+                        onClick={() => { console.log("Update"); setShowDropdown(false); }}
+                      >
+                        <FiEdit2 size={14} className="text-indigo-500" /> Update Knowledge
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button 
+                        className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
+                        onClick={() => { setShowDropdown(false); setShowDeleteConfirm(true); }}
+                      >
+                        <FiTrash2 size={14} className="text-rose-500" /> Delete Knowledge
+                      </button>
+                    )}
                   </div>
                 </>
               )}
