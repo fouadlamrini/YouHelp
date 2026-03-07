@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema(
     actor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     type: {
       type: String,
-      enum: ["new_registration", "user_activated", "user_refused", "post_deleted_by_admin", "post_solved_by_admin"],
+      enum: ["new_registration", "user_activated", "user_refused", "post_deleted_by_admin", "post_solved_by_admin", "post_reaction", "post_share"],
       required: true,
     },
     message: { type: String, required: true },

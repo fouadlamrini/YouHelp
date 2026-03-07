@@ -16,6 +16,7 @@ const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","�
 const PostPage = () => {
   const [searchParams] = useSearchParams();
   const openChatUserId = searchParams.get("chat") || null;
+  const postIdFromUrl = searchParams.get("post") || null;
   const { user } = useAuth();
   const readOnly = user && user.status !== "active";
   const fileInputRef = useRef(null);
@@ -131,6 +132,15 @@ const PostPage = () => {
 
     return matchesSearch && matchesStatus && matchesCat && matchesSubCat;
   });
+
+  useEffect(() => {
+    if (!postIdFromUrl || filteredPosts.length === 0) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-post-id="${postIdFromUrl}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [postIdFromUrl, filteredPosts]);
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 font-sans overflow-hidden relative">
@@ -401,12 +411,13 @@ const PostPage = () => {
                 </div>
               ) : filteredPosts.length > 0 ? (
                 filteredPosts.map((singlePost) => (
-                  <PostCard
-                    key={singlePost._id || singlePost.id}
-                    post={singlePost}
-                    onRefresh={loadPosts}
-                    readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false && !singlePost.canModerate)}
-                  />
+                  <div key={singlePost._id || singlePost.id} data-post-id={singlePost._id || singlePost.id}>
+                    <PostCard
+                      post={singlePost}
+                      onRefresh={loadPosts}
+                      readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false && !singlePost.canModerate)}
+                    />
+                  </div>
                 ))
               ) : (
                 <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">

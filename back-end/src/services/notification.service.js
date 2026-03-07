@@ -264,7 +264,7 @@ async function notifyPostSolved(actorDoc, authorDoc, postId) {
         ? "L'administrateur a marqué votre post comme résolu."
         : "Le formateur a marqué votre post comme résolu.";
 
-  const notifications = [{ recipient: authorId, actor: actorDoc._id, type: "post_solved_by_admin", message: toAuthor, link: `/posts/${postId}` }];
+  const notifications = [{ recipient: authorId, actor: actorDoc._id, type: "post_solved_by_admin", message: toAuthor, link: `/posts?post=${postId}` }];
 
   if (actorRoleName === "admin" || actorRoleName === "formateur") {
     const staffIds = await getRecipientsForPostAction(authorDoc);
@@ -274,7 +274,7 @@ async function notifyPostSolved(actorDoc, authorDoc, postId) {
         : `Le formateur ${actorName} a marqué un post comme résolu.`;
     const actorId = refId(actorDoc?._id);
     staffIds.forEach((recipientId) => {
-      if (recipientId !== authorId && recipientId !== actorId) notifications.push({ recipient: recipientId, actor: actorDoc._id, type: "post_solved_by_admin", message: staffMessage, link: `/posts/${postId}` });
+      if (recipientId !== authorId && recipientId !== actorId) notifications.push({ recipient: recipientId, actor: actorDoc._id, type: "post_solved_by_admin", message: staffMessage, link: `/posts?post=${postId}` });
     });
   }
 

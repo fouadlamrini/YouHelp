@@ -532,6 +532,20 @@ class PostController {
       }
       await Engagement.create({ type: "reaction", user: userId, post: id });
       await Post.findByIdAndUpdate(id, { $inc: { reactionCount: 1 } });
+
+      const authorId = (post.author?._id || post.author)?.toString?.();
+      if (authorId && authorId !== userId.toString()) {
+        const actor = await User.findById(userId).select("name").lean();
+        const actorName = actor?.name || "Quelqu'un";
+        await Notification.create({
+          recipient: authorId,
+          actor: userId,
+          type: "post_reaction",
+          message: `${actorName} a réagi à votre post (même problème).`,
+          link: `/posts?post=${id}`,
+        });
+      }
+
       return res.json({
         success: true,
         message: "Reacted to post",
@@ -654,13 +668,26 @@ class PostController {
       const post = await Post.findById(id);
       if (!post) return res.status(404).json({ message: "Post introuvable" });
       const userId = req.user.id;
-      // Chaque clic = un nouveau partage, même sur son propre post
+      const authorId = (post.author && post.author.toString ? post.author.toString() : post.author?.toString?.()) || null;
       await Engagement.create({ type: "share", user: userId, post: id });
       const updated = await Post.findByIdAndUpdate(
         id,
         { $inc: { shareCount: 1 } },
         { new: true }
       );
+
+      if (authorId && authorId !== userId.toString()) {
+        const actor = await User.findById(userId).select("name").lean();
+        const actorName = actor?.name || "Quelqu'un";
+        await Notification.create({
+          recipient: authorId,
+          actor: userId,
+          type: "post_share",
+          message: `${actorName} a partagé votre post.`,
+          link: `/posts?post=${id}`,
+        });
+      }
+
       return res.status(201).json({
         success: true,
         message: "Post partagé",
