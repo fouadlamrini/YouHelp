@@ -31,6 +31,12 @@ class ClassController {
       if (!name || !name.trim()) {
         return res.status(400).json({ message: "Name is required" });
       }
+      if (year !== undefined && year !== null && year !== "") {
+        const yearNum = Number(year);
+        if (!Number.isInteger(yearNum) || yearNum < 2018) {
+          return res.status(400).json({ message: "L'année doit être un nombre supérieur ou égal à 2018." });
+        }
+      }
       let campusId = null;
       if (campus) {
         const campusDoc = await Campus.findById(campus);
@@ -58,7 +64,17 @@ class ClassController {
       const updateData = {};
       if (name !== undefined) updateData.name = name.trim();
       if (nickName !== undefined) updateData.nickName = nickName?.trim() || null;
-      if (year !== undefined) updateData.year = year ? Number(year) : null;
+      if (year !== undefined) {
+        if (year === null || year === "") {
+          updateData.year = null;
+        } else {
+          const yearNum = Number(year);
+          if (!Number.isInteger(yearNum) || yearNum < 2018) {
+            return res.status(400).json({ message: "L'année doit être un nombre supérieur ou égal à 2018." });
+          }
+          updateData.year = yearNum;
+        }
+      }
       if (campus !== undefined) {
         if (!campus) {
           updateData.campus = null;

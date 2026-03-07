@@ -16,6 +16,13 @@ const ClassManager = () => {
   const [campus, setCampus] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState({ type: null, text: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const setFeedback = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: null, text: "" }), 5000);
+  };
 
   const fetchList = () => {
     setLoading(true);
@@ -57,6 +64,13 @@ const ClassManager = () => {
       setError("Le nom est requis");
       return;
     }
+    if (year.trim() !== "") {
+      const yearNum = Number(year);
+      if (!Number.isInteger(yearNum) || yearNum < 2018) {
+        setError("L'année doit être un nombre supérieur ou égal à 2018.");
+        return;
+      }
+    }
     setSubmitLoading(true);
     setError("");
     const payload = {
@@ -71,18 +85,30 @@ const ClassManager = () => {
     promise
       .then(() => {
         setFormOpen(false);
+        setFeedback("success", editing ? "Classe mise à jour avec succès." : "Classe créée avec succès.");
         fetchList();
       })
-      .catch((err) => setError(err.response?.data?.message || "Erreur"))
+      .catch((err) => {
+        const msg = err.response?.data?.message || err.response?.data?.error || "Erreur lors de l'enregistrement.";
+        setError(msg);
+        setFeedback("error", msg);
+      })
       .finally(() => setSubmitLoading(false));
   };
 
-  const handleDelete = (item) => {
-    if (!window.confirm(`Supprimer la classe "${item.name}" ?`)) return;
-    classApi
-      .delete(item._id)
-      .then(() => fetchList())
-      .catch((err) => alert(err.response?.data?.message || "Erreur"));
+  const openDeleteConfirm = (item) => setDeleteConfirm(item);
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    const id = deleteConfirm._id;
+    setDeleteConfirm(null);
+    try {
+      await classApi.delete(id);
+      setFeedback("success", "Classe supprimée avec succès.");
+      fetchList();
+    } catch (err) {
+      setFeedback("error", err.response?.data?.message || "Erreur lors de la suppression de la classe.");
+    }
   };
 
   return (
@@ -110,6 +136,18 @@ const ClassManager = () => {
                 <FiPlus size={18} /> Nouvelle classe
               </button>
             </div>
+
+            {message.text && (
+              <div
+                className={`px-4 py-3 rounded-xl text-sm font-bold ${
+                  message.type === "success"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border border-rose-200"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
 
             {loading ? (
               <p className="text-slate-500 py-8">Chargement...</p>
@@ -152,7 +190,7 @@ const ClassManager = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDelete(item)}
+                              onClick={() => openDeleteConfirm(item)}
                               className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white"
                             >
                               <FiTrash2 size={16} />
@@ -168,6 +206,44 @@ const ClassManager = () => {
           </div>
         </main>
       </div>
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center">
+                <FiTrash2 size={24} className="text-rose-600" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800">Supprimer la classe ?</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer <span className="font-bold text-slate-800">« {deleteConfirm.name} »</span> ? Cette action est irréversible.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {formOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -229,7 +305,11 @@ const ClassManager = () => {
                   ))}
                 </select>
               </div>
-              {error && <p className="text-red-500 text-xs">{error}</p>}
+              {error && (
+                <div className="px-4 py-3 rounded-xl text-sm font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                  {error}
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
