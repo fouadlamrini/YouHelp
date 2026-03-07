@@ -135,7 +135,7 @@ function NavbarLoggedIn() {
     return () => window.removeEventListener("click", closeAll);
   }, []);
 
-  const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-[200] animate-in fade-in slide-in-from-top-2 duration-200";
+  const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-[200] animate-in fade-in slide-in-from-top-2 duration-200";
 
   return (
     <nav className="w-full bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-[100]">
@@ -182,21 +182,21 @@ function NavbarLoggedIn() {
             </button>
             {activeDropdown === 'invitations' && (
               <div className={dropdownStyles}>
-                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Invitations</p>
-                  <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Invitations</p>
+                  <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
                     Inviter
                   </Link>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {invitationsLoading ? (
-                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
                   ) : invitations.length === 0 ? (
-                    <div className="italic text-center py-6 text-[10px] text-slate-400">Aucune demande</div>
+                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Aucune demande</div>
                   ) : (
-                    <div className="py-2">
+                    <div className="space-y-1">
                       {invitations.map((req) => (
-                        <div key={req._id} className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50">
+                        <div key={req._id} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300">
                           <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-100">
                             <img
                               src={req.fromUser?.profilePicture ? resolveAvatarUrl(req.fromUser.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
@@ -204,9 +204,9 @@ function NavbarLoggedIn() {
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <span className="flex-1 text-[11px] font-bold text-slate-700 truncate">{req.fromUser?.name || "?"}</span>
-                          <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-1.5 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-200" title="Accepter"><FiCheck size={14} /></button>
-                          <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-1.5 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-200" title="Refuser"><FiX size={14} /></button>
+                          <span className="flex-1 text-sm font-bold tracking-tight truncate">{req.fromUser?.name || "?"}</span>
+                          <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-2 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-all" title="Accepter"><FiCheck size={16} /></button>
+                          <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200 transition-all" title="Refuser"><FiX size={16} /></button>
                         </div>
                       ))}
                     </div>
@@ -228,25 +228,25 @@ function NavbarLoggedIn() {
             </button>
             {activeDropdown === "messages" && (
               <div className={dropdownStyles}>
-                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Messages</p>
-                  <Link to="/posts" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Messages</p>
+                  <Link to="/posts" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
                     Voir tout
                   </Link>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {conversationsLoading ? (
-                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
                   ) : conversations.length === 0 ? (
-                    <div className="italic text-center py-6 text-[10px] text-slate-400">Boîte vide</div>
+                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Boîte vide</div>
                   ) : (
-                    <div className="py-1">
+                    <div className="space-y-1">
                       {conversations.map((conv) => (
                         <Link
                           key={conv.user._id}
                           to={`/posts?chat=${conv.user._id}`}
                           onClick={() => setActiveDropdown(null)}
-                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                          className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300"
                         >
                           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold shrink-0 overflow-hidden">
                             {conv.user.profilePicture ? (
@@ -257,10 +257,10 @@ function NavbarLoggedIn() {
                           </div>
                           <div className="flex-grow min-w-0">
                             <div className="flex justify-between items-baseline gap-2">
-                              <span className="text-[12px] font-bold text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
+                              <span className="text-sm font-bold tracking-tight text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
                               <span className="text-[10px] text-slate-400 shrink-0">{formatMessageTime(conv.lastMessage?.createdAt)}</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 truncate">{conv.lastMessage?.content || "Aucun message"}</p>
+                            <p className="text-xs text-slate-500 truncate">{conv.lastMessage?.content || "Aucun message"}</p>
                           </div>
                         </Link>
                       ))}
@@ -283,21 +283,21 @@ function NavbarLoggedIn() {
             </button>
             {activeDropdown === 'notifications' && (
               <div className={dropdownStyles}>
-                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-50">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Notifications</p>
+                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Notifications</p>
                   {(user?.role === "super_admin" || user?.role === "admin" || user?.role === "formateur") && (
-                    <Link to="/users" className="text-[10px] font-bold text-indigo-600 hover:underline" onClick={() => setActiveDropdown(null)}>
+                    <Link to="/users" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
                       Liste des utilisateurs
                     </Link>
                   )}
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {notificationsLoading ? (
-                    <div className="py-6 text-center text-[10px] text-slate-400">Chargement...</div>
+                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
                   ) : notifications.length === 0 ? (
-                    <div className="italic text-center py-6 text-[10px] text-slate-400">Pas de notifications</div>
+                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Pas de notifications</div>
                   ) : (
-                    <div className="py-2">
+                    <div className="space-y-1">
                       {notifications.map((n) => (
                         <Link
                           key={n._id}
@@ -306,9 +306,9 @@ function NavbarLoggedIn() {
                             setActiveDropdown(null);
                             if (!n.read) notificationsApi.markAsRead(n._id).then(() => loadNotifications()).catch(() => {});
                           }}
-                          className={`block px-4 py-3 hover:bg-slate-50 border-b border-slate-50/80 last:border-0 ${!n.read ? "bg-indigo-50/30" : ""}`}
+                          className={`block px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 ${!n.read ? "bg-indigo-50/50" : ""}`}
                         >
-                          <p className="text-[11px] font-bold text-slate-800 leading-snug">{n.message}</p>
+                          <p className="text-sm font-bold tracking-tight text-slate-800 leading-snug">{n.message}</p>
                           <p className="text-[10px] text-slate-400 mt-0.5">
                             {new Date(n.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                           </p>
@@ -343,20 +343,20 @@ function NavbarLoggedIn() {
 
           {activeDropdown === 'settings' && (
             <div className={`${dropdownStyles} w-56`}>
-              <div className="px-2 space-y-1">
-                <Link to="/my-posts" className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all">
-                  <FiUser size={16} /> Mon Profil
+              <div className="space-y-1">
+                <Link to="/my-posts" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight">
+                  <FiUser size={20} /> Mon Profil
                 </Link>
-                <Link to="/settings" className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all">
-                  <FiSettings size={16} /> Paramètres
+                <Link to="/settings" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight">
+                  <FiSettings size={20} /> Paramètres
                 </Link>
-                <div className="h-[1px] bg-slate-50 my-1 mx-2"></div>
+                <div className="my-2 border-t border-slate-100"></div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:bg-red-50 font-bold text-sm tracking-tight transition-all duration-300"
                 >
-                  <FiLogOut size={16} /> Déconnexion
+                  <FiLogOut size={20} /> Déconnexion
                 </button>
               </div>
             </div>

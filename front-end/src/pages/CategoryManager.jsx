@@ -65,6 +65,7 @@ const CategoryManager = () => {
   const [subForm, setSubForm] = useState({ name: "" });
   const [categoryMessage, setCategoryMessage] = useState({ type: null, text: "" });
   const [subMessage, setSubMessage] = useState({ type: null, text: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const setCategoryFeedback = (type, text) => {
     setCategoryMessage({ type, text });
@@ -134,8 +135,14 @@ const CategoryManager = () => {
     });
   };
 
-  const handleCategoryDelete = async (id) => {
-    if (!window.confirm("Supprimer cette catégorie ?")) return;
+  const openCategoryDeleteConfirm = (cat) => {
+    setDeleteConfirm({ type: "category", id: cat._id, name: cat.name || "cette catégorie" });
+  };
+
+  const handleCategoryDelete = async () => {
+    if (!deleteConfirm || deleteConfirm.type !== "category") return;
+    const id = deleteConfirm.id;
+    setDeleteConfirm(null);
     try {
       await categoryApi.delete(id);
       setCategoryFeedback("success", "Catégorie supprimée avec succès.");
@@ -183,10 +190,16 @@ const CategoryManager = () => {
     }
   };
 
-  const handleSubDelete = async (subId) => {
-    if (!window.confirm("Supprimer cette sous-catégorie ?")) return;
+  const openSubDeleteConfirm = (sub) => {
+    setDeleteConfirm({ type: "subcategory", id: sub._id, name: sub.name || "cette sous-catégorie" });
+  };
+
+  const handleSubDelete = async () => {
+    if (!deleteConfirm || deleteConfirm.type !== "subcategory") return;
+    const id = deleteConfirm.id;
+    setDeleteConfirm(null);
     try {
-      await subcategoryApi.delete(subId);
+      await subcategoryApi.delete(id);
       setSubFeedback("success", "Sous-catégorie supprimée avec succès.");
       await loadData();
     } catch (err) {
@@ -398,7 +411,7 @@ const CategoryManager = () => {
                           <FiEdit3 size={18} />
                         </button>
                         <button
-                          onClick={() => handleCategoryDelete(cat._id)}
+                          onClick={() => openCategoryDeleteConfirm(cat)}
                           className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                         >
                           <FiTrash size={18} />
@@ -440,7 +453,7 @@ const CategoryManager = () => {
                                 </button>
                                 <button
                                   className="text-slate-300 hover:text-rose-500"
-                                  onClick={() => handleSubDelete(sub._id)}
+                                  onClick={() => openSubDeleteConfirm(sub)}
                                 >
                                   <FiTrash size={10}/>
                                 </button>
@@ -500,6 +513,47 @@ const CategoryManager = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center">
+                <FiTrash size={24} className="text-rose-600" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800">
+                {deleteConfirm.type === "category" ? "Supprimer la catégorie ?" : "Supprimer la sous-catégorie ?"}
+              </h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer <span className="font-bold text-slate-800">« {deleteConfirm.name} »</span> ? Cette action est irréversible.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={deleteConfirm.type === "category" ? handleCategoryDelete : handleSubDelete}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
