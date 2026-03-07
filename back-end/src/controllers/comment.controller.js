@@ -2,6 +2,7 @@ const Comment = require("../models/Comment");
 const Post = require("../models/Post");
 const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 class CommentController {
   /**
@@ -63,6 +64,44 @@ class CommentController {
         post.comments = post.comments || [];
         post.comments.push(comment._id);
         await post.save();
+      }
+
+      const commenterId = req.user.id.toString();
+      const postAuthorId = (post.author && post.author.toString ? post.author.toString() : post.author?.toString?.()) || null;
+      const actor = await User.findById(req.user.id).select("name").lean();
+      const actorName = actor?.name || "Quelqu'un";
+
+      if (!parentComment) {
+        if (postAuthorId && postAuthorId !== commenterId) {
+          await Notification.create({
+            recipient: postAuthorId,
+            actor: req.user.id,
+            type: "post_comment",
+            message: `${actorName} a commenté votre post.`,
+            link: `/posts?post=${postId}&comment=${comment._id}`,
+          });
+        }
+      } else {
+        const parent = await Comment.findById(parentComment).select("author").lean();
+        const parentAuthorId = (parent?.author && parent.author.toString ? parent.author.toString() : parent?.author?.toString?.()) || null;
+        if (postAuthorId && postAuthorId !== commenterId) {
+          await Notification.create({
+            recipient: postAuthorId,
+            actor: req.user.id,
+            type: "comment_reply",
+            message: `${actorName} a répondu à un commentaire sur votre post.`,
+            link: `/posts?post=${postId}&comment=${comment._id}`,
+          });
+        }
+        if (parentAuthorId && parentAuthorId !== commenterId && parentAuthorId !== postAuthorId) {
+          await Notification.create({
+            recipient: parentAuthorId,
+            actor: req.user.id,
+            type: "comment_reply",
+            message: `${actorName} a répondu à votre commentaire.`,
+            link: `/posts?post=${postId}&comment=${comment._id}`,
+          });
+        }
       }
 
       // Retourner le commentaire créé (simple)

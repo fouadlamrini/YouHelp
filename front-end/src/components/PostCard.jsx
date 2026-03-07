@@ -67,9 +67,10 @@ const normalizePost = (post) => {
   };
 };
 
-const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = null }) => {
+const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = null, scrollToCommentId = null }) => {
   const post = normalizePost(rawPost);
   const [showComments, setShowComments] = useState(false);
+  const cardRef = useRef(null);
   const [showOptions, setShowOptions] = useState(false);
   const [showSolutionSection, setShowSolutionSection] = useState(false);
   const [showWriteSolution, setShowWriteSolution] = useState(false);
@@ -173,6 +174,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
     if (!post.id) return Promise.resolve();
     return commentApi.getByPost(post.id).then((r) => setComments(r.data?.data ?? r.data ?? [])).catch(() => setComments([]));
   };
+
+  useEffect(() => {
+    if (scrollToCommentId) setShowComments(true);
+  }, [scrollToCommentId]);
 
   useEffect(() => {
     if (showComments && post.id) {
@@ -339,8 +344,18 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
 
   const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
+  useEffect(() => {
+    if (!scrollToCommentId || !showComments || loadingComments || !cardRef.current) return;
+    if (comments.length === 0) return;
+    const t = setTimeout(() => {
+      const el = cardRef.current?.querySelector?.(`[data-comment-id="${scrollToCommentId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [scrollToCommentId, showComments, loadingComments, comments]);
+
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative">
+    <div ref={cardRef} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative">
       {showWriteSolution && (
         <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">

@@ -167,7 +167,7 @@ const CommentItem = ({
   };
 
   return (
-    <div className={`mb-4 animate-in fade-in duration-500 ${isReply ? "ml-8 pl-4 border-l-2 border-slate-100" : ""}`}>
+    <div data-comment-id={comment._id || comment.id} className={`mb-4 animate-in fade-in duration-500 ${isReply ? "ml-8 pl-4 border-l-2 border-slate-100" : ""}`}>
       <div className="flex gap-3">
         {avatarUrl ? (
           <img src={avatarUrl} alt="user" className="w-9 h-9 rounded-full border border-slate-200 object-cover shrink-0" />

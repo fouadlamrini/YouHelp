@@ -17,6 +17,7 @@ const PostPage = () => {
   const [searchParams] = useSearchParams();
   const openChatUserId = searchParams.get("chat") || null;
   const postIdFromUrl = searchParams.get("post") || null;
+  const commentIdFromUrl = searchParams.get("comment") || null;
   const { user } = useAuth();
   const readOnly = user && user.status !== "active";
   const fileInputRef = useRef(null);
@@ -135,12 +136,22 @@ const PostPage = () => {
 
   useEffect(() => {
     if (!postIdFromUrl || filteredPosts.length === 0) return;
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-post-id="${postIdFromUrl}"]`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timer1 = setTimeout(() => {
+      const postEl = document.querySelector(`[data-post-id="${postIdFromUrl}"]`);
+      if (postEl) postEl.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 400);
-    return () => clearTimeout(timer);
-  }, [postIdFromUrl, filteredPosts]);
+    let timer2;
+    if (commentIdFromUrl) {
+      timer2 = setTimeout(() => {
+        const commentEl = document.querySelector(`[data-post-id="${postIdFromUrl}"] [data-comment-id="${commentIdFromUrl}"]`);
+        if (commentEl) commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 1400);
+    }
+    return () => {
+      clearTimeout(timer1);
+      if (timer2) clearTimeout(timer2);
+    };
+  }, [postIdFromUrl, commentIdFromUrl, filteredPosts]);
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 font-sans overflow-hidden relative">
@@ -416,6 +427,7 @@ const PostPage = () => {
                       post={singlePost}
                       onRefresh={loadPosts}
                       readOnly={readOnly || (user?.status === "active" && singlePost.canReact === false && !singlePost.canModerate)}
+                      scrollToCommentId={commentIdFromUrl && (singlePost._id || singlePost.id) === postIdFromUrl ? commentIdFromUrl : undefined}
                     />
                   </div>
                 ))
