@@ -3,6 +3,7 @@ const Category = require("../models/Category");
 const SubCategory = require("../models/SubCategory");
 const User = require("../models/User");
 const Engagement = require("../models/Engagement");
+const Notification = require("../models/Notification");
 const { areFriends, getMyFriendIds } = require("./friend.controller");
 
 class KnowledgeController {
@@ -148,7 +149,8 @@ class KnowledgeController {
             k,
             viewFilter
           );
-          return { ...k.toObject(), canReact };
+          const canModerate = await this._canModerateKnowledge(req.user.id, currentUser, k);
+          return { ...k.toObject(), canReact, canModerate };
         })
       );
 
@@ -189,8 +191,9 @@ class KnowledgeController {
         knowledge,
         "all"
       );
+      const canModerate = await this._canModerateKnowledge(req.user.id, currentUser, knowledge);
 
-      res.json({ success: true, data: { ...knowledge.toObject(), canReact } });
+      res.json({ success: true, data: { ...knowledge.toObject(), canReact, canModerate } });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
@@ -299,36 +302,38 @@ class KnowledgeController {
   }
 
   // ===== DELETE =====
-  // Supprimer une connaissance
-  // - Seul l'auteur ou un admin peut supprimer
+  // Supprimer une connaissance (autorisation gérée par checkKnowledgeOwnerOrAdmin)
   async deleteKnowledge(req, res) {
     try {
       const { id } = req.params;
 
-      // Vérifier que la connaissance existe
       const knowledge = await Knowledge.findById(id);
-      if (!knowledge) {
-        return res.status(404).json({ message: "Connaissance introuvable" });
-      }
+      if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
 
-      // Vérifier que l'utilisateur est l'auteur ou un admin
-      const user = await User.findById(req.user.id);
-      const isOwner = knowledge.author.toString() === req.user.id;
-      const isAdmin = user.role === "admin";
-
-      if (!isOwner && !isAdmin) {
-        return res.status(403).json({
-          message: "Seul l'auteur ou un admin peut supprimer cette connaissance",
+      const authorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
+      const deleterId = req.user.id.toString();
+      if (authorId && authorId !== deleterId) {
+        const actor = await User.findById(req.user.id).select("name").lean();
+        const actorName = actor?.name || "Un responsable";
+        const role = req.user.role;
+        const message =
+          role === "super_admin"
+            ? "Le super admin a supprimé votre connaissance."
+            : role === "admin"
+              ? "L'administrateur a supprimé votre connaissance."
+              : "Le formateur a supprimé votre connaissance.";
+        await Notification.create({
+          recipient: authorId,
+          actor: req.user.id,
+          type: "knowledge_deleted",
+          message,
+          link: "/knowledge",
         });
       }
 
-      // Supprimer la connaissance
       await Knowledge.findByIdAndDelete(id);
 
-      res.json({
-        success: true,
-        message: "Connaissance supprimée avec succès",
-      });
+      res.json({ success: true, message: "Connaissance supprimée avec succès" });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
@@ -433,13 +438,54 @@ class KnowledgeController {
       const knowledge = await Knowledge.findById(id);
       if (!knowledge) return res.status(404).json({ message: "Connaissance introuvable" });
       const userId = req.user.id;
+      const authorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
       await Engagement.create({ type: "share", user: userId, knowledge: id });
       await Knowledge.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
+
+      if (authorId && authorId !== userId.toString()) {
+        const actor = await User.findById(userId).select("name").lean();
+        const actorName = actor?.name || "Quelqu'un";
+        await Notification.create({
+          recipient: authorId,
+          actor: userId,
+          type: "knowledge_share",
+          message: `${actorName} a partagé votre connaissance.`,
+          link: `/knowledge?knowledge=${id}`,
+        });
+      }
+
       return res.json({ success: true, message: "Connaissance partagée", shareCount: (knowledge.shareCount || 0) + 1 });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Erreur serveur" });
     }
+  }
+
+  async _canModerateKnowledge(currentUserId, currentUser, knowledge) {
+    if (!currentUserId || !currentUser) return false;
+    const roleName = currentUser.role?.name ?? currentUser.role ?? null;
+    if (roleName === "super_admin") return true;
+    const authorId = knowledge.author?._id?.toString() || knowledge.author?.toString();
+    if (authorId === currentUserId.toString()) return true;
+    if (roleName !== "admin" && roleName !== "formateur") return false;
+    const author = knowledge.author?.toObject ? knowledge.author : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
+    if (!author) return false;
+    const authorRoleName = author?.role?.name ?? author?.role ?? null;
+    const sameCampus =
+      [currentUser.campus?._id ?? currentUser.campus, author.campus?._id ?? author.campus]
+        .every(Boolean) &&
+      (currentUser.campus?._id ?? currentUser.campus).toString() === (author.campus?._id ?? author.campus).toString();
+    if (roleName === "admin") {
+      if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
+      return sameCampus;
+    }
+    if (roleName === "formateur") {
+      if (authorRoleName !== "etudiant") return false;
+      const sameClass = [currentUser.class?._id ?? currentUser.class, author.class?._id ?? author.class].every(Boolean) && (currentUser.class?._id ?? currentUser.class).toString() === (author.class?._id ?? author.class).toString();
+      const sameLevel = [currentUser.level?._id ?? currentUser.level, author.level?._id ?? author.level].every(Boolean) && (currentUser.level?._id ?? currentUser.level).toString() === (author.level?._id ?? author.level).toString();
+      return sameCampus && sameClass && sameLevel;
+    }
+    return false;
   }
 
   async _knowledgeCanReact(currentUserId, currentUser, knowledge, viewFilter) {

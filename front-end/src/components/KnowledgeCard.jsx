@@ -35,8 +35,9 @@ const EMOJI_LIST = [
   "💡","📌","⭐","🎯"
 ];
 
-const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false }) => {
+const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false, scrollToCommentId, canModerate = false }) => {
   const { user } = useAuth();
+  const cardRef = useRef(null);
   const [showComments, setShowComments] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -46,6 +47,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const media = Array.isArray(data.media)
     ? data.media
     : data.mediaUrl
@@ -83,6 +86,22 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   useEffect(() => {
     setIsFavorite(isFavoriteProp);
   }, [isFavoriteProp]);
+
+  useEffect(() => {
+    if (!scrollToCommentId || !data.id) return;
+    setShowComments(true);
+    setLoadingComments(true);
+    loadComments().finally(() => setLoadingComments(false));
+  }, [scrollToCommentId, data.id]);
+
+  useEffect(() => {
+    if (!scrollToCommentId || !cardRef.current || loadingComments || !showComments) return;
+    const timer = setTimeout(() => {
+      const el = cardRef.current?.querySelector?.(`[data-comment-id="${scrollToCommentId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [scrollToCommentId, loadingComments, showComments, comments.length]);
 
   const loadComments = () => {
     if (!data.id) return Promise.resolve();
@@ -187,9 +206,22 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
       .catch(() => {});
   };
 
+  const handleDeleteKnowledge = () => {
+    if (!data.id || deleting) return;
+    setDeleting(true);
+    knowledgeApi
+      .delete(data.id)
+      .then(() => {
+        setShowDeleteConfirm(false);
+        onRefresh?.();
+      })
+      .catch(() => {})
+      .finally(() => setDeleting(false));
+  };
+
   return (
     <>
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md group flex flex-col font-sans">
+      <div ref={cardRef} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md group flex flex-col font-sans">
         
         {/* HEADER */}
         <div className="p-6 flex items-center justify-between">
@@ -215,37 +247,37 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             </div>
           </div>
 
-          {/* DROPDOWN MENU (Update / Delete) */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowDropdown(!showDropdown)}
-              className={`p-2 rounded-xl transition-all ${showDropdown ? 'bg-slate-100 text-indigo-600' : 'text-slate-300 hover:text-slate-600'}`}
-            >
-              <FiMoreHorizontal size={20}/>
-            </button>
+          {/* DROPDOWN MENU (Update / Delete) - visible only if canModerate */}
+          {canModerate && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                className={`p-2 rounded-xl transition-all ${showDropdown ? 'bg-slate-100 text-indigo-600' : 'text-slate-300 hover:text-slate-600'}`}
+              >
+                <FiMoreHorizontal size={20}/>
+              </button>
 
-            {showDropdown && (
-              <>
-                {/* Backdrop bach t-ssed menu ila cliquiti outdoor */}
-                <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
-                
-                <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <button 
-                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
-                    onClick={() => { console.log("Update"); setShowDropdown(false); }}
-                  >
-                    <FiEdit2 size={14} className="text-indigo-500" /> Update Knowlegde
-                  </button>
-                  <button 
-                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
-                    onClick={() => { console.log("Delete"); setShowDropdown(false); }}
-                  >
-                    <FiTrash2 size={14} className="text-rose-500" /> Delete Knowlegde
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+              {showDropdown && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
+                  <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <button 
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
+                      onClick={() => { console.log("Update"); setShowDropdown(false); }}
+                    >
+                      <FiEdit2 size={14} className="text-indigo-500" /> Update Knowledge
+                    </button>
+                    <button 
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
+                      onClick={() => { setShowDropdown(false); setShowDeleteConfirm(true); }}
+                    >
+                      <FiTrash2 size={14} className="text-rose-500" /> Delete Knowledge
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* MEDIA + CONTENT */}
@@ -508,6 +540,23 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             className="max-w-6xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-white/10 animate-in zoom-in-95 duration-300" 
             alt="full" 
           />
+        </div>
+      )}
+
+      {/* MODAL CONFIRM DELETE */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-100" onClick={(e) => e.stopPropagation()}>
+            <p className="text-slate-700 font-semibold mb-6">Supprimer cette knowledge ?</p>
+            <div className="flex gap-3 justify-end">
+              <button type="button" onClick={() => setShowDeleteConfirm(false)} disabled={deleting} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-60">
+                Annuler
+              </button>
+              <button type="button" onClick={handleDeleteKnowledge} disabled={deleting} className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 disabled:opacity-60">
+                {deleting ? "Suppression..." : "Confirmer"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

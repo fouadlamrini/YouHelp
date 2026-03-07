@@ -5,6 +5,7 @@ const CommentController = require("../controllers/comment.controller");
 const auth = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload.middleware");
+const checkKnowledgeOwnerOrAdmin = require("../middlewares/checkKnowledgeOwnerOrAdmin.middleware");
 
 /* ===== READ ===== */
 // Récupérer toutes les connaissances (lecture avec filtrage par utilisateur connecté)
@@ -50,13 +51,12 @@ router.put(
 );
 
 /* ===== DELETE ===== */
-// Supprimer une connaissance
-// - Authentification requise
-// - Seul l'auteur ou un admin/super_admin peut supprimer
+// Supprimer une connaissance (même logique que post: super_admin any, owner, admin same campus etudiant/formateur, formateur same campus/class/level etudiant)
 router.delete(
   "/:id",
   auth,
   requireRole(["admin", "formateur", "etudiant", "super_admin"]),
+  checkKnowledgeOwnerOrAdmin,
   KnowledgeController.deleteKnowledge.bind(KnowledgeController)
 );
 

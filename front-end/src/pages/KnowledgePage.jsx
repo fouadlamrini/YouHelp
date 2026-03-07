@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
@@ -42,10 +43,15 @@ const mapKnowledgeToCardData = (knowledge) => {
     content: knowledge.content || "",
     media,
     comments: knowledge.comments || [],
+    canReact: knowledge.canReact,
+    canModerate: knowledge.canModerate,
   };
 };
 
 const KnowledgePage = () => {
+  const [searchParams] = useSearchParams();
+  const knowledgeIdFromUrl = searchParams.get("knowledge") || null;
+  const commentIdFromUrl = searchParams.get("comment") || null;
   const { user } = useAuth();
   const readOnly = user && user.status !== "active";
   const [content, setContent] = useState("");
@@ -150,6 +156,25 @@ const KnowledgePage = () => {
     const matchesSubCat = filterSubCategory === "all" ? true : item.subCategory === filterSubCategory;
     return matchesSearch && matchesCat && matchesSubCat;
   });
+
+  useEffect(() => {
+    if (!knowledgeIdFromUrl || filteredKnowledge.length === 0) return;
+    const timer1 = setTimeout(() => {
+      const el = document.querySelector(`[data-knowledge-id="${knowledgeIdFromUrl}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    let timer2;
+    if (commentIdFromUrl) {
+      timer2 = setTimeout(() => {
+        const el = document.querySelector(`[data-knowledge-id="${knowledgeIdFromUrl}"] [data-comment-id="${commentIdFromUrl}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 1400);
+    }
+    return () => {
+      clearTimeout(timer1);
+      if (timer2) clearTimeout(timer2);
+    };
+  }, [knowledgeIdFromUrl, commentIdFromUrl, filteredKnowledge]);
 
   return (
     <div className="flex h-screen bg-[#f0f2f5] font-sans overflow-hidden">
@@ -327,12 +352,15 @@ const KnowledgePage = () => {
                   </div>
                 ) : filteredKnowledge.length ? (
                   filteredKnowledge.map((item) => (
-                    <KnowledgeCard
-                      key={item.id}
-                      data={item}
-                      readOnly={readOnly || (user?.status === "active" && item.canReact === false)}
-                      onRefresh={loadKnowledge}
-                    />
+                    <div key={item.id} data-knowledge-id={item.id}>
+                      <KnowledgeCard
+                        data={item}
+                        readOnly={readOnly || (user?.status === "active" && item.canReact === false && !item.canModerate)}
+                        onRefresh={loadKnowledge}
+                        scrollToCommentId={commentIdFromUrl && item.id === knowledgeIdFromUrl ? commentIdFromUrl : undefined}
+                        canModerate={item.canModerate}
+                      />
+                    </div>
                   ))
                 ) : (
                   <div className="py-10 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">

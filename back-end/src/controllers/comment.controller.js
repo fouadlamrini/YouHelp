@@ -212,12 +212,14 @@ class CommentController {
         const isReply = !!comment.parentComment;
         const message = isReply ? `${actorName} a aimé votre réponse.` : `${actorName} a aimé votre commentaire.`;
         const postId = comment.post?.toString?.() || comment.post?.toString?.();
+        const knowledgeId = comment.knowledge?.toString?.() || comment.knowledge?.toString?.();
+        const link = postId ? `/posts?post=${postId}&comment=${comment._id}` : (knowledgeId ? `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}` : "/posts");
         await Notification.create({
           recipient: commentAuthorId,
           actor: userId,
           type: "comment_like",
           message,
-          link: postId ? `/posts?post=${postId}&comment=${comment._id}` : "/posts",
+          link,
         });
       }
 
@@ -414,6 +416,45 @@ class CommentController {
         knowledge.comments.push(comment._id);
         await knowledge.save();
       }
+
+      const commenterId = req.user.id.toString();
+      const knowledgeAuthorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
+      const actor = await User.findById(req.user.id).select("name").lean();
+      const actorName = actor?.name || "Quelqu'un";
+
+      if (!parentComment) {
+        if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
+          await Notification.create({
+            recipient: knowledgeAuthorId,
+            actor: req.user.id,
+            type: "knowledge_comment",
+            message: `${actorName} a commenté votre connaissance.`,
+            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
+          });
+        }
+      } else {
+        const parent = await Comment.findById(parentComment).select("author").lean();
+        const parentAuthorId = (parent?.author && parent.author.toString ? parent.author.toString() : parent?.author?.toString?.()) || null;
+        if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
+          await Notification.create({
+            recipient: knowledgeAuthorId,
+            actor: req.user.id,
+            type: "knowledge_comment_reply",
+            message: `${actorName} a répondu à un commentaire sur votre connaissance.`,
+            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
+          });
+        }
+        if (parentAuthorId && parentAuthorId !== commenterId && parentAuthorId !== knowledgeAuthorId) {
+          await Notification.create({
+            recipient: parentAuthorId,
+            actor: req.user.id,
+            type: "knowledge_comment_reply",
+            message: `${actorName} a répondu à votre commentaire.`,
+            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
+          });
+        }
+      }
+
       const populated = await Comment.findById(comment._id).populate("author", "name email profilePicture");
       return res.status(201).json({ success: true, data: populated });
     } catch (err) {
