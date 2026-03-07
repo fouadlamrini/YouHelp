@@ -1,116 +1,71 @@
-const SubCategory = require("../models/SubCategory");
-const Category = require("../models/Category");
+const subcategoryService = require("../services/subcategory.service");
 
 class SubCategoryController {
-
-  // ================= GET ALL =================
   async getAllSubCategories(req, res) {
     try {
-      const subCategories = await SubCategory.find()
-        .populate("category", "name")
-        .sort({ createdAt: -1 });
-
-      res.json({ success: true, data: subCategories });
+      const result = await subcategoryService.getAll();
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
-  // ================= GET BY CATEGORY =================
   async getByCategory(req, res) {
     try {
-      const { categoryId } = req.params;
-      if (!categoryId) {
-        return res.status(400).json({ message: "categoryId is required" });
+      const result = await subcategoryService.getByCategory(req.params.categoryId);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-      const subCategories = await SubCategory.find({ category: categoryId })
-        .populate("category", "name")
-        .sort({ createdAt: -1 });
-      return res.json({ success: true, data: subCategories });
+      return res.json({ success: true, data: result.data });
     } catch (err) {
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
-// ================= CREATE =================
-async createSubCategory(req, res) {
-  try {
-    const { name, category, icon, color } = req.body;
-    const trimmedName = typeof name === 'string' ? name.trim() : '';
-    const existingCategory = await Category.findOne({ name: category });
-    if (!existingCategory) {
-      return res.status(400).json({ message: "Catégorie parente introuvable." });
+  async createSubCategory(req, res) {
+    try {
+      const result = await subcategoryService.create(req.body);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.status(201).json({ success: true, data: result.data });
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(400).json({ message: "Cette sous-catégorie existe déjà dans cette catégorie." });
+      }
+      return res.status(500).json({ message: err.message || "Server error" });
     }
-    const subCategory = await SubCategory.create({
-      name: trimmedName,
-      category: existingCategory._id,
-      icon: icon || null,
-      color: color || null,
-    });
-
-    res.status(201).json({ success: true, data: subCategory });
-
-  } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({ message: "Cette sous-catégorie existe déjà dans cette catégorie." });
-    }
-    res.status(500).json({ message: err.message || "Server error" });
   }
-}
-// ================= UPDATE =================
-async updateSubCategory(req, res) {
-  try {
-    const { id } = req.params;
-    const { name, category, icon, color } = req.body;
-    const existingCategory = await Category.findOne({ name: category });
-    if (!existingCategory) {
-      return res.status(400).json({ message: "Category not found" });
-    }
-    const subCategory = await SubCategory.findByIdAndUpdate(
-      id,
-      {
-        name,
-        category: existingCategory._id,
-        ...(icon !== undefined && { icon }),
-        ...(color !== undefined && { color }),
-      },
-      { new: true, runValidators: true }
-    );
 
-    if (!subCategory) {
-      return res.status(404).json({ message: "SubCategory not found" });
+  async updateSubCategory(req, res) {
+    try {
+      const result = await subcategoryService.update(req.params.id, req.body);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(400).json({ message: "SubCategory already exists in this category" });
+      }
+      return res.status(500).json({ message: "Server error" });
     }
+  }
 
-    res.json({ success: true, data: subCategory });
-  } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({
-        message: "SubCategory already exists in this category",
-      });
+  async deleteSubCategory(req, res) {
+    try {
+      const result = await subcategoryService.deleteSubCategory(req.params.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, message: "SubCategory deleted successfully" });
+    } catch (err) {
+      return res.status(500).json({ message: "Server error" });
     }
-
-    res.status(500).json({ message: "Server error" });
   }
 }
 
-//delete 
-async deleteSubCategory(req, res) {
-  try {
-    const { id } = req.params;
-
-    const subCategory = await SubCategory.findByIdAndDelete(id);
-
-    if (!subCategory) {
-      return res.status(404).json({ message: "SubCategory not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "SubCategory deleted successfully",
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-}
-}
 module.exports = new SubCategoryController();

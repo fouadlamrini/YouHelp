@@ -1,96 +1,68 @@
-const Class = require("../models/Class");
-const Campus = require("../models/Campus");
+const classService = require("../services/class.service");
 
 class ClassController {
   async getAll(req, res) {
     try {
-      const classes = await Class.find()
-        .populate("campus", "name")
-        .sort({ createdAt: -1 });
-      res.json({ success: true, data: classes });
+      const result = await classService.getAll();
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async getById(req, res) {
     try {
-      const classDoc = await Class.findById(req.params.id).populate("campus", "name");
-      if (!classDoc) return res.status(404).json({ message: "Class not found" });
-      res.json({ success: true, data: classDoc });
+      const result = await classService.getById(req.params.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async create(req, res) {
     try {
-      const { name, nickName, year, campus } = req.body;
-      let campusId = null;
-      if (campus) {
-        const campusDoc = await Campus.findById(campus);
-        if (!campusDoc) return res.status(400).json({ message: "Campus not found" });
-        campusId = campusDoc._id;
+      const result = await classService.create(req.body);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-      const classDoc = await Class.create({
-        name: name.trim(),
-        nickName: nickName?.trim() || undefined,
-        year: year ? Number(year) : undefined,
-        campus: campusId,
-      });
-      await classDoc.populate("campus", "name");
-      res.status(201).json({ success: true, data: classDoc });
+      return res.status(201).json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async update(req, res) {
     try {
-      const { id } = req.params;
-      const { name, nickName, year, campus } = req.body;
-      const updateData = {};
-      if (name !== undefined) updateData.name = name.trim();
-      if (nickName !== undefined) updateData.nickName = nickName?.trim() || null;
-      if (year !== undefined) {
-        if (year === null || year === "") {
-          updateData.year = null;
-        } else {
-          updateData.year = Number(year);
-        }
+      const result = await classService.update(req.params.id, req.body);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-      if (campus !== undefined) {
-        if (!campus) {
-          updateData.campus = null;
-        } else {
-          const campusDoc = await Campus.findById(campus);
-          if (!campusDoc) return res.status(400).json({ message: "Campus not found" });
-          updateData.campus = campusDoc._id;
-        }
-      }
-      const classDoc = await Class.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-      }).populate("campus", "name");
-      if (!classDoc) return res.status(404).json({ message: "Class not found" });
-      res.json({ success: true, data: classDoc });
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async delete(req, res) {
     try {
-      const classDoc = await Class.findByIdAndDelete(req.params.id);
-      if (!classDoc) return res.status(404).json({ message: "Class not found" });
-      res.json({ success: true, message: "Class deleted successfully" });
+      const result = await classService.deleteClass(req.params.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, message: "Class deleted successfully" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 }

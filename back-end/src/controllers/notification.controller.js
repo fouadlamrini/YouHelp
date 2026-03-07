@@ -1,44 +1,38 @@
-const Notification = require("../models/Notification");
+const notificationService = require("../services/notification.service");
 
 async function getMine(req, res) {
   try {
-    const userId = req.user.id;
-    const notifications = await Notification.find({ recipient: userId })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .populate("actor", "name profilePicture")
-      .populate("relatedUser", "name email")
-      .lean();
-    res.json({ success: true, data: notifications });
+    const result = await notificationService.getMine(req.user.id);
+    if (result.error) {
+      return res.status(result.error.status).json({ message: result.error.message });
+    }
+    return res.json({ success: true, data: result.data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 }
 
 async function markAsRead(req, res) {
   try {
-    const userId = req.user.id;
-    const { id } = req.params;
-    const notif = await Notification.findOne({ _id: id, recipient: userId });
-    if (!notif) return res.status(404).json({ message: "Notification not found" });
-    notif.read = true;
-    await notif.save();
-    res.json({ success: true, data: notif });
+    const result = await notificationService.markAsRead(req.user.id, req.params.id);
+    if (result.error) {
+      return res.status(result.error.status).json({ message: result.error.message });
+    }
+    return res.json({ success: true, data: result.data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 }
 
 async function markAllAsRead(req, res) {
   try {
-    const userId = req.user.id;
-    await Notification.updateMany({ recipient: userId, read: false }, { read: true });
-    res.json({ success: true, message: "Toutes les notifications sont marquées comme lues." });
+    await notificationService.markAllAsRead(req.user.id);
+    return res.json({ success: true, message: "Toutes les notifications sont marquées comme lues." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 }
 

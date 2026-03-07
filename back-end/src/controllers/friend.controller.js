@@ -1,105 +1,52 @@
-const Friend = require("../models/Friend");
-const FriendRequest = require("../models/FriendRequest");
-const User = require("../models/User");
+const friendService = require("../services/friend.service");
 
-function normalizePair(a, b) {
-  return [a.toString(), b.toString()].sort();
-}
-
-async function areFriends(userId1, userId2) {
-  const [id1, id2] = normalizePair(userId1, userId2);
-  const doc = await Friend.findOne({
-    $or: [
-      { user1: id1, user2: id2 },
-      { user1: id2, user2: id1 },
-    ],
-  });
-  return !!doc;
-}
-
-/** Retourne les IDs des amis de l'utilisateur (pour filtrage posts) */
-async function getMyFriendIds(userId) {
-  const docs = await Friend.find({ $or: [{ user1: userId }, { user2: userId }] }).select("user1 user2");
-  return docs.map((d) => (d.user1.toString() === userId.toString() ? d.user2.toString() : d.user1.toString()));
-}
+// Re-export for post.controller, knowledge.controller (they use areFriends, getMyFriendIds)
+const areFriends = friendService.areFriends;
+const getMyFriendIds = friendService.getMyFriendIds;
 
 class FriendController {
-  /** Envoyer une invitation (crée une FriendRequest) */
   async add(req, res) {
     try {
-      const me = req.user.id;
-      const { userId } = req.body;
-      if (userId === me) {
-        return res.status(400).json({ message: "Invalid userId" });
+      const result = await friendService.add(req.user.id, req.body);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-      const toUser = await User.findById(userId).select("_id status");
-      if (!toUser) return res.status(404).json({ message: "User not found" });
-      if (toUser.status !== "active") {
-        return res.status(400).json({ message: "You can only send invitations to active users" });
-      }
-      const [id1, id2] = normalizePair(me, userId);
-      const alreadyFriends = await Friend.findOne({
-        $or: [{ user1: id1, user2: id2 }, { user1: id2, user2: id1 }],
-      });
-      if (alreadyFriends) return res.status(400).json({ message: "Already friends" });
-      const existingRequest = await FriendRequest.findOne({
-        fromUser: { $in: [me, userId] },
-        toUser: { $in: [me, userId] },
-        status: "pending",
-      });
-      if (existingRequest) {
-        return res.status(400).json({ message: "Request already sent or received" });
-      }
-      const request = await FriendRequest.create({ fromUser: me, toUser: userId });
-      const populated = await FriendRequest.findById(request._id)
-        .populate("fromUser", "name email profilePicture")
-        .populate("toUser", "name email profilePicture");
-      res.status(201).json({ success: true, data: populated });
+      return res.status(201).json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async remove(req, res) {
     try {
-      const me = req.user.id;
-      const { userId } = req.params;
-      const doc = await Friend.findOneAndDelete({
-        $or: [
-          { user1: me, user2: userId },
-          { user1: userId, user2: me },
-        ],
-      });
-      if (!doc) return res.status(404).json({ message: "Friendship not found" });
-      res.json({ success: true, message: "Friend removed" });
+      const result = await friendService.remove(req.user.id, req.params.userId);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, message: "Friend removed" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 
   async list(req, res) {
     try {
-      const me = req.user.id;
-      const docs = await Friend.find({ $or: [{ user1: me }, { user2: me }] })
-        .populate({
-          path: "user1",
-          select: "name email profilePicture",
-          populate: [{ path: "campus", select: "name" }, { path: "class", select: "name" }],
-        })
-        .populate({
-          path: "user2",
-          select: "name email profilePicture",
-          populate: [{ path: "campus", select: "name" }, { path: "class", select: "name" }],
-        });
-      const friends = docs.map((d) => (d.user1._id.toString() === me ? d.user2 : d.user1));
-      res.json({ success: true, data: friends });
+      const result = await friendService.list(req.user.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   }
 }
 
-module.exports = { friendController: new FriendController(), areFriends, getMyFriendIds };
+module.exports = {
+  friendController: new FriendController(),
+  areFriends,
+  getMyFriendIds,
+};

@@ -281,10 +281,36 @@ async function notifyPostSolved(actorDoc, authorDoc, postId) {
   if (notifications.length) await Notification.insertMany(notifications);
 }
 
+async function getMine(userId) {
+  const notifications = await Notification.find({ recipient: userId })
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .populate("actor", "name profilePicture")
+    .populate("relatedUser", "name email")
+    .lean();
+  return { data: notifications };
+}
+
+async function markAsRead(userId, notificationId) {
+  const notif = await Notification.findOne({ _id: notificationId, recipient: userId });
+  if (!notif) return { error: { status: 404, message: "Notification not found" } };
+  notif.read = true;
+  await notif.save();
+  return { data: notif };
+}
+
+async function markAllAsRead(userId) {
+  await Notification.updateMany({ recipient: userId, read: false }, { read: true });
+  return { ok: true };
+}
+
 module.exports = {
   notifyNewRegistration,
   notifyUserActivated,
   notifyUserRefused,
   notifyPostDeleted,
   notifyPostSolved,
+  getMine,
+  markAsRead,
+  markAllAsRead,
 };

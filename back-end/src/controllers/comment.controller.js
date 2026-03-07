@@ -1,225 +1,53 @@
-const Comment = require("../models/Comment");
-const Post = require("../models/Post");
-const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
-const Notification = require("../models/Notification");
+const commentService = require("../services/comment.service");
 
 class CommentController {
-  /**
-   * Crée un commentaire pour un post (ou une réponse si parentComment fourni).
-   */
   async createComment(req, res) {
     try {
       const currentUser = await User.findById(req.user.id).select("status").lean();
       if (currentUser?.status !== "active") {
         return res.status(403).json({ message: "Seuls les comptes activés peuvent commenter." });
       }
-      const { postId } = req.params;
-      const { content, parentComment } = req.body;
-
-      // Vérifier que le post existe
-      const post = await Post.findById(postId);
-      if (!post) return res.status(404).json({ message: "Post non trouvé" });
-
-      // Réponse uniquement sur commentaire principal (pas de réponse à une réponse)
-      if (parentComment) {
-        const parent = await Comment.findById(parentComment);
-        if (!parent) return res.status(404).json({ message: "Commentaire parent non trouvé" });
-        if (parent.parentComment) {
-          return res.status(400).json({ message: "On ne peut répondre qu'au commentaire principal." });
-        }
-      }
-
-      // Traiter les fichiers envoyés (même structure que post: dossier images/videos/files)
-      const mediaFiles = (req.files || []).map((file) => {
-        let type = "file";
-        if (file.mimetype.startsWith("image")) type = "image";
-        else if (file.mimetype.startsWith("video")) type = "video";
-        else if (file.mimetype === "application/pdf") type = "pdf";
-        else if (file.mimetype.includes("word")) type = "doc";
-        let folder = "files";
-        if (type === "image") folder = "images";
-        else if (type === "video") folder = "videos";
-        return { url: `/uploads/${folder}/${file.filename}`, type };
-      });
-
-      // Créer le commentaire avec éventuels médias
-      const comment = await Comment.create({
-        content: content.trim(),
-        author: req.user.id,
-        post: postId,
-        parentComment: parentComment || null,
-        media: mediaFiles,
-      });
-
-      // Si c'est un commentaire racine, on l'ajoute au tableau post.comments pour suivi
-      if (!parentComment) {
-        post.comments = post.comments || [];
-        post.comments.push(comment._id);
-        await post.save();
-      }
-
-      const commenterId = req.user.id.toString();
-      const postAuthorId = (post.author && post.author.toString ? post.author.toString() : post.author?.toString?.()) || null;
-      const actor = await User.findById(req.user.id).select("name").lean();
-      const actorName = actor?.name || "Quelqu'un";
-
-      if (!parentComment) {
-        if (postAuthorId && postAuthorId !== commenterId) {
-          await Notification.create({
-            recipient: postAuthorId,
-            actor: req.user.id,
-            type: "post_comment",
-            message: `${actorName} a commenté votre post.`,
-            link: `/posts?post=${postId}&comment=${comment._id}`,
-          });
-        }
-      } else {
-        const parent = await Comment.findById(parentComment).select("author").lean();
-        const parentAuthorId = (parent?.author && parent.author.toString ? parent.author.toString() : parent?.author?.toString?.()) || null;
-        if (postAuthorId && postAuthorId !== commenterId) {
-          await Notification.create({
-            recipient: postAuthorId,
-            actor: req.user.id,
-            type: "comment_reply",
-            message: `${actorName} a répondu à un commentaire sur votre post.`,
-            link: `/posts?post=${postId}&comment=${comment._id}`,
-          });
-        }
-        if (parentAuthorId && parentAuthorId !== commenterId && parentAuthorId !== postAuthorId) {
-          await Notification.create({
-            recipient: parentAuthorId,
-            actor: req.user.id,
-            type: "comment_reply",
-            message: `${actorName} a répondu à votre commentaire.`,
-            link: `/posts?post=${postId}&comment=${comment._id}`,
-          });
-        }
-      }
-
-      // Retourner le commentaire créé (simple)
-      const populated = await Comment.findById(comment._id).populate(
-        "author",
-        "name email profilePicture"
+      const result = await commentService.createComment(
+        req.user.id,
+        req.params.postId,
+        req.body,
+        req.files || []
       );
-      return res.status(201).json({ success: true, data: populated });
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.status(201).json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
   }
 
-  /**
-   * Récupère tous les commentaires d'un post et construit une structure imbriquée
-   * Trie les commentaires (et leurs réponses) par nombre de likes décroissant.
-   * Lecture autorisée à tous.
-   */
   async getCommentsByPost(req, res) {
     try {
-      const { postId } = req.params;
-      const post = await Post.findById(postId);
-      if (!post) return res.status(404).json({ message: "Post non trouvé" });
-
-      // Récupère tous les commentaires liés à ce post (author avec profilePicture pour l'avatar)
-      const comments = await Comment.find({ post: postId }).populate(
-        "author",
-        "name email profilePicture"
-      );
-
-      // Construire map id->comment et initialiser children
-      const map = {};
-      comments.forEach((c) => {
-        map[c._id.toString()] = { ...c.toObject(), replies: [] };
-      });
-
-      const roots = [];
-      comments.forEach((c) => {
-        const id = c._id.toString();
-        if (c.parentComment) {
-          const parentId = c.parentComment.toString();
-          if (map[parentId]) {
-            map[parentId].replies.push(map[id]);
-          } else {
-            // si parent manquant, traiter comme racine
-            roots.push(map[id]);
-          }
-        } else {
-          roots.push(map[id]);
-        }
-      });
-
-      // Fonction pour trier récursivement par likes
-      const sortRecursive = (arr) => {
-        arr.forEach((item) => {
-          if (!item.likes) item.likes = [];
-          if (item.replies && item.replies.length) sortRecursive(item.replies);
-        });
-        arr.sort(
-          (a, b) =>
-            (b.likes ? b.likes.length : 0) - (a.likes ? a.likes.length : 0)
-        );
-      };
-
-      sortRecursive(roots);
-
-      return res.json({ success: true, data: roots });
+      const result = await commentService.getCommentsByPost(req.params.postId);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
   }
 
-  /**
-   * Toggle like pour un commentaire : si l'utilisateur a déjà liké, on enlève le like, sinon on l'ajoute.
-   */
   async toggleLike(req, res) {
     try {
-      const { id } = req.params; // id du commentaire
-
-      const comment = await Comment.findById(id);
-      if (!comment)
-        return res.status(404).json({ message: "Commentaire non trouvé" });
-
-      const userId = req.user.id;
-      const alreadyLiked =
-        comment.likes && comment.likes.some((u) => u.toString() === userId);
-
-      if (alreadyLiked) {
-        comment.likes = comment.likes.filter((u) => u.toString() !== userId);
-        await comment.save();
-        return res.json({
-          success: true,
-          message: "Like retiré",
-          totalLikes: comment.likes.length,
-        });
+      const result = await commentService.toggleLike(req.user.id, req.params.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-
-      comment.likes = comment.likes || [];
-      comment.likes.push(userId);
-      await comment.save();
-
-      const commentAuthorId = (comment.author && comment.author.toString ? comment.author.toString() : comment.author?.toString?.()) || null;
-      if (commentAuthorId && commentAuthorId !== userId.toString()) {
-        const actor = await User.findById(userId).select("name").lean();
-        const actorName = actor?.name || "Quelqu'un";
-        const isReply = !!comment.parentComment;
-        const message = isReply ? `${actorName} a aimé votre réponse.` : `${actorName} a aimé votre commentaire.`;
-        const postId = comment.post?.toString?.() || comment.post?.toString?.();
-        const knowledgeId = comment.knowledge?.toString?.() || comment.knowledge?.toString?.();
-        const link = postId ? `/posts?post=${postId}&comment=${comment._id}` : (knowledgeId ? `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}` : "/posts");
-        await Notification.create({
-          recipient: commentAuthorId,
-          actor: userId,
-          type: "comment_like",
-          message,
-          link,
-        });
-      }
-
+      const message = result.data.removed ? "Like retiré" : "Commentaire liké";
       return res.json({
         success: true,
-        message: "Commentaire liké",
-        totalLikes: comment.likes.length,
+        message,
+        totalLikes: result.data.totalLikes,
       });
     } catch (err) {
       console.error(err);
@@ -227,132 +55,32 @@ class CommentController {
     }
   }
 
-  /**
-   * Met à jour un commentaire ou une réponse.
-   * Autorisé si : auteur du commentaire OR auteur du post OR admin.
-   */
   async updateComment(req, res) {
     try {
-      const { id } = req.params;
-      const { content } = req.body;
-
-      const comment = await Comment.findById(id);
-      if (!comment)
-        return res.status(404).json({ message: "Commentaire non trouvé" });
-
-      const userId = req.user && req.user.id;
-      const isAdmin = req.user && req.user.role === "admin";
-      const isCommentAuthor = comment.author.toString() === userId;
-      let isOwner = false;
-      if (comment.post) {
-        const post = await Post.findById(comment.post);
-        if (!post) return res.status(404).json({ message: "Post non trouvé" });
-        isOwner = post.author && post.author.toString() === userId;
-      } else if (comment.knowledge) {
-        const knowledge = await Knowledge.findById(comment.knowledge);
-        if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-        isOwner = knowledge.author && knowledge.author.toString() === userId;
-      }
-
-      if (!isAdmin && !isCommentAuthor && !isOwner) {
-        return res.status(403).json({
-          message: "Vous n'êtes pas autorisé à modifier ce commentaire",
-        });
-      }
-
-      // Traiter potentiels nouveaux fichiers (remplace les anciens médias si fournis)
-      if (req.files && req.files.length) {
-        const mediaFiles = req.files.map((file) => {
-          let type = "file";
-          if (file.mimetype.startsWith("image")) type = "image";
-          else if (file.mimetype.startsWith("video")) type = "video";
-          else if (file.mimetype === "application/pdf") type = "pdf";
-          else if (file.mimetype.includes("word")) type = "doc";
-          let folder = "files";
-          if (type === "image") folder = "images";
-          else if (type === "video") folder = "videos";
-          return { url: `/uploads/${folder}/${file.filename}`, type };
-        });
-        comment.media = mediaFiles;
-      }
-
-      comment.content = content.trim();
-      await comment.save();
-
-      const populated = await Comment.findById(comment._id).populate(
-        "author",
-        "name email profilePicture"
+      const result = await commentService.updateComment(
+        req.user.id,
+        req.user.role,
+        req.params.id,
+        req.body,
+        req.files || []
       );
-      return res.json({ success: true, data: populated });
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
     }
   }
 
-  /**
-   * Supprime un commentaire (ou réponse) et ses réponses enfants récursivement.
-   * Autorisé si : auteur du commentaire OR auteur du post OR admin.
-   */
   async deleteComment(req, res) {
     try {
-      const { id } = req.params;
-
-      const comment = await Comment.findById(id);
-      if (!comment)
-        return res.status(404).json({ message: "Commentaire non trouvé" });
-
-      const userId = req.user && req.user.id;
-      const isAdmin = req.user && req.user.role === "admin";
-      const isCommentAuthor = comment.author.toString() === userId;
-      let isOwner = false;
-      if (comment.post) {
-        const post = await Post.findById(comment.post);
-        if (!post) return res.status(404).json({ message: "Post non trouvé" });
-        isOwner = post.author && post.author.toString() === userId;
-      } else if (comment.knowledge) {
-        const knowledge = await Knowledge.findById(comment.knowledge);
-        if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-        isOwner = knowledge.author && knowledge.author.toString() === userId;
+      const result = await commentService.deleteComment(req.user.id, req.user.role, req.params.id);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-
-      if (!isAdmin && !isCommentAuthor && !isOwner) {
-        return res.status(403).json({
-          message: "Vous n'êtes pas autorisé à supprimer ce commentaire",
-        });
-      }
-
-      // Collecter récursivement tous les ids d'enfants
-      const toDelete = [comment._id.toString()];
-      for (let i = 0; i < toDelete.length; i++) {
-        const parentIds = toDelete.slice(i);
-        const children = await Comment.find(
-          { parentComment: { $in: parentIds } },
-          "_id"
-        );
-        if (children && children.length) {
-          children.forEach((c) => toDelete.push(c._id.toString()));
-        }
-      }
-
-      const result = await Comment.deleteMany({ _id: { $in: toDelete } });
-
-      if (!comment.parentComment) {
-        if (comment.post) {
-          await Post.findByIdAndUpdate(comment.post, { $pull: { comments: comment._id } });
-        } else if (comment.knowledge) {
-          await Knowledge.findByIdAndUpdate(comment.knowledge, { $pull: { comments: comment._id } });
-        }
-      }
-
-      // Si c'était un commentaire racine sur une knowledge, enlever la ref
-      if (!comment.parentComment && comment.knowledge) {
-        await Knowledge.findByIdAndUpdate(comment.knowledge, {
-          $pull: { comments: comment._id },
-        });
-      }
-
-      return res.json({ success: true, deletedCount: result.deletedCount });
+      return res.json({ success: true, deletedCount: result.data.deletedCount });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
@@ -361,86 +89,22 @@ class CommentController {
 
   async createCommentForKnowledge(req, res) {
     try {
-      const currentUser = await User.findById(req.user.id)
-        .select("status")
-        .lean();
+      const currentUser = await User.findById(req.user.id).select("status").lean();
       if (!currentUser || currentUser.status !== "active") {
-        return res
-          .status(403)
-          .json({
-            message:
-              "Seuls les comptes activés peuvent commenter les connaissances.",
-          });
+        return res.status(403).json({
+          message: "Seuls les comptes activés peuvent commenter les connaissances.",
+        });
       }
-
-      const { knowledgeId } = req.params;
-      const { content, parentComment } = req.body;
-      const knowledge = await Knowledge.findById(knowledgeId);
-      if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-      const mediaFiles = (req.files || []).map((file) => {
-        let type = "file";
-        if (file.mimetype.startsWith("image")) type = "image";
-        else if (file.mimetype.startsWith("video")) type = "video";
-        else if (file.mimetype === "application/pdf") type = "pdf";
-        else if (file.mimetype.includes("word")) type = "doc";
-        let folder = "files";
-        if (type === "image") folder = "images";
-        else if (type === "video") folder = "videos";
-        return { url: `/uploads/${folder}/${file.filename}`, type };
-      });
-      const comment = await Comment.create({
-        content: content.trim(),
-        author: req.user.id,
-        knowledge: knowledgeId,
-        parentComment: parentComment || null,
-        media: mediaFiles,
-      });
-      if (!parentComment) {
-        knowledge.comments = knowledge.comments || [];
-        knowledge.comments.push(comment._id);
-        await knowledge.save();
+      const result = await commentService.createCommentForKnowledge(
+        req.user.id,
+        req.params.knowledgeId,
+        req.body,
+        req.files || []
+      );
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
       }
-
-      const commenterId = req.user.id.toString();
-      const knowledgeAuthorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
-      const actor = await User.findById(req.user.id).select("name").lean();
-      const actorName = actor?.name || "Quelqu'un";
-
-      if (!parentComment) {
-        if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
-          await Notification.create({
-            recipient: knowledgeAuthorId,
-            actor: req.user.id,
-            type: "knowledge_comment",
-            message: `${actorName} a commenté votre connaissance.`,
-            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-          });
-        }
-      } else {
-        const parent = await Comment.findById(parentComment).select("author").lean();
-        const parentAuthorId = (parent?.author && parent.author.toString ? parent.author.toString() : parent?.author?.toString?.()) || null;
-        if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
-          await Notification.create({
-            recipient: knowledgeAuthorId,
-            actor: req.user.id,
-            type: "knowledge_comment_reply",
-            message: `${actorName} a répondu à un commentaire sur votre connaissance.`,
-            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-          });
-        }
-        if (parentAuthorId && parentAuthorId !== commenterId && parentAuthorId !== knowledgeAuthorId) {
-          await Notification.create({
-            recipient: parentAuthorId,
-            actor: req.user.id,
-            type: "knowledge_comment_reply",
-            message: `${actorName} a répondu à votre commentaire.`,
-            link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-          });
-        }
-      }
-
-      const populated = await Comment.findById(comment._id).populate("author", "name email profilePicture");
-      return res.status(201).json({ success: true, data: populated });
+      return res.status(201).json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
@@ -449,31 +113,11 @@ class CommentController {
 
   async getCommentsByKnowledge(req, res) {
     try {
-      const { knowledgeId } = req.params;
-      const knowledge = await Knowledge.findById(knowledgeId);
-      if (!knowledge) return res.status(404).json({ message: "Connaissance non trouvée" });
-      const comments = await Comment.find({ knowledge: knowledgeId }).populate("author", "name email profilePicture");
-      const map = {};
-      comments.forEach((c) => {
-        map[c._id.toString()] = { ...c.toObject(), replies: [] };
-      });
-      const roots = [];
-      comments.forEach((c) => {
-        const id = c._id.toString();
-        if (c.parentComment) {
-          const parentId = c.parentComment.toString();
-          if (map[parentId]) map[parentId].replies.push(map[id]);
-          else roots.push(map[id]);
-        } else roots.push(map[id]);
-      });
-      const sortRecursive = (arr) => {
-        arr.forEach((item) => {
-          if (item.replies?.length) sortRecursive(item.replies);
-        });
-        arr.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
-      };
-      sortRecursive(roots);
-      return res.json({ success: true, data: roots });
+      const result = await commentService.getCommentsByKnowledge(req.params.knowledgeId);
+      if (result.error) {
+        return res.status(result.error.status).json({ message: result.error.message });
+      }
+      return res.json({ success: true, data: result.data });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erreur serveur" });
