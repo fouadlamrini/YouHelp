@@ -3,20 +3,7 @@ const Post = require("../models/Post");
 const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
-
-function mapFilesToMedia(files) {
-  return (files || []).map((file) => {
-    let type = "file";
-    if (file.mimetype.startsWith("image")) type = "image";
-    else if (file.mimetype.startsWith("video")) type = "video";
-    else if (file.mimetype === "application/pdf") type = "pdf";
-    else if (file.mimetype.includes("word")) type = "doc";
-    let folder = "files";
-    if (type === "image") folder = "images";
-    else if (type === "video") folder = "videos";
-    return { url: `/uploads/${folder}/${file.filename}`, type };
-  });
-}
+const { mapFilesToMedia } = require("../utils/media");
 
 async function createComment(userId, postId, body, files) {
   const { content, parentComment } = body;
