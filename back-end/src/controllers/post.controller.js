@@ -6,6 +6,7 @@ const SubCategory = require("../models/SubCategory");
 const Comment = require("../models/Comment");
 const Engagement = require("../models/Engagement");
 const Solution = require("../models/Solution");
+const Notification = require("../models/Notification");
 const { areFriends, getMyFriendIds } = require("./friend.controller");
 
 class PostController {
@@ -352,10 +353,24 @@ class PostController {
   async deletePost(req, res) {
     try {
       const { id } = req.params;
-      const post = await Post.findByIdAndDelete(id);
+      const post = await Post.findById(id).lean();
       if (!post) return res.status(404).json({ message: "Post not found" });
 
-      // Cleanup engagements (reactions + shares) related to this post
+      const authorId = post.author?.toString?.() || post.author?.toString?.();
+      const deleterId = req.user?.id?.toString?.();
+
+      // Si c'est le super_admin qui supprime, notifier l'auteur du post
+      if (req.user?.role === "super_admin" && authorId && authorId !== deleterId) {
+        await Notification.create({
+          recipient: authorId,
+          actor: deleterId,
+          type: "post_deleted_by_admin",
+          message: "Le super admin a supprimé votre post.",
+          link: "/posts",
+        });
+      }
+
+      await Post.findByIdAndDelete(id);
       await Engagement.deleteMany({ post: id });
 
       res.json({ success: true, message: "Post deleted successfully" });
