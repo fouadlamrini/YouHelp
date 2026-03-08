@@ -176,19 +176,19 @@ async function getAllPosts(userId, queryFilter) {
   const withMeta = await Promise.all(
     posts.map(async (p) => {
       const authorId = p.author?._id || p.author;
-      const sameContextReactionCount = await sameContextReactionCount(p._id, authorId);
+      const reactionCount = await sameContextReactionCount(p._id, authorId);
       const totalSameContext = await totalSameContextCount(authorId);
       const commentCount = await Comment.countDocuments({ post: p._id });
       const canReact = await postCanReact(userId, currentUser, p, viewFilter);
       const canModerate = await canModeratePost(userId, currentUser, p);
       const sameContextAsAuthorFlag = sameContextAsAuthor(currentUser, p);
-      const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+      const showDemandeWorkchopButton = totalSameContext > 0 && reactionCount >= totalSameContext * 0.5;
       const workchopRequestAlreadySent = showDemandeWorkchopButton
         ? !!(await WorkshopRequest.findOne({ user: userId, post: p._id }))
         : false;
       return {
         ...p.toObject(),
-        sameContextReactionCount,
+        sameContextReactionCount: reactionCount,
         totalSameContext,
         commentCount,
         canReact,
@@ -237,13 +237,13 @@ async function getPostById(userId, postId) {
 
   const fullUser = await User.findById(userId).select("status campus class level role").populate("campus class level").populate("role", "name");
   const authorId = post.author?._id || post.author;
-  const sameContextReactionCount = await sameContextReactionCount(postId, authorId);
+  const reactionCount = await sameContextReactionCount(postId, authorId);
   const totalSameContext = await totalSameContextCount(authorId);
   const commentCount = await Comment.countDocuments({ post: postId });
   const canReact = await postCanReact(userId, fullUser, post, "all");
   const canModerate = await canModeratePost(userId, fullUser, post);
   const sameContextAsAuthorFlag = sameContextAsAuthor(fullUser, post);
-  const showDemandeWorkchopButton = totalSameContext > 0 && sameContextReactionCount >= totalSameContext * 0.5;
+  const showDemandeWorkchopButton = totalSameContext > 0 && reactionCount >= totalSameContext * 0.5;
   const workchopRequestAlreadySent = showDemandeWorkchopButton
     ? !!(await WorkshopRequest.findOne({ user: userId, post: postId }))
     : false;
@@ -251,7 +251,7 @@ async function getPostById(userId, postId) {
   return {
     data: {
       ...post.toObject(),
-      sameContextReactionCount,
+      sameContextReactionCount: reactionCount,
       totalSameContext,
       commentCount,
       canReact,
@@ -429,9 +429,9 @@ async function getMySharedPosts(userId) {
     engagements.map(async (e) => {
       if (e.post) {
         const post = e.post;
-        const sameContextReactionCount = await sameContextReactionCount(post._id, post.author?._id || post.author);
+        const reactionCount = await sameContextReactionCount(post._id, post.author?._id || post.author);
         const commentCount = await Comment.countDocuments({ post: post._id });
-        return { _id: e._id, sharedAt: e.createdAt, post: { ...post, sameContextReactionCount, commentCount } };
+        return { _id: e._id, sharedAt: e.createdAt, post: { ...post, sameContextReactionCount: reactionCount, commentCount } };
       }
       if (e.knowledge) {
         const knowledge = e.knowledge;

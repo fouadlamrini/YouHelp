@@ -68,6 +68,7 @@ async function updateSolutionDescription(userId, postId, body) {
   const isAdmin = user.role?.name === "admin";
   if (!isOwner && !isFormateur && !isAdmin) {
     return { error: { status: 403, message: "Seul le formateur ou l'owner du post peut mettre à jour la solution" } };
+  }
   solution.description = description;
   await solution.save();
   return { data: solution };
