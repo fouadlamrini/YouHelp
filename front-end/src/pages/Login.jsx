@@ -104,13 +104,13 @@ const Login = () => {
                 placeholder=" "
                 value={formData.email}
                 onChange={handleChange}
-                className={`peer w-full pl-6 pr-4 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300
+                className={`peer w-full pl-6 pr-4 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300 text-slate-900 placeholder-transparent
                 ${errors.email ? "border-red-300 shadow-sm shadow-red-50" : "border-slate-100 focus:border-indigo-600 focus:shadow-xl focus:shadow-indigo-50/50"}`}
               />
               <label
                 className={`absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 transition-all duration-300 pointer-events-none
-                peer-focus:-top-2 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold
-                ${formData.email ? "-top-2 text-xs bg-white px-2 text-indigo-600 font-bold" : ""}`}
+                peer-focus:!-top-2 peer-focus:!left-4 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold peer-focus:!translate-y-0
+                ${(formData.email ?? "").toString().trim() ? "!-top-2 !left-4 !translate-y-0 text-xs bg-white px-2 text-indigo-600 font-bold" : ""}`}
               >
                 <FiMail className="inline mr-2" />
                 Email Address
@@ -130,13 +130,13 @@ const Login = () => {
                 placeholder=" "
                 value={formData.password}
                 onChange={handleChange}
-                className={`peer w-full pl-6 pr-12 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300
+                className={`peer w-full pl-6 pr-12 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300 text-slate-900 placeholder-transparent
                 ${errors.password ? "border-red-300 shadow-sm shadow-red-50" : "border-slate-100 focus:border-indigo-600 focus:shadow-xl focus:shadow-indigo-50/50"}`}
               />
               <label
                 className={`absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 transition-all duration-300 pointer-events-none
-                peer-focus:-top-2 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold
-                ${formData.password ? "-top-2 text-xs bg-white px-2 text-indigo-600 font-bold" : ""}`}
+                peer-focus:!-top-2 peer-focus:!left-4 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold peer-focus:!translate-y-0
+                ${(formData.password ?? "").toString().trim() ? "!-top-2 !left-4 !translate-y-0 text-xs bg-white px-2 text-indigo-600 font-bold" : ""}`}
               >
                 <FiLock className="inline mr-2" />
                 Password

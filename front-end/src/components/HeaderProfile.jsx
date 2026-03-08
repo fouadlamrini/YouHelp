@@ -78,7 +78,7 @@ const HeaderProfile = () => {
           className="w-full h-full object-cover"
           alt="couverture"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
           <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2">
             <FiMaximize2 size={16} /> Voir l'image en entier
           </span>
@@ -87,9 +87,10 @@ const HeaderProfile = () => {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             navigate("/settings");
           }}
-          className="absolute bottom-4 right-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-white transition-all shadow-md"
+          className="absolute bottom-4 right-6 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-white transition-all shadow-md cursor-pointer"
         >
           <FiCamera size={16} /> Modifier la photo de couverture
         </button>

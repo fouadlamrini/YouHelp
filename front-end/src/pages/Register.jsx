@@ -122,12 +122,12 @@ export default function RegisterYouHelp() {
                   placeholder=" "
                   value={formData[field.id]}
                   onChange={handleChange}
-                  className={`peer w-full pl-6 pr-4 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300
+                  className={`peer w-full pl-6 pr-4 py-4.5 bg-white border-2 rounded-2xl outline-none transition-all duration-300 text-slate-900 placeholder-transparent
                   ${errors[field.id] ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-indigo-600 focus:shadow-xl focus:shadow-indigo-50/50"}`}
                 />
                 <label className={`absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none transition-all duration-300 flex items-center gap-2
-                  peer-focus:-top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold
-                  ${formData[field.id] ? "-top-2 left-4 text-xs bg-white px-2 font-bold text-indigo-600" : ""}`}>
+                  peer-focus:!-top-2 peer-focus:!left-4 peer-focus:text-xs peer-focus:bg-white peer-focus:px-2 peer-focus:text-indigo-600 peer-focus:font-bold peer-focus:!translate-y-0
+                  ${(formData[field.id] ?? "").toString().trim() ? "!-top-2 !left-4 !translate-y-0 text-xs bg-white px-2 font-bold text-indigo-600" : ""}`}>
                   <field.icon /> {field.label}
                 </label>
                 
