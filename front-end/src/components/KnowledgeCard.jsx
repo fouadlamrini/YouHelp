@@ -53,6 +53,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [shareCount, setShareCount] = useState(data.shareCount ?? 0);
+  const [commentCount, setCommentCount] = useState(data.commentCount ?? (data.comments?.length ?? 0));
   const media = Array.isArray(data.media)
     ? data.media
     : data.mediaUrl
@@ -96,6 +97,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   }, [data.shareCount]);
 
   useEffect(() => {
+    setCommentCount(data.commentCount ?? (data.comments?.length ?? 0));
+  }, [data.commentCount, data.comments?.length]);
+
+  useEffect(() => {
     if (!scrollToCommentId || !data.id) return;
     setShowComments(true);
     setLoadingComments(true);
@@ -115,8 +120,12 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
     if (!data.id) return Promise.resolve();
     return knowledgeCommentApi
       .getByKnowledge(data.id)
-      .then((r) => setComments(r.data?.data ?? r.data ?? []))
-      .catch(() => setComments([]));
+      .then((r) => {
+        const list = r.data?.data ?? r.data ?? [];
+        setComments(list);
+        setCommentCount(list.length);
+      })
+      .catch(() => { setComments([]); });
   };
   
   // State dyal l-Menu (Update/Delete)
@@ -153,9 +162,9 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
       .then(() => {
         setCommentText("");
         setCommentMediaFiles([]);
+        setCommentCount((prev) => prev + 1);
         return loadComments();
       })
-      .then(() => onRefresh?.())
       .catch(() => {})
       .finally(() => setSendingComment(false));
   };
@@ -397,7 +406,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             }`}
           >
             <FiMessageCircle size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Comment <span className="text-indigo-600">({data.commentCount ?? (data.comments || []).length ?? 0})</span></span>
+            <span className="text-[11px] font-black uppercase tracking-tight">Comment <span className="text-indigo-600">({commentCount})</span></span>
           </button>
 
           <button
@@ -442,7 +451,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                     </button>
                     <button
                       type="button"
-                      onClick={handleSendComment}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSendComment(); }}
                       disabled={sendingComment}
                       className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
