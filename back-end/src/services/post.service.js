@@ -162,6 +162,18 @@ async function getAllPosts(userId, queryFilter) {
         else authorFilter = { author: { $in: sameCampusIds } };
       }
     }
+  } else {
+    // Utilisateur inactif : uniquement "all" et "my_campus"
+    if (viewFilter === "friends") {
+      noAuthors = true;
+    } else if (viewFilter === "my_campus") {
+      const campusId = currentUser.campus?._id || currentUser.campus;
+      if (campusId) {
+        const sameCampusIds = await User.find({ campus: campusId }).distinct("_id");
+        if (sameCampusIds.length === 0) noAuthors = true;
+        else authorFilter = { author: { $in: sameCampusIds } };
+      }
+    }
   }
 
   if (noAuthors) return { data: [] };

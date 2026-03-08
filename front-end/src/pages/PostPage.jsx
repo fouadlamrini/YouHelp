@@ -59,7 +59,8 @@ const PostPage = () => {
   const loadPosts = async () => {
     try {
       setLoadingPosts(true);
-      const res = await postApi.getAll({ filter: postViewFilter });
+      const filter = user?.status !== "active" && postViewFilter === "friends" ? "all" : postViewFilter;
+      const res = await postApi.getAll({ filter });
       setPosts(res.data?.data ?? []);
     } catch {
       setPosts([]);
@@ -71,6 +72,12 @@ const PostPage = () => {
   useEffect(() => {
     loadMeta();
   }, []);
+
+  useEffect(() => {
+    if (user && user.status !== "active" && postViewFilter === "friends") {
+      setPostViewFilter("all");
+    }
+  }, [user?.status, postViewFilter]);
 
   useEffect(() => {
     loadPosts();
@@ -167,7 +174,7 @@ const PostPage = () => {
 
         
             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 space-y-4">
-              {/* Filtres vue: All Campus / Friends / My Campus */}
+              {/* Filtres vue: All Campus / Friends (actifs uniquement) / My Campus */}
               <div className="flex flex-wrap gap-2">
                 <span className="text-[10px] font-black uppercase text-slate-400 self-center">Vue :</span>
                 <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
@@ -178,13 +185,15 @@ const PostPage = () => {
                   >
                     All Campus
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPostViewFilter("friends")}
-                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${postViewFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    Friends
-                  </button>
+                  {user?.status === "active" && (
+                    <button
+                      type="button"
+                      onClick={() => setPostViewFilter("friends")}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${postViewFilter === "friends" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                    >
+                      Friends
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setPostViewFilter("my_campus")}
