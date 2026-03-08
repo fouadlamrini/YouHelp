@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiUser,
   FiMapPin,
   FiLayers,
   FiBookOpen,
@@ -27,13 +26,15 @@ const InfoComplet = () => {
   const { user, setUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [options, setOptions] = useState({ campuses: [], classes: [], levels: [] });
+  const [avatars, setAvatars] = useState([]);
+  const [profilePictureSource, setProfilePictureSource] = useState("avatar");
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ campus: "", class: "", level: "" });
   const [formData, setFormData] = useState({
     campus: "",
     class: "",
     level: "",
-    specialite: "",
     profilePicture: "",
   });
 
@@ -47,10 +48,15 @@ const InfoComplet = () => {
       return;
     }
     if (!user.completeProfile) {
-      authApi
-        .getCompleteProfileOptions()
-        .then((res) => setOptions(res.data?.data ?? { campuses: [], classes: [], levels: [] }))
-        .catch(() => setOptions({ campuses: [], classes: [], levels: [] }))
+      Promise.all([authApi.getCompleteProfileOptions(), avatarsApi.getAll()])
+        .then(([optsRes, avatarsRes]) => {
+          setOptions(optsRes.data?.data ?? { campuses: [], classes: [], levels: [] });
+          setAvatars(avatarsRes.data?.data ?? []);
+        })
+        .catch(() => {
+          setOptions({ campuses: [], classes: [], levels: [] });
+          setAvatars([]);
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -59,17 +65,19 @@ const InfoComplet = () => {
 
   const handleConfirm = async (e) => {
     e.preventDefault();
-    if (!formData.campus || !formData.class || !formData.level) {
-      alert("Veuillez remplir Campus, Classe et Niveau.");
-      return;
-    }
+    const err = {
+      campus: !formData.campus ? "Veuillez sélectionner votre campus." : "",
+      class: !formData.class ? "Veuillez sélectionner votre classe." : "",
+      level: !formData.level ? "Veuillez sélectionner votre niveau." : "",
+    };
+    setFieldErrors(err);
+    if (err.campus || err.class || err.level) return;
     setSubmitLoading(true);
     try {
       const res = await authApi.completeProfile({
         campus: formData.campus || null,
         class: formData.class || null,
         level: formData.level || null,
-        specialite: formData.specialite || null,
         profilePicture: formData.profilePicture || undefined,
       });
       const updated = res.data?.data;
@@ -103,8 +111,8 @@ const InfoComplet = () => {
     if (!file) return;
     try {
       const res = await avatarsApi.upload(file);
-      const url = res.data?.data?.url;
-      if (url) setFormData((prev) => ({ ...prev, profilePicture: url }));
+      const path = res.data?.data?.path;
+      if (path) setFormData((prev) => ({ ...prev, profilePicture: path }));
     } catch (_) {}
   };
 
@@ -171,18 +179,65 @@ const InfoComplet = () => {
           {!isWaiting && (
             <>
           <div className="text-center mb-8">
+            <p className="text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-2xl px-6 py-4 text-sm font-bold mb-6">
+              Complétez votre profil pour que l&apos;administrateur puisse activer votre compte.
+            </p>
             <div className="h-1.5 w-20 bg-indigo-600 mx-auto rounded-full mb-4" />
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
-              Campus, classe, niveau, spécialité et photo
+              Campus, classe, niveau et photo
             </p>
           </div>
 
-          <form onSubmit={handleConfirm} className="space-y-8">
-            {/* Photo de profil */}
-            <div className="flex flex-col items-center gap-3">
+          <form onSubmit={handleConfirm} noValidate className="space-y-8">
+            {/* Photo de profil : Avatar (galerie) ou Depuis mon PC */}
+            <div className="flex flex-col items-center gap-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <FiCamera className="text-indigo-500" /> Photo de profil
               </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProfilePictureSource("avatar")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    profilePictureSource === "avatar" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Avatar (galerie)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfilePictureSource("pc")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    profilePictureSource === "pc" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Depuis mon PC
+                </button>
+              </div>
+              {profilePictureSource === "avatar" && (
+                <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto">
+                  {avatars.map((a) => (
+                    <button
+                      key={a.file}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, profilePicture: a.file }))}
+                      className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 transition-all ${
+                        formData.profilePicture === a.file ? "border-indigo-600 ring-2 ring-indigo-200" : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <img src={a.url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {profilePictureSource === "pc" && (
+                <div className="flex flex-col items-center gap-2">
+                  <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
+                    Choisir un fichier
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  </label>
+                </div>
+              )}
               <div className="relative">
                 <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-indigo-100 bg-slate-100">
                   <img
@@ -191,15 +246,6 @@ const InfoComplet = () => {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full cursor-pointer shadow-lg">
-                  <FiCamera size={16} />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                </label>
               </div>
             </div>
 
@@ -210,10 +256,9 @@ const InfoComplet = () => {
               </label>
               <div className="relative">
                 <select
-                  required
                   value={formData.campus}
-                  className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                  onChange={(e) => setFormData({ ...formData, campus: e.target.value })}
+                  className={`w-full px-8 py-5 bg-slate-50 border-2 rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all ${fieldErrors.campus ? "border-red-200 focus:border-red-300 focus:bg-white" : "border-transparent focus:border-indigo-100 focus:bg-white"}`}
+                  onChange={(e) => { setFormData({ ...formData, campus: e.target.value }); setFieldErrors((p) => ({ ...p, campus: "" })); }}
                 >
                   <option value="">Sélectionner le campus</option>
                   {options.campuses.map((c) => (
@@ -222,6 +267,9 @@ const InfoComplet = () => {
                 </select>
                 <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
+              {fieldErrors.campus && (
+                <p className="text-red-600 text-xs font-semibold ml-5">{fieldErrors.campus}</p>
+              )}
             </div>
 
             {/* Classe & Niveau */}
@@ -232,18 +280,22 @@ const InfoComplet = () => {
                 </label>
                 <div className="relative">
                   <select
-                    required
                     value={formData.class}
-                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                    onChange={(e) => setFormData({ ...formData, class: e.target.value })}
+                    className={`w-full px-8 py-5 bg-slate-50 border-2 rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all ${fieldErrors.class ? "border-red-200 focus:border-red-300 focus:bg-white" : "border-transparent focus:border-indigo-100 focus:bg-white"}`}
+                    onChange={(e) => { setFormData({ ...formData, class: e.target.value }); setFieldErrors((p) => ({ ...p, class: "" })); }}
                   >
                     <option value="">Sélectionner la classe</option>
                     {options.classes.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
+                      <option key={c._id} value={c._id}>
+                        {c.nickName ? `${c.name} (${c.nickName})` : c.name}
+                      </option>
                     ))}
                   </select>
                   <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
+                {fieldErrors.class && (
+                  <p className="text-red-600 text-xs font-semibold ml-5">{fieldErrors.class}</p>
+                )}
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
@@ -251,10 +303,9 @@ const InfoComplet = () => {
                 </label>
                 <div className="relative">
                   <select
-                    required
                     value={formData.level}
-                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all"
-                    onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                    className={`w-full px-8 py-5 bg-slate-50 border-2 rounded-3xl outline-none text-xs font-black text-slate-700 appearance-none cursor-pointer transition-all ${fieldErrors.level ? "border-red-200 focus:border-red-300 focus:bg-white" : "border-transparent focus:border-indigo-100 focus:bg-white"}`}
+                    onChange={(e) => { setFormData({ ...formData, level: e.target.value }); setFieldErrors((p) => ({ ...p, level: "" })); }}
                   >
                     <option value="">Sélectionner le niveau</option>
                     {options.levels.map((l) => (
@@ -263,39 +314,28 @@ const InfoComplet = () => {
                   </select>
                   <FiChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
+                {fieldErrors.level && (
+                  <p className="text-red-600 text-xs font-semibold ml-5">{fieldErrors.level}</p>
+                )}
               </div>
             </div>
 
-            {/* Spécialité */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-5 tracking-widest flex items-center gap-2">
-                <FiUser className="text-indigo-500" /> Spécialité
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Développement Web"
-                value={formData.specialite}
-                className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-3xl outline-none text-xs font-black text-slate-700 transition-all"
-                onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
-              />
-            </div>
-
             {/* Boutons */}
-            <div className="pt-6 flex flex-col sm:flex-row gap-4">
-              <button
-                type="submit"
-                disabled={submitLoading}
-                className="flex-1 bg-indigo-600 text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-4 group disabled:opacity-50"
-              >
-                {submitLoading ? "Envoi..." : "Confirmer mes informations"}
-                <FiSend size={18} className="group-hover:translate-x-1 transition-transform" />
-              </button>
+            <div className="pt-8 flex flex-col-reverse sm:flex-row gap-4 sm:gap-5">
               <button
                 type="button"
                 onClick={handleIgnore}
-                className="flex-1 bg-slate-100 text-slate-700 py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:bg-slate-200 transition-all border-2 border-slate-200"
+                className="w-full sm:w-auto sm:min-w-[140px] px-8 py-4 rounded-2xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
               >
                 Ignorer
+              </button>
+              <button
+                type="submit"
+                disabled={submitLoading}
+                className="w-full sm:flex-1 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitLoading ? "Envoi..." : "Confirmer mes informations"}
+                <FiSend size={18} />
               </button>
             </div>
           </form>

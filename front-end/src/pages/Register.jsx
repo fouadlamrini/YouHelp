@@ -16,9 +16,11 @@ export default function RegisterYouHelp() {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
-    if (!formData.email.match(/^\S+@\S+\.\S+$/)) newErrors.email = "Invalid email address";
-    if (formData.password.length < 8) newErrors.password = "Minimum 8 characters";
+    if (!formData.fullName.trim()) newErrors.fullName = "Le nom complet est requis";
+    const email = (formData.email ?? "").toString().trim();
+    if (!email) newErrors.email = "L'email est requis";
+    else if (!email.match(/^\S+@\S+\.\S+$/)) newErrors.email = "Adresse email invalide";
+    if (formData.password.length < 8) newErrors.password = "Minimum 8 caractères";
     return newErrors;
   };
 
@@ -108,7 +110,7 @@ export default function RegisterYouHelp() {
             <p className="text-slate-500 mt-3 font-medium text-lg">Create your YouHelp account now.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             {/* Input Wrapper */}
             {[
               { id: "fullName", label: "Full Name", icon: FiUser, type: "text" },

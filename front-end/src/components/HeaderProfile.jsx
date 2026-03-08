@@ -41,6 +41,10 @@ const HeaderProfile = () => {
   }, []);
 
   useEffect(() => {
+    if (!isActive) {
+      setFriendsCount(0);
+      return;
+    }
     friendsApi
       .list()
       .then((res) => {
@@ -48,11 +52,12 @@ const HeaderProfile = () => {
         setFriendsCount(list.length);
       })
       .catch(() => setFriendsCount(0));
-  }, []);
+  }, [isActive]);
 
   const displayName = profile?.name ?? authUser?.name ?? "";
   const profilePicture = profile?.profilePicture ?? authUser?.profilePicture;
   const coverPicture = profile?.coverPicture;
+  const isActive = (profile?.status ?? authUser?.status) === "active";
 
   const tabs = [
     { label: "Mes Posts", to: "/my-posts", icon: <FiEdit3 size={18} /> },
@@ -60,7 +65,7 @@ const HeaderProfile = () => {
     { label: "Mes Shares", to: "/my-shares", icon: <FiShare2 size={18} /> },
     { label: "Mes Favourites", to: "/my-favourites", icon: <FiHeart size={18} /> },
     { label: "Mes Workchop", to: "/my-workshops", icon: <FiTool size={18} /> },
-    { label: "Mes Amis", to: "/profile/friends", icon: <FiUsers size={18} /> },
+    ...(isActive ? [{ label: "Mes Amis", to: "/profile/friends", icon: <FiUsers size={18} /> }] : []),
   ];
 
   return (

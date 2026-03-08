@@ -24,10 +24,10 @@ const Login = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.email.match(/^\S+@\S+\.\S+$/))
-      newErrors.email = "Valid email is required";
-    if (!formData.password)
-      newErrors.password = "Password is required";
+    const email = (formData.email ?? "").toString().trim();
+    if (!email) newErrors.email = "L'email est requis";
+    else if (!email.match(/^\S+@\S+\.\S+$/)) newErrors.email = "Adresse email invalide";
+    if (!formData.password) newErrors.password = "Le mot de passe est requis";
     return newErrors;
   };
 
@@ -95,7 +95,7 @@ const Login = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             {/* Email */}
             <div className="relative">
               <input

@@ -28,7 +28,6 @@ const userSchema = new mongoose.Schema(
       default: 'pending'
     },
     completeProfile: { type: Boolean, default: false },
-    specialite: { type: String, default: null }
 
   },
   { timestamps: true },

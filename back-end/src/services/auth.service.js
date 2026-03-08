@@ -101,12 +101,11 @@ async function completeProfile(userId, body) {
   if (!user) return { error: { status: 404, message: "User not found" } };
   if (user.completeProfile) return { error: { status: 400, message: "Profile already completed" } };
 
-  const { campus, class: classId, level, specialite, profilePicture } = body;
+  const { campus, class: classId, level, profilePicture } = body;
   const updateData = { completeProfile: true, status: "pending" };
   if (campus !== undefined) updateData.campus = campus || null;
   if (classId !== undefined) updateData.class = classId || null;
   if (level !== undefined) updateData.level = level || null;
-  if (specialite !== undefined) updateData.specialite = specialite || null;
   if (profilePicture !== undefined) updateData.profilePicture = profilePicture || user.profilePicture;
 
   const updated = await User.findByIdAndUpdate(userId, updateData, {

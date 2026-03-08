@@ -39,7 +39,10 @@ function NavbarLoggedIn() {
     return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   };
 
+  const isActive = user?.status === "active";
+
   const loadInvitations = () => {
+    if (!isActive) return;
     setInvitationsLoading(true);
     friendRequestsApi.getReceived()
       .then((res) => setInvitations(res.data?.data ?? []))
@@ -48,12 +51,12 @@ function NavbarLoggedIn() {
   };
 
   useEffect(() => {
-    loadInvitations();
-  }, []);
+    if (isActive) loadInvitations();
+  }, [isActive]);
 
   useEffect(() => {
-    if (activeDropdown === "invitations") loadInvitations();
-  }, [activeDropdown]);
+    if (isActive && activeDropdown === "invitations") loadInvitations();
+  }, [isActive, activeDropdown]);
 
   const loadConversations = () => {
     setConversationsLoading(true);
@@ -170,51 +173,53 @@ function NavbarLoggedIn() {
       <div className="flex items-center gap-4">
         
         <div className="flex items-center gap-1 mr-2 relative nav-dropdown-container">
-          {/* INVITATIONS */}
-          <div className="relative">
-            <button onClick={() => toggleDropdown('invitations')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'invitations' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-              <FiUserPlus size={20} />
-              {invitations.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
-                  {invitations.length > 99 ? "99+" : invitations.length}
-                </span>
-              )}
-            </button>
-            {activeDropdown === 'invitations' && (
-              <div className={dropdownStyles}>
-                <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Invitations</p>
-                  <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
-                    Inviter
-                  </Link>
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {invitationsLoading ? (
-                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
-                  ) : invitations.length === 0 ? (
-                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Aucune demande</div>
-                  ) : (
-                    <div className="space-y-1">
-                      {invitations.map((req) => (
-                        <div key={req._id} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300">
-                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-100">
-                            <img
-                              src={req.fromUser?.profilePicture ? resolveAvatarUrl(req.fromUser.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
+          {/* INVITATIONS — réservé aux comptes activés */}
+          {isActive && (
+            <div className="relative">
+              <button onClick={() => toggleDropdown('invitations')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'invitations' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                <FiUserPlus size={20} />
+                {invitations.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                    {invitations.length > 99 ? "99+" : invitations.length}
+                  </span>
+                )}
+              </button>
+              {activeDropdown === 'invitations' && (
+                <div className={dropdownStyles}>
+                  <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Invitations</p>
+                    <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
+                      Inviter
+                    </Link>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {invitationsLoading ? (
+                      <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
+                    ) : invitations.length === 0 ? (
+                      <div className="italic text-center py-6 text-sm font-bold text-slate-400">Aucune demande</div>
+                    ) : (
+                      <div className="space-y-1">
+                        {invitations.map((req) => (
+                          <div key={req._id} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300">
+                            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-100">
+                              <img
+                                src={req.fromUser?.profilePicture ? resolveAvatarUrl(req.fromUser.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <span className="flex-1 text-sm font-bold tracking-tight truncate">{req.fromUser?.name || "?"}</span>
+                            <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-2 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-all" title="Accepter"><FiCheck size={16} /></button>
+                            <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200 transition-all" title="Refuser"><FiX size={16} /></button>
                           </div>
-                          <span className="flex-1 text-sm font-bold tracking-tight truncate">{req.fromUser?.name || "?"}</span>
-                          <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-2 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-all" title="Accepter"><FiCheck size={16} /></button>
-                          <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200 transition-all" title="Refuser"><FiX size={16} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* MESSAGES */}
           <div className="relative">

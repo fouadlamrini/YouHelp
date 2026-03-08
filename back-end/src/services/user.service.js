@@ -123,6 +123,7 @@ async function getAll(currentUserId) {
   const current = await getCurrentUserWithContext(currentUserId);
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
   const filter = await buildListFilter(current);
+  filter.completeProfile = true;
   const users = await User.find(filter)
     .populate("role", "name")
     .populate("campus", "name")

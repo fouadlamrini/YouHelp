@@ -31,7 +31,6 @@ const completeProfileSchema = yup.object({
   campus: yup.string().nullable(),
   class: yup.string().nullable(),
   level: yup.string().nullable(),
-  specialite: yup.string().nullable(),
   profilePicture: yup.string().nullable(),
 });
 

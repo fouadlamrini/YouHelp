@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
 import api, { friendsApi, friendRequestsApi } from "../services/api";
 
 const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
@@ -15,6 +17,8 @@ function resolveAvatarUrl(src) {
 }
 
 const FriendsList = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +26,14 @@ const FriendsList = () => {
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableLoading, setAvailableLoading] = useState(false);
   const [sendingId, setSendingId] = useState(null);
+
+  const isActive = user?.status === "active";
+
+  useEffect(() => {
+    if (user && !isActive) {
+      navigate("/posts", { replace: true });
+    }
+  }, [user, isActive, navigate]);
 
   const fetchFriends = () => {
     setLoading(true);
@@ -33,8 +45,8 @@ const FriendsList = () => {
   };
 
   useEffect(() => {
-    fetchFriends();
-  }, []);
+    if (isActive) fetchFriends();
+  }, [isActive]);
 
   const handleUnfriend = (userId, name) => {
     if (!window.confirm(`Bghiti t-annuler l'amitié m3a ${name}?`)) return;
@@ -68,6 +80,8 @@ const FriendsList = () => {
   const filteredFriends = friends.filter((f) =>
     (f.name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (user && !isActive) return null;
 
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden text-left">
