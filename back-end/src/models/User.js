@@ -24,8 +24,8 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'rejected'],
-      default: 'pending'
+      enum: ["pending", "active", "inactive", "rejected"],
+      default: "pending",
     },
     completeProfile: { type: Boolean, default: false },
 

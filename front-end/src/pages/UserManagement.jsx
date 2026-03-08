@@ -15,6 +15,7 @@ const roleBadgeClass = (roleName) => {
 
 const statusBadgeClass = (status) => {
   if (status === "active") return "bg-emerald-100 text-emerald-600";
+  if (status === "inactive") return "bg-slate-100 text-slate-600";
   if (status === "rejected") return "bg-rose-100 text-rose-600";
   return "bg-amber-100 text-amber-600";
 };
@@ -29,6 +30,9 @@ const UserManagement = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCampus, setFilterCampus] = useState("");
+  const [filterClass, setFilterClass] = useState("");
+  const [filterLevel, setFilterLevel] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -67,16 +71,21 @@ const UserManagement = () => {
   };
 
   const fetchUsers = () => {
+    const params = {};
+    if (filterCampus) params.campus = filterCampus;
+    if (filterClass) params.class = filterClass;
+    if (filterLevel) params.level = filterLevel;
+    setLoading(true);
     usersApi
-      .getAll()
+      .getAll(params)
       .then((r) => setUsers(r.data?.data ?? []))
-      .catch(() => setUsers([]));
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      usersApi.getAll().then((r) => setUsers(r.data?.data ?? [])).catch(() => setUsers([])),
       campusApi.getAll().then((r) => setCampuses(r.data?.data ?? [])).catch(() => setCampuses([])),
       classApi.getAll().then((r) => setClasses(r.data?.data ?? [])).catch(() => setClasses([])),
       levelApi.getAll().then((r) => setLevels(r.data?.data ?? [])).catch(() => setLevels([])),
@@ -87,6 +96,19 @@ const UserManagement = () => {
         .catch(() => setAvailableAvatars([])),
     ]).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const params = {};
+    if (filterCampus) params.campus = filterCampus;
+    if (filterClass) params.class = filterClass;
+    if (filterLevel) params.level = filterLevel;
+    setLoading(true);
+    usersApi
+      .getAll(params)
+      .then((r) => setUsers(r.data?.data ?? []))
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, [filterCampus, filterClass, filterLevel]);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -252,6 +274,14 @@ const UserManagement = () => {
       .acceptUser(user._id)
       .then(() => fetchUsers())
       .catch((err) => alert(err.response?.data?.message || "Non autorisé pour cet utilisateur"));
+  };
+
+  const handleToggleStatus = (u) => {
+    const newStatus = u.status === "active" ? "inactive" : "active";
+    usersApi
+      .update(u._id, { status: newStatus })
+      .then(() => fetchUsers())
+      .catch((err) => alert(err.response?.data?.message || "Erreur"));
   };
 
   const handleRejectUser = (user) => {
@@ -539,15 +569,50 @@ const UserManagement = () => {
               </div>
 
               <div className="lg:col-span-2 space-y-4">
-                <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                  <FiSearch className="text-slate-400 ml-2" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Filtrer par nom ou email..."
-                    className="flex-1 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm space-y-4">
+                  <div className="flex items-center gap-4">
+                    <FiSearch className="text-slate-400 ml-2 shrink-0" size={20} />
+                    <input
+                      type="text"
+                      placeholder="Filtrer par nom ou email..."
+                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtres :</span>
+                    <select
+                      value={filterCampus}
+                      onChange={(e) => setFilterCampus(e.target.value)}
+                      className="px-4 py-2.5 bg-slate-50 border-none rounded-xl text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value="">Tous les campus</option>
+                      {campuses.map((c) => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filterClass}
+                      onChange={(e) => setFilterClass(e.target.value)}
+                      className="px-4 py-2.5 bg-slate-50 border-none rounded-xl text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value="">Toutes les classes</option>
+                      {classes.map((cl) => (
+                        <option key={cl._id} value={cl._id}>{cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filterLevel}
+                      onChange={(e) => setFilterLevel(e.target.value)}
+                      className="px-4 py-2.5 bg-slate-50 border-none rounded-xl text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value="">Tous les niveaux</option>
+                      {levels.map((l) => (
+                        <option key={l._id} value={l._id}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
@@ -618,14 +683,43 @@ const UserManagement = () => {
                                 </div>
                               </td>
                               <td className="p-6">
-                                <span
-                                  className={
-                                    "text-[9px] font-black uppercase px-2 py-1 rounded-md " +
-                                    statusBadgeClass(user.status)
-                                  }
-                                >
-                                  {user.status === "active" ? "Actif" : user.status === "rejected" ? "Refusé" : "En attente"}
-                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={
+                                      "text-[9px] font-black uppercase px-2 py-1 rounded-md " +
+                                      statusBadgeClass(user.status)
+                                    }
+                                  >
+                                    {user.status === "active"
+                                      ? "Actif"
+                                      : user.status === "inactive"
+                                        ? "Inactif"
+                                        : user.status === "rejected"
+                                          ? "Refusé"
+                                          : "En attente"}
+                                  </span>
+                                  {(user.status === "active" || user.status === "inactive") &&
+                                    (user._id !== authUser?.id) && (
+                                    <button
+                                      type="button"
+                                      role="switch"
+                                      aria-checked={user.status === "active"}
+                                      onClick={() => handleToggleStatus(user)}
+                                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                                        user.status === "active"
+                                          ? "bg-emerald-500 border-emerald-500"
+                                          : "bg-slate-200 border-slate-200"
+                                      }`}
+                                      title={user.status === "active" ? "Désactiver" : "Activer"}
+                                    >
+                                      <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${
+                                          user.status === "active" ? "translate-x-5" : "translate-x-0.5"
+                                        }`}
+                                      />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                               <td className="p-6">
                                 <div className="flex justify-end gap-2 pr-4">

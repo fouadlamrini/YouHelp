@@ -119,11 +119,14 @@ async function updateProfile(userId, body) {
   return { data: user };
 }
 
-async function getAll(currentUserId) {
+async function getAll(currentUserId, query = {}) {
   const current = await getCurrentUserWithContext(currentUserId);
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
   const filter = await buildListFilter(current);
   filter.completeProfile = true;
+  if (query.campus) filter.campus = query.campus;
+  if (query.class) filter.class = query.class;
+  if (query.level) filter.level = query.level;
   const users = await User.find(filter)
     .populate("role", "name")
     .populate("campus", "name")
@@ -154,7 +157,7 @@ async function update(currentUserId, targetUserId, body) {
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
   const allowed = await canManage(current, targetUserId);
   if (!allowed) return { error: { status: 403, message: "Forbidden" } };
-  const { name, email, role: roleId, campus, class: classId, level, profilePicture } = body;
+  const { name, email, role: roleId, campus, class: classId, level, profilePicture, status: statusValue } = body;
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (email !== undefined) updateData.email = email.toLowerCase();
@@ -162,6 +165,12 @@ async function update(currentUserId, targetUserId, body) {
   if (classId !== undefined) updateData.class = classId || null;
   if (level !== undefined) updateData.level = level || null;
   if (profilePicture !== undefined) updateData.profilePicture = profilePicture || null;
+  if (statusValue !== undefined && ["active", "inactive"].includes(statusValue)) {
+    const target = await User.findById(targetUserId).populate("role", "name");
+    const targetRoleName = target?.role?.name ?? null;
+    if (targetRoleName === "super_admin") return { error: { status: 403, message: "Cannot change super_admin status" } };
+    updateData.status = statusValue;
+  }
   if (roleId !== undefined) {
     const roleDoc = await Role.findById(roleId);
     if (!roleDoc) return { error: { status: 400, message: "Role not found" } };

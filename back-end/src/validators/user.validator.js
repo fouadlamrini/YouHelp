@@ -30,6 +30,7 @@ const updateUserSchema = yup.object({
   class: yup.string().nullable().optional(),
   level: yup.string().nullable().optional(),
   profilePicture: yup.string().nullable().optional(),
+  status: yup.string().oneOf(["active", "inactive"]).optional(),
 });
 
 module.exports = {
