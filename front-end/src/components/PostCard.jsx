@@ -208,7 +208,6 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
     setReacting(true);
     postApi.reaction(post.id).then((r) => {
       setReactionCount(r.data.totalReactions ?? reactionCount + (r.data.message?.includes("Reacted") ? 1 : -1));
-      onRefresh?.();
     }).catch(() => {}).finally(() => setReacting(false));
   };
 
@@ -708,8 +707,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         </button>
         <button
           type="button"
-          onClick={handleReaction}
-          disabled={readOnly}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReaction(); }}
+          disabled={readOnly || reacting}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
           <FiHelpCircle size={18} /> Même prob <span className="text-amber-600">({reactionCount})</span>
