@@ -30,6 +30,8 @@ const HeaderProfile = () => {
   const [friendsCount, setFriendsCount] = useState(0);
   const [coverFullscreen, setCoverFullscreen] = useState(false);
 
+  const isActive = (profile?.status ?? authUser?.status) === "active";
+
   useEffect(() => {
     usersApi
       .getMe()
@@ -57,7 +59,6 @@ const HeaderProfile = () => {
   const displayName = profile?.name ?? authUser?.name ?? "";
   const profilePicture = profile?.profilePicture ?? authUser?.profilePicture;
   const coverPicture = profile?.coverPicture;
-  const isActive = (profile?.status ?? authUser?.status) === "active";
 
   const tabs = [
     { label: "Mes Posts", to: "/my-posts", icon: <FiEdit3 size={18} /> },

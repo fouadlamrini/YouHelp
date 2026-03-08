@@ -86,6 +86,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [solution, setSolution] = useState(null);
   const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
   const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
+  const [shareCount, setShareCount] = useState(rawPost?.shareCount ?? 0);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState(post?.content || "");
@@ -97,7 +98,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   useEffect(() => {
     setReactionCount(rawPost?.reactionCount ?? 0);
     setSameContextCount(rawPost?.sameContextReactionCount ?? 0);
-  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount]);
+    setShareCount(rawPost?.shareCount ?? 0);
+  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount, rawPost?.shareCount]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [reacting, setReacting] = useState(false);
@@ -213,7 +215,11 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   const handleShare = () => {
     if (readOnly || !post.id) return;
-    postApi.share(post.id).then(() => onRefresh?.()).catch(() => {});
+    postApi.share(post.id).then((r) => {
+      const total = r.data?.totalShares ?? r.data?.data?.totalShares;
+      if (typeof total === "number") setShareCount(total);
+      else setShareCount((prev) => prev + 1);
+    }).catch(() => {});
   };
 
   const handleFavorite = () => {
@@ -356,7 +362,6 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   };
 
   const commentCount = rawPost?.commentCount ?? 0;
-  const shareCount = rawPost?.shareCount ?? 0;
 
   const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
@@ -715,7 +720,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         </button>
         <button
           type="button"
-          onClick={handleShare}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }}
           disabled={readOnly}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
