@@ -128,7 +128,7 @@ const MyFavorites = () => {
                         <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Questions & Problems</h2>
                       </div>
                       {filteredPosts.map((post) => (
-                        <PostCard key={post._id} post={post} onRefresh={loadFavorites} />
+                        <PostCard key={post._id} post={post} onFavoriteRemoved={loadFavorites} />
                       ))}
                     </div>
                   )}

@@ -68,7 +68,7 @@ const normalizePost = (post) => {
   };
 };
 
-const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = null, scrollToCommentId = null }) => {
+const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemoved = null, sharedInfo = null, scrollToCommentId = null }) => {
   const { user } = useAuth();
   const post = normalizePost(rawPost);
   const authorId = rawPost?.author?._id || rawPost?.author;
@@ -224,12 +224,11 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
     if (isFavorite) {
       favoritesApi.remove({ contentType: "post", contentId: post.id }).then(() => {
         setIsFavorite(false);
-        onRefresh?.();
+        onFavoriteRemoved?.();
       }).catch(() => {}).finally(done);
     } else {
       favoritesApi.add({ contentType: "post", contentId: post.id }).then(() => {
         setIsFavorite(true);
-        onRefresh?.();
       }).catch(() => {}).finally(done);
     }
   };
@@ -691,7 +690,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, sharedInfo = nul
       <div className="p-2 grid grid-cols-4 gap-1 border-t border-slate-50 bg-white">
         <button
           type="button"
-          onClick={handleFavorite}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFavorite(e); }}
           disabled={readOnly || loadingFavorite}
           className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none ${
             isFavorite ? "text-rose-600 bg-rose-50 hover:bg-rose-100" : "text-slate-600 hover:bg-rose-50 hover:text-rose-600"
