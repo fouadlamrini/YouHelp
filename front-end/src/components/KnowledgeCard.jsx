@@ -183,7 +183,6 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         .then(() => {
           setIsFavorite(false);
           onFavoriteClick?.(false);
-          onRefresh?.();
         })
         .catch(() => {})
         .finally(done);
@@ -193,7 +192,6 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         .then(() => {
           setIsFavorite(true);
           onFavoriteClick?.(true);
-          onRefresh?.();
         })
         .catch(() => {})
         .finally(done);
@@ -373,7 +371,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         {/* ACTIONS */}
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
           <button
-            onClick={handleFavoriteClick}
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFavoriteClick(); }}
             disabled={loadingFavorite || readOnly}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
               isFavorite
