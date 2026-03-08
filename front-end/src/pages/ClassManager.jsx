@@ -64,8 +64,9 @@ const ClassManager = () => {
       setError("Le nom est requis");
       return;
     }
-    if (year.trim() !== "") {
-      const yearNum = Number(year);
+    const yearStr = String(year ?? "").trim();
+    if (yearStr !== "") {
+      const yearNum = Number(yearStr);
       if (!Number.isInteger(yearNum) || yearNum < 2018) {
         setError("L'année doit être un nombre supérieur ou égal à 2018.");
         return;
@@ -75,8 +76,8 @@ const ClassManager = () => {
     setError("");
     const payload = {
       name: name.trim(),
-      nickName: nickName.trim() || undefined,
-      year: year ? Number(year) : undefined,
+      nickName: (nickName != null ? String(nickName) : "").trim() || undefined,
+      year: yearStr ? Number(yearStr) : undefined,
       campus: campus || undefined,
     };
     const promise = editing
