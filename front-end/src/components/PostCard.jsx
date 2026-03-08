@@ -87,6 +87,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
   const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
   const [shareCount, setShareCount] = useState(rawPost?.shareCount ?? 0);
+  const [commentCount, setCommentCount] = useState(rawPost?.commentCount ?? 0);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState(post?.content || "");
@@ -99,7 +100,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
     setReactionCount(rawPost?.reactionCount ?? 0);
     setSameContextCount(rawPost?.sameContextReactionCount ?? 0);
     setShareCount(rawPost?.shareCount ?? 0);
-  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount, rawPost?.shareCount]);
+    setCommentCount(rawPost?.commentCount ?? 0);
+  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount, rawPost?.shareCount, rawPost?.commentCount]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [reacting, setReacting] = useState(false);
@@ -191,7 +193,14 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   const loadComments = () => {
     if (!post.id) return Promise.resolve();
-    return commentApi.getByPost(post.id).then((r) => setComments(r.data?.data ?? r.data ?? [])).catch(() => setComments([]));
+    return commentApi
+      .getByPost(post.id)
+      .then((r) => {
+        const list = r.data?.data ?? r.data ?? [];
+        setComments(list);
+        setCommentCount(list.length);
+      })
+      .catch(() => { setComments([]); });
   };
 
   useEffect(() => {
@@ -355,13 +364,11 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
     req.then(() => {
       setCommentText("");
       setCommentMediaFiles([]);
+      setCommentCount((prev) => prev + 1);
       loadComments();
-      onRefresh?.();
       setTimeout(() => commentInputRef.current?.focus(), 0);
     }).catch(() => {}).finally(() => setSendingComment(false));
   };
-
-  const commentCount = rawPost?.commentCount ?? 0;
 
   const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
 
@@ -782,7 +789,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                   key={c._id || c.id}
                   comment={c}
                   postId={post.id}
-                  onRefresh={() => { loadComments(); onRefresh?.(); }}
+                  onRefresh={loadComments}
                 />
               ))
             ) : (
@@ -861,7 +868,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                       </div>
                       <button
                         type="button"
-                        onClick={handleSendComment}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSendComment(); }}
                         disabled={sendingComment || (!commentText.trim() && !commentMediaFiles.length)}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs disabled:opacity-50"
                       >
