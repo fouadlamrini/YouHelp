@@ -52,6 +52,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const [sendingComment, setSendingComment] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shareCount, setShareCount] = useState(data.shareCount ?? 0);
   const media = Array.isArray(data.media)
     ? data.media
     : data.mediaUrl
@@ -89,6 +90,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   useEffect(() => {
     setIsFavorite(isFavoriteProp);
   }, [isFavoriteProp]);
+
+  useEffect(() => {
+    setShareCount(data.shareCount ?? 0);
+  }, [data.shareCount]);
 
   useEffect(() => {
     if (!scrollToCommentId || !data.id) return;
@@ -201,10 +206,11 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const handleShare = () => {
     if (readOnly) return;
     if (!data.id) return;
-    knowledgeApi
-      .share(data.id)
-      .then(() => onRefresh?.())
-      .catch(() => {});
+    knowledgeApi.share(data.id).then((r) => {
+      const total = r.data?.shareCount ?? r.data?.data?.shareCount;
+      if (typeof total === "number") setShareCount(total);
+      else setShareCount((prev) => prev + 1);
+    }).catch(() => {});
   };
 
   const handleDeleteKnowledge = () => {
@@ -396,12 +402,12 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
           <button
             type="button"
-            onClick={handleShare}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }}
             disabled={readOnly}
             className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FiShare2 size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Share <span className="text-emerald-600">({data.shareCount ?? 0})</span></span>
+            <span className="text-[11px] font-black uppercase tracking-tight">Share <span className="text-emerald-600">({shareCount})</span></span>
           </button>
         </div>
 
