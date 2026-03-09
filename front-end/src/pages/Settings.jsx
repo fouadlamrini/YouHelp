@@ -50,6 +50,9 @@ const Settings = () => {
   });
   const [profileMessage, setProfileMessage] = useState({ type: null, text: "" });
   const [activeTab, setActiveTab] = useState("profile");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const handleLogout = async () => {
     try {
@@ -61,12 +64,14 @@ const Settings = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est définitive."
-    );
-    if (!confirmed) return;
+  const handleDeleteAccount = () => {
+    setDeleteError("");
+    setShowDeleteModal(true);
+  };
 
+  const confirmDeleteAccount = async () => {
+    setDeleteError("");
+    setDeleteLoading(true);
     try {
       await usersApi.deleteMe();
       await logout();
@@ -75,7 +80,8 @@ const Settings = () => {
       const msg =
         err?.response?.data?.message ||
         "Erreur lors de la suppression du compte. Veuillez réessayer.";
-      alert(msg);
+      setDeleteError(msg);
+      setDeleteLoading(false);
     }
   };
 
@@ -624,6 +630,50 @@ const Settings = () => {
       </div>
 
       <Messaging />
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-500 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 space-y-4">
+            <h3 className="text-sm font-black text-rose-600 uppercase tracking-[0.2em]">
+              Supprimer définitivement le compte
+            </h3>
+            <p className="text-sm text-slate-600">
+              Cette action est <span className="font-semibold">irréversible</span>. Votre compte, vos
+              posts, vos connaissances et toutes vos données associées seront supprimés
+              définitivement.
+            </p>
+            {deleteError && (
+              <div className="px-3 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200">
+                {deleteError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={() => {
+                  if (!deleteLoading) {
+                    setShowDeleteModal(false);
+                    setDeleteError("");
+                  }
+                }}
+                className="px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAccount}
+                disabled={deleteLoading}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl bg-rose-600 text-white text-[11px] font-black uppercase tracking-[0.18em] hover:bg-rose-700 disabled:opacity-60"
+              >
+                <FiTrash2 size={14} />
+                {deleteLoading ? "Suppression..." : "Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
