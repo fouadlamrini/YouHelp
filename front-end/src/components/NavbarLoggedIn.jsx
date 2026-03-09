@@ -235,9 +235,6 @@ function NavbarLoggedIn() {
               <div className={dropdownStyles}>
                 <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Messages</p>
-                  <Link to="/posts" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
-                    Voir tout
-                  </Link>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {conversationsLoading ? (
