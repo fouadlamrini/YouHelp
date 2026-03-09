@@ -58,7 +58,12 @@ async function remove(me, targetUserId) {
     ],
   });
   if (!doc) return { error: { status: 404, message: "Friendship not found" } };
-  return { ok: true };
+  return {
+    data: {
+      user1: me,
+      user2: targetUserId,
+    },
+  };
 }
 
 async function list(me) {

@@ -86,7 +86,12 @@ async function accept(me, requestId) {
   const [id1, id2] = normalizePair(request.fromUser._id, request.toUser._id);
   await Friend.create({ user1: id1, user2: id2 });
   await FriendRequest.findByIdAndDelete(requestId);
-  return { ok: true };
+  return {
+    data: {
+      fromUser: request.fromUser,
+      toUser: request.toUser,
+    },
+  };
 }
 
 async function reject(me, requestId) {

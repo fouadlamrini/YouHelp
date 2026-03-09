@@ -93,6 +93,28 @@ const FriendsList = () => {
     };
   }, [isActive, showInviteModal]);
 
+  // Realtime update of friends list (accept / unfriend)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !isActive) return;
+    const handler = () => {
+      fetchFriends();
+      // si le modal Inviter est ouvert, on recharge aussi la liste des utilisateurs disponibles
+      if (showInviteModal) {
+        setAvailableLoading(true);
+        friendRequestsApi
+          .getAvailableUsers()
+          .then((res) => setAvailableUsers(res.data?.data ?? []))
+          .catch(() => setAvailableUsers([]))
+          .finally(() => setAvailableLoading(false));
+      }
+    };
+    socket.on("friends-updated", handler);
+    return () => {
+      socket.off("friends-updated", handler);
+    };
+  }, [isActive, showInviteModal]);
+
   const handleUnfriend = (userId, name) => {
     setFriendToUnfriend({ id: userId, name });
     setShowUnfriendModal(true);
@@ -135,8 +157,11 @@ const FriendsList = () => {
       .finally(() => setSendingId(null));
   };
 
-  const filteredFriends = friends.filter((f) =>
-    (f.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+  // On sécurise le tableau d'amis pour éviter les valeurs null/undefined
+  const safeFriends = (friends || []).filter((f) => f && typeof f === "object");
+
+  const filteredFriends = safeFriends.filter((f) =>
+    ((f.name || f.email || "") || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Options de filtrage pour le modal "Inviter"

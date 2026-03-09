@@ -24,6 +24,21 @@ class FriendController {
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }
+      const removed = result.data;
+
+      // Notifier les deux utilisateurs que la liste d'amis a changé (temps réel)
+      try {
+        const emitToUser = req.app.get("emitToUser");
+        if (emitToUser && removed?.user1 && removed?.user2) {
+          const user1 = removed.user1.toString();
+          const user2 = removed.user2.toString();
+          emitToUser(user1, "friends-updated", { with: user2 });
+          emitToUser(user2, "friends-updated", { with: user1 });
+        }
+      } catch (e) {
+        // ignore socket errors
+      }
+
       return res.json({ success: true, message: "Friend removed" });
     } catch (err) {
       console.error(err);
