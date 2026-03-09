@@ -247,11 +247,16 @@ function NavbarLoggedIn() {
                   ) : (
                     <div className="space-y-1">
                       {conversations.map((conv) => (
-                        <Link
+                        <button
                           key={conv.user._id}
-                          to={`/posts?chat=${conv.user._id}`}
-                          onClick={() => setActiveDropdown(null)}
-                          className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300"
+                          type="button"
+                          onClick={() => {
+                            window.dispatchEvent(
+                              new CustomEvent("open-chat", { detail: { userId: conv.user._id } })
+                            );
+                            setActiveDropdown(null);
+                          }}
+                          className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300"
                         >
                           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold shrink-0 overflow-hidden">
                             {conv.user.profilePicture ? (
@@ -267,7 +272,7 @@ function NavbarLoggedIn() {
                             </div>
                             <p className="text-xs text-slate-500 truncate">{conv.lastMessage?.content || "Aucun message"}</p>
                           </div>
-                        </Link>
+                        </button>
                       ))}
                     </div>
                   )}

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend, FiTrash2, FiMic,
 } from "react-icons/fi";
@@ -22,7 +21,6 @@ function resolveAvatarUrl(src) {
 }
 
 const Messaging = ({ openChatUserId = null }) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [isMinimized, setIsMinimized] = useState(true);
   const [activeChat, setActiveChat] = useState(null);
@@ -48,6 +46,7 @@ const Messaging = ({ openChatUserId = null }) => {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordingStreamRef = useRef(null);
+  const [pendingUserId, setPendingUserId] = useState(null);
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
@@ -100,13 +99,40 @@ const Messaging = ({ openChatUserId = null }) => {
 
   useEffect(() => {
     if (!openChatUserId || conversations.length === 0) return;
-    const conv = conversations.find((c) => (c.user._id || c.user).toString() === openChatUserId.toString());
+    const conv = conversations.find(
+      (c) => (c.user._id || c.user).toString() === openChatUserId.toString()
+    );
     if (conv) {
       setActiveChat(conv);
       setIsMinimized(false);
-      navigate("/posts", { replace: true });
+      setPendingUserId(null);
+    } else {
+      setPendingUserId(openChatUserId);
     }
-  }, [openChatUserId, conversations, navigate]);
+  }, [openChatUserId, conversations]);
+
+  useEffect(() => {
+    if (!pendingUserId || conversations.length === 0) return;
+    const conv = conversations.find(
+      (c) => (c.user._id || c.user).toString() === pendingUserId.toString()
+    );
+    if (conv) {
+      setActiveChat(conv);
+      setIsMinimized(false);
+      setPendingUserId(null);
+    }
+  }, [pendingUserId, conversations]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const userId = e.detail?.userId;
+      if (!userId) return;
+      setIsMinimized(false);
+      setPendingUserId(userId);
+    };
+    window.addEventListener("open-chat", handler);
+    return () => window.removeEventListener("open-chat", handler);
+  }, []);
 
   useEffect(() => {
     if (!showNewChat || !user?.id) return;
