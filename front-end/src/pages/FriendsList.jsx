@@ -26,6 +26,8 @@ const FriendsList = () => {
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableLoading, setAvailableLoading] = useState(false);
   const [sendingId, setSendingId] = useState(null);
+  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
+  const [friendToUnfriend, setFriendToUnfriend] = useState(null); // { id, name } | null
 
   const isActive = user?.status === "active";
 
@@ -49,11 +51,24 @@ const FriendsList = () => {
   }, [isActive]);
 
   const handleUnfriend = (userId, name) => {
-    if (!window.confirm(`Bghiti t-annuler l'amitié m3a ${name}?`)) return;
+    setFriendToUnfriend({ id: userId, name });
+    setShowUnfriendModal(true);
+  };
+
+  const confirmUnfriend = () => {
+    if (!friendToUnfriend) return;
+    const { id, name } = friendToUnfriend;
     friendsApi
-      .remove(userId)
-      .then(() => fetchFriends())
-      .catch((err) => alert(err.response?.data?.message || "Erreur"));
+      .remove(id)
+      .then(() => {
+        setShowUnfriendModal(false);
+        setFriendToUnfriend(null);
+        fetchFriends();
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-alert
+        alert(err.response?.data?.message || `Erreur lors de la suppression de l'amitié avec ${name}`);
+      });
   };
 
   const openInviteModal = () => {
@@ -256,6 +271,37 @@ const FriendsList = () => {
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Annuler Amitié */}
+      {showUnfriendModal && friendToUnfriend && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6">
+            <p className="text-sm font-semibold text-slate-800 mb-6">
+              Voulez-vous vraiment annuler l'amitié avec{" "}
+              <span className="font-bold text-indigo-600">{friendToUnfriend.name}</span> ?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnfriendModal(false);
+                  setFriendToUnfriend(null);
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmUnfriend}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700"
+              >
+                Supprimer l'amitié
+              </button>
             </div>
           </div>
         </div>
