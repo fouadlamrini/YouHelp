@@ -233,17 +233,40 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   const handleFavorite = () => {
     if (readOnly || loadingFavorite || !post.id) return;
+    // Debug: vérifier quel ID est envoyé au back
+    // eslint-disable-next-line no-console
+    console.log("Favorite click post id:", {
+      postId: post.id,
+      rawPostId: rawPost?._id || rawPost?.id,
+      rawPost,
+    });
     setLoadingFavorite(true);
     const done = () => setLoadingFavorite(false);
     if (isFavorite) {
-      favoritesApi.remove({ contentType: "post", contentId: post.id }).then(() => {
-        setIsFavorite(false);
-        onFavoriteRemoved?.();
-      }).catch(() => {}).finally(done);
+      favoritesApi
+        .remove({ contentType: "post", contentId: post.id })
+        .then(() => {
+          setIsFavorite(false);
+          onFavoriteRemoved?.();
+        })
+        .catch((err) => {
+          // Debug erreur favoris (back renvoie 400, etc.)
+          // eslint-disable-next-line no-console
+          console.log("Favorite REMOVE error (post):", err?.response?.data || err?.message || err);
+        })
+        .finally(done);
     } else {
-      favoritesApi.add({ contentType: "post", contentId: post.id }).then(() => {
-        setIsFavorite(true);
-      }).catch(() => {}).finally(done);
+      favoritesApi
+        .add({ contentType: "post", contentId: post.id })
+        .then(() => {
+          setIsFavorite(true);
+        })
+        .catch((err) => {
+          // Debug erreur favoris (back renvoie 400, etc.)
+          // eslint-disable-next-line no-console
+          console.log("Favorite ADD error (post):", err?.response?.data || err?.message || err);
+        })
+        .finally(done);
     }
   };
 

@@ -198,7 +198,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           setIsFavorite(false);
           onFavoriteClick?.(false);
         })
-        .catch(() => {})
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.log("Favorite REMOVE error (knowledge):", err?.response?.data || err?.message || err);
+        })
         .finally(done);
     } else {
       favoritesApi
@@ -207,7 +210,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           setIsFavorite(true);
           onFavoriteClick?.(true);
         })
-        .catch(() => {})
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.log("Favorite ADD error (knowledge):", err?.response?.data || err?.message || err);
+        })
         .finally(done);
     }
   };
