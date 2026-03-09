@@ -281,7 +281,13 @@ const UserManagement = () => {
     const newStatus = u.status === "active" ? "inactive" : "active";
     usersApi
       .update(u._id, { status: newStatus })
-      .then(() => fetchUsers())
+      .then(() => {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user._id === u._id ? { ...user, status: newStatus } : user
+          )
+        );
+      })
       .catch((err) => alert(err.response?.data?.message || "Erreur"));
   };
 
