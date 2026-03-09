@@ -49,20 +49,28 @@ const OAuthCallback = () => {
           console.log('OAuth Callback - Parsed User:', user);
           
           // Store in localStorage
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+
           // Update context
           authContext.setUser(user);
-          
-          console.log('OAuth Callback - User role:', user.role);
-          
+
+          console.log("OAuth Callback - User role:", user.role);
+          console.log("OAuth Callback - completeProfile:", user.completeProfile);
+          console.log("OAuth Callback - status:", user.status);
+
           // Clear URL parameters to prevent re-processing
           window.history.replaceState({}, document.title, window.location.pathname);
-          
-          // Small delay to ensure state is updated
+
+          // Small delay to ensure state is updated, then redirect like normal login
           setTimeout(() => {
-            navigate('/posts');
+            if (user && !user.completeProfile) {
+              navigate("/complete-profile");
+            } else if (user && user.status && user.status !== "active") {
+              navigate("/pending");
+            } else {
+              navigate("/posts");
+            }
           }, 100);
         } else {
           console.log('OAuth Callback - No token or user found, redirecting to login');

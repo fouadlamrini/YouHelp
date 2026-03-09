@@ -50,6 +50,19 @@ const normalizePost = (post) => {
   const avatarUrl = author
     ? (author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"))
     : null;
+  if (!author) {
+    // eslint-disable-next-line no-console
+    console.warn("Post without author in normalizePost", {
+      postId: post._id || post.id,
+      rawPost: post,
+    });
+  } else if (!author.name && !author.email) {
+    // eslint-disable-next-line no-console
+    console.warn("Author missing name/email in normalizePost", {
+      postId: post._id || post.id,
+      author,
+    });
+  }
   return {
     ...post,
     originalMedia,
@@ -136,6 +149,17 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   }, [workchopSuccessMessage]);
 
   if (!post || !post.user) return null;
+
+  // Utilisateur inactif ou auteur supprimé : on force l'affichage de son propre nom / avatar
+  let displayUser = post.user;
+  if (isAuthor && user) {
+    const overrideAvatar = user.profilePicture ? resolveAvatarUrl(user.profilePicture) : null;
+    displayUser = {
+      ...post.user,
+      name: user.name || post.user.name,
+      avatar: overrideAvatar || post.user.avatar,
+    };
+  }
 
   useEffect(() => {
     if (!post.id) return;
@@ -481,12 +505,16 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
       <div className="p-6 flex items-start justify-between relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm flex-shrink-0 flex items-center justify-center text-slate-600 font-bold">
-            {post.user.avatar ? <img src={post.user.avatar} alt="avatar" className="w-full h-full object-cover" /> : (post.user.name?.[0] || "?")}
+          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm shrink-0 flex items-center justify-center text-slate-600 font-bold">
+            {displayUser.avatar ? (
+              <img src={displayUser.avatar} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              displayUser.name?.[0] || "?"
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-black text-slate-900 leading-none">{post.user.name}</p>
+              <p className="text-sm font-black text-slate-900 leading-none">{displayUser.name}</p>
               {localSolved ? (
                 <div className="flex items-center gap-2">
                   <button

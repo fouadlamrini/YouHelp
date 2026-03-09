@@ -187,6 +187,18 @@ async function getAllPosts(userId, queryFilter) {
 
   const withMeta = await Promise.all(
     posts.map(async (p) => {
+      if (!p.author) {
+        console.error("Post without populated author", {
+          postId: p._id?.toString?.() || p._id,
+        });
+      } else if (!p.author.name || !p.author.profilePicture) {
+        console.log("Post author missing fields", {
+          postId: p._id?.toString?.() || p._id,
+          authorId: p.author._id?.toString?.() || p.author._id,
+          name: p.author.name,
+          profilePicture: p.author.profilePicture,
+        });
+      }
       const authorId = p.author?._id || p.author;
       const reactionCount = await sameContextReactionCount(p._id, authorId);
       const totalSameContext = await totalSameContextCount(authorId);
