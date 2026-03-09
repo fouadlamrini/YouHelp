@@ -91,9 +91,10 @@ const Messaging = ({ openChatUserId = null }) => {
           : "Terminé";
     const shortText = `${kindLabel} • ${statusLabel}`;
     const now = new Date().toISOString();
+    const tempId = `call-${Date.now()}-${Math.random()}`;
     if (activeChat?.user?._id && String(activeChat.user._id) === String(otherUserId)) {
       const systemMsg = {
-        _id: `call-${Date.now()}-${Math.random()}`,
+        _id: tempId,
         sender: { _id: user.id },
         content: shortText,
         createdAt: now,
@@ -110,6 +111,25 @@ const Messaging = ({ openChatUserId = null }) => {
           : c
       )
     );
+    messagesApi
+      .send({
+        receiverId: String(otherUserId),
+        content: shortText,
+        type: "call",
+        callPayload: payload,
+      })
+      .then((res) => {
+        const created = res.data?.data;
+        if (!created?._id) return;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === tempId
+              ? { ...created, callPayload: created.callPayload || payload, sender: created.sender || { _id: user.id } }
+              : m
+          )
+        );
+      })
+      .catch(() => {});
   };
 
   const stopOutgoingRingtone = () => {
@@ -875,6 +895,16 @@ const Messaging = ({ openChatUserId = null }) => {
                         <span className="text-[11px] text-slate-600">{statusLabel}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 ml-1">{formatTime(msg.createdAt)}</p>
+                      {isMe && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(msg._id)}
+                          className="ml-2 p-1 rounded-full hover:bg-black/5 text-slate-500"
+                          title="Supprimer cet appel"
+                        >
+                          <FiTrash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

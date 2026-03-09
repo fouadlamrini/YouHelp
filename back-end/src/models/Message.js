@@ -11,6 +11,14 @@ const messageSchema = new mongoose.Schema(
       originalName: { type: String },
     },
     readAt: { type: Date, default: null },
+    isSystem: { type: Boolean, default: false },
+    systemType: { type: String }, // "call"
+    callPayload: {
+      callKind: { type: String }, // "video" | "voice"
+      callStatus: { type: String }, // "missed" | "ended"
+      durationSec: { type: Number },
+      direction: { type: String }, // "incoming" | "outgoing"
+    },
     reactions: [
       { user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, emoji: { type: String } },
     ],

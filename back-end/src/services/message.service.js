@@ -17,7 +17,8 @@ async function send(senderId, body, file, emitToUser) {
   const receiverId = body.receiverId;
   const content = (body.content || "").trim();
   const hasFile = file && file.path;
-  if (!content && !hasFile) return { error: { status: 400, message: "content or attachment required" } };
+  const isCallMessage = body.type === "call" && body.callPayload && typeof body.callPayload.callKind === "string" && typeof body.callPayload.callStatus === "string";
+  if (!content && !hasFile && !isCallMessage) return { error: { status: 400, message: "content, attachment or call payload required" } };
   const receiver = await User.findById(receiverId).select("_id");
   if (!receiver) return { error: { status: 404, message: "Receiver not found" } };
   if (receiverId === senderId) return { error: { status: 400, message: "Cannot send message to yourself" } };
@@ -29,6 +30,16 @@ async function send(senderId, body, file, emitToUser) {
     receiver: receiverId,
     content: content || "",
     ...(attachment && { attachment }),
+    ...(isCallMessage && {
+      isSystem: true,
+      systemType: "call",
+      callPayload: {
+        callKind: body.callPayload.callKind,
+        callStatus: body.callPayload.callStatus,
+        durationSec: body.callPayload.durationSec,
+        direction: body.callPayload.direction,
+      },
+    }),
   });
   const populated = await Message.findById(message._id)
     .populate("sender", "name email")
