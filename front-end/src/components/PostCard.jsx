@@ -1051,7 +1051,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
             <p className="text-sm font-semibold text-slate-800 mb-6">
               {deleteTarget === "share"
