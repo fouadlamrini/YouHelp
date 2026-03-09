@@ -102,19 +102,14 @@ const Settings = () => {
       });
       const data = res.data?.data;
       if (data && authUser) {
-        setUser({
+        const updatedUser = {
           ...authUser,
           name: data.name,
           profilePicture: data.profilePicture ?? authUser.profilePicture,
-        });
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...authUser,
-            name: data.name,
-            profilePicture: data.profilePicture ?? authUser.profilePicture,
-          })
-        );
+          coverPicture: data.coverPicture ?? authUser.coverPicture,
+        };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
       }
       setProfile(data ?? profile);
       alert("Profil enregistré.");

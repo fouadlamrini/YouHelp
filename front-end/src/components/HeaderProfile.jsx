@@ -26,39 +26,36 @@ const HeaderProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [friendsCount, setFriendsCount] = useState(0);
+  const [profile, setProfile] = useState(authUser || null);
+  const [friendsCount, setFriendsCount] = useState(null);
+  const [friendsLoading, setFriendsLoading] = useState(false);
   const [coverFullscreen, setCoverFullscreen] = useState(false);
 
   const isActive = (profile?.status ?? authUser?.status) === "active";
 
   useEffect(() => {
-    usersApi
-      .getMe()
-      .then((res) => {
-        const data = res.data?.data;
-        if (data) setProfile(data);
-      })
-      .catch(() => {});
-  }, []);
+    setProfile(authUser || null);
+  }, [authUser]);
 
   useEffect(() => {
     if (!isActive) {
       setFriendsCount(0);
       return;
     }
+    setFriendsLoading(true);
     friendsApi
       .list()
       .then((res) => {
         const list = res.data?.data ?? [];
         setFriendsCount(list.length);
       })
-      .catch(() => setFriendsCount(0));
+      .catch(() => setFriendsCount(0))
+      .finally(() => setFriendsLoading(false));
   }, [isActive]);
 
   const displayName = profile?.name ?? authUser?.name ?? "";
   const profilePicture = profile?.profilePicture ?? authUser?.profilePicture;
-  const coverPicture = profile?.coverPicture;
+  const coverPicture = profile?.coverPicture ?? authUser?.coverPicture;
 
   const tabs = [
     { label: "Mes Posts", to: "/my-posts", icon: <FiEdit3 size={18} /> },
@@ -154,7 +151,11 @@ const HeaderProfile = () => {
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter">{displayName || "Profil"}</h1>
               <p className="text-slate-500 font-bold text-sm">
-                {friendsCount} {friendsCount === 1 ? "ami" : "amis"}
+                {isActive
+                  ? friendsCount === null
+                    ? ""
+                    : `${friendsCount} ${friendsCount === 1 ? "ami" : "amis"}`
+                  : "Compte en attente"}
               </p>
             </div>
 
