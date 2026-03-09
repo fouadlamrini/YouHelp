@@ -7,7 +7,27 @@ class FriendRequestController {
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }
-      return res.status(201).json({ success: true, data: result.data });
+      const friendRequest = result.data;
+
+      // Real-time notification to target user via socket, if available
+      try {
+        const emitToUser = req.app.get("emitToUser");
+        if (emitToUser && friendRequest?.toUser?._id) {
+          emitToUser(friendRequest.toUser._id.toString(), "friend-request-received", {
+            requestId: friendRequest._id,
+            fromUser: {
+              _id: friendRequest.fromUser?._id,
+              name: friendRequest.fromUser?.name,
+              email: friendRequest.fromUser?.email,
+              profilePicture: friendRequest.fromUser?.profilePicture,
+            },
+          });
+        }
+      } catch (e) {
+        // ignore socket errors
+      }
+
+      return res.status(201).json({ success: true, data: friendRequest });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Server error" });

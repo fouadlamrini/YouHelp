@@ -58,6 +58,19 @@ function NavbarLoggedIn() {
     if (isActive && activeDropdown === "invitations") loadInvitations();
   }, [isActive, activeDropdown]);
 
+  // Real-time invitations via socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !isActive) return;
+    const handler = () => {
+      loadInvitations();
+    };
+    socket.on("friend-request-received", handler);
+    return () => {
+      socket.off("friend-request-received", handler);
+    };
+  }, [isActive]);
+
   const loadConversations = () => {
     setConversationsLoading(true);
     messagesApi
@@ -138,11 +151,11 @@ function NavbarLoggedIn() {
     return () => window.removeEventListener("click", closeAll);
   }, []);
 
-  const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-[200] animate-in fade-in slide-in-from-top-2 duration-200";
+  const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-200 animate-in fade-in slide-in-from-top-2 duration-200";
   const isEtudiant = roleName === "etudiant";
 
   return (
-    <nav className="w-full bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-[100]">
+    <nav className="w-full bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-100">
       
       {/* 1. Logo & Navigation Links */}
       <div className="flex items-center gap-10">
@@ -164,7 +177,7 @@ function NavbarLoggedIn() {
             </Link>
           )}
           {/* Vertical Divider */}
-          <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
+          <div className="h-4 w-px bg-slate-200 mx-1"></div>
 
           
         </div>
@@ -180,7 +193,7 @@ function NavbarLoggedIn() {
               <button onClick={() => toggleDropdown('invitations')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'invitations' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
                 <FiUserPlus size={20} />
                 {invitations.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
                     {invitations.length > 99 ? "99+" : invitations.length}
                   </span>
                 )}
@@ -227,7 +240,7 @@ function NavbarLoggedIn() {
             <button onClick={() => toggleDropdown("messages")} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "messages" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}>
               <FiMail size={20} />
               {(conversations.filter((c) => c.unread).length > 0) && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
                   {conversations.filter((c) => c.unread).length > 99 ? "99+" : conversations.filter((c) => c.unread).length}
                 </span>
               )}
@@ -263,7 +276,7 @@ function NavbarLoggedIn() {
                               (conv.user.name || "?")[0]
                             )}
                           </div>
-                          <div className="flex-grow min-w-0">
+                          <div className="grow min-w-0">
                             <div className="flex justify-between items-baseline gap-2">
                               <span className="text-sm font-bold tracking-tight text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
                               <span className="text-[10px] text-slate-400 shrink-0">
@@ -301,7 +314,7 @@ function NavbarLoggedIn() {
             <button onClick={() => toggleDropdown('notifications')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
               <FiBell size={20} />
               {notifications.some((n) => !n.read) && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
                   {notifications.filter((n) => !n.read).length > 99 ? "99+" : notifications.filter((n) => !n.read).length}
                 </span>
               )}
@@ -394,12 +407,12 @@ function NavbarLoggedIn() {
           </div>
         </div>
 
-        <div className="h-8 w-[1px] bg-slate-100 mx-1"></div>
+        <div className="h-8 w-px bg-slate-100 mx-1"></div>
 
         {/* PROFILE DROPDOWN - name and image from database (user context) */}
         <div className="relative nav-dropdown-container">
           <button onClick={() => toggleDropdown('settings')} className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 transition-all group shadow-sm">
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-100 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-100 shrink-0">
               <img
                 src={user?.profilePicture ? resolveAvatarUrl(user.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
                 alt="profile"
