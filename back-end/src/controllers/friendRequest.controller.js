@@ -79,6 +79,21 @@ class FriendRequestController {
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }
+      const request = result.data;
+
+      // Notify sender that the request was rejected (realtime update)
+      try {
+        const emitToUser = req.app.get("emitToUser");
+        if (emitToUser && request?.fromUser?._id) {
+          emitToUser(request.fromUser._id.toString(), "friend-request-updated", {
+            requestId: request._id,
+            status: request.status,
+          });
+        }
+      } catch (e) {
+        // ignore socket errors
+      }
+
       return res.json({ success: true, message: "Request rejected" });
     } catch (err) {
       console.error(err);

@@ -7,6 +7,7 @@ import Messaging from "../components/Messaging";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import api, { friendsApi, friendRequestsApi } from "../services/api";
+import { getSocket } from "../services/socket";
 
 const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
 
@@ -69,6 +70,28 @@ const FriendsList = () => {
   useEffect(() => {
     if (isActive) loadSentRequests();
   }, [isActive]);
+
+  // Realtime update of sent requests and available users when someone refuses (or cancels)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !isActive) return;
+    const handler = () => {
+      loadSentRequests();
+      // si le modal Inviter est ouvert, on recharge aussi la liste des utilisateurs disponibles
+      if (showInviteModal) {
+        setAvailableLoading(true);
+        friendRequestsApi
+          .getAvailableUsers()
+          .then((res) => setAvailableUsers(res.data?.data ?? []))
+          .catch(() => setAvailableUsers([]))
+          .finally(() => setAvailableLoading(false));
+      }
+    };
+    socket.on("friend-request-updated", handler);
+    return () => {
+      socket.off("friend-request-updated", handler);
+    };
+  }, [isActive, showInviteModal]);
 
   const handleUnfriend = (userId, name) => {
     setFriendToUnfriend({ id: userId, name });

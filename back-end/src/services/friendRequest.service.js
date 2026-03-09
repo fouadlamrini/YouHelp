@@ -90,11 +90,15 @@ async function accept(me, requestId) {
 }
 
 async function reject(me, requestId) {
-  const request = await FriendRequest.findById(requestId);
+  const request = await FriendRequest.findById(requestId).populate("fromUser toUser");
   if (!request) return { error: { status: 404, message: "Request not found" } };
-  if (request.toUser.toString() !== me) return { error: { status: 403, message: "Forbidden" } };
-  await FriendRequest.findByIdAndUpdate(requestId, { status: "rejected" });
-  return { ok: true };
+  const toId = request.toUser?._id
+    ? request.toUser._id.toString()
+    : request.toUser.toString();
+  if (toId !== me) return { error: { status: 403, message: "Forbidden" } };
+  request.status = "rejected";
+  await request.save();
+  return { data: request };
 }
 
 async function cancelSent(me, requestId) {
