@@ -47,9 +47,70 @@ const Messaging = ({ openChatUserId = null }) => {
   const mediaRecorderRef = useRef(null);
   const recordingStreamRef = useRef(null);
   const [pendingUserId, setPendingUserId] = useState(null);
+  const callConnectedAtRef = useRef(null);
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+
+  const appendSystemMessageForUser = (otherUserId, text) => {
+    if (!user?.id || !otherUserId || !text) return;
+    const now = new Date().toISOString();
+    if (activeChat?.user?._id && String(activeChat.user._id) === String(otherUserId)) {
+      const systemMsg = {
+        _id: `sys-${Date.now()}-${Math.random()}`,
+        sender: { _id: user.id },
+        content: text,
+        createdAt: now,
+        isSystem: true,
+      };
+      setMessages((prev) => [...prev, systemMsg]);
+    }
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.user?._id && String(c.user._id) === String(otherUserId)
+          ? {
+              ...c,
+              lastMessage: {
+                content: text,
+                createdAt: now,
+              },
+            }
+          : c
+      )
+    );
+  };
+
+  const appendCallMessage = (otherUserId, payload) => {
+    if (!user?.id || !otherUserId || !payload?.callKind || !payload?.callStatus) return;
+    const kindLabel = payload.callKind === "video" ? "Appel vidéo" : "Appel vocal";
+    const statusLabel =
+      payload.callStatus === "missed"
+        ? "Sans réponse"
+        : payload.durationSec != null
+          ? `${payload.durationSec} s`
+          : "Terminé";
+    const shortText = `${kindLabel} • ${statusLabel}`;
+    const now = new Date().toISOString();
+    if (activeChat?.user?._id && String(activeChat.user._id) === String(otherUserId)) {
+      const systemMsg = {
+        _id: `call-${Date.now()}-${Math.random()}`,
+        sender: { _id: user.id },
+        content: shortText,
+        createdAt: now,
+        isSystem: true,
+        systemType: "call",
+        callPayload: payload,
+      };
+      setMessages((prev) => [...prev, systemMsg]);
+    }
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.user?._id && String(c.user._id) === String(otherUserId)
+          ? { ...c, lastMessage: { content: shortText, createdAt: now } }
+          : c
+      )
+    );
+  };
 
   const stopOutgoingRingtone = () => {
     const audio = outgoingRingtoneRef.current;
@@ -185,11 +246,12 @@ const Messaging = ({ openChatUserId = null }) => {
 
     const onVideoCallRequest = (data) => {
       if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
+        const otherName = data.fromUser?.name || data.fromUser?.email || "Un utilisateur";
         setIncomingCall({
           currentUserId: user.id,
           otherUserId: data.from,
           isInitiator: false,
-          otherUserName: data.fromUser?.name || data.fromUser?.email
+          otherUserName: otherName,
         });
         playIncomingRingtone();
       }
@@ -197,11 +259,12 @@ const Messaging = ({ openChatUserId = null }) => {
 
     const onVoiceCallRequest = (data) => {
       if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
+        const otherName = data.fromUser?.name || data.fromUser?.email || "Un utilisateur";
         setIncomingVoiceCall({
           currentUserId: user.id,
           otherUserId: data.from,
           isInitiator: false,
-          otherUserName: data.fromUser?.name || data.fromUser?.email
+          otherUserName: otherName,
         });
         playIncomingRingtone();
       }
@@ -217,19 +280,51 @@ const Messaging = ({ openChatUserId = null }) => {
       );
     };
 
-    const onVideoCallEnded = () => {
-      // Arrêt des sonneries des deux côtés
+    const onVideoCallEnded = (data) => {
       stopOutgoingRingtone();
       stopIncomingRingtone();
-      // Fermer les modales d'appel (initiateur ou receveur)
+      const wasInCall = !!videoCall;
+      const direction =
+        videoCall && typeof videoCall.isInitiator === "boolean"
+          ? videoCall.isInitiator
+            ? "outgoing"
+            : "incoming"
+          : incomingCall
+            ? "incoming"
+            : "incoming";
+      if (callConnectedAtRef.current) callConnectedAtRef.current = null;
       setVideoCall(null);
       setIncomingCall(null);
+      if (data?.from) {
+        appendCallMessage(data.from, {
+          callKind: "video",
+          callStatus: wasInCall ? "ended" : "missed",
+          direction,
+        });
+      }
     };
-    const onVoiceCallEnded = () => {
+    const onVoiceCallEnded = (data) => {
       stopOutgoingRingtone();
       stopIncomingRingtone();
+      const wasInCall = !!voiceCall;
+      const direction =
+        voiceCall && typeof voiceCall.isInitiator === "boolean"
+          ? voiceCall.isInitiator
+            ? "outgoing"
+            : "incoming"
+          : incomingVoiceCall
+            ? "incoming"
+            : "incoming";
+      if (callConnectedAtRef.current) callConnectedAtRef.current = null;
       setVoiceCall(null);
       setIncomingVoiceCall(null);
+      if (data?.from) {
+        appendCallMessage(data.from, {
+          callKind: "voice",
+          callStatus: wasInCall ? "ended" : "missed",
+          direction,
+        });
+      }
     };
 
     socket.on("message", onMessage);
@@ -413,6 +508,7 @@ const Messaging = ({ openChatUserId = null }) => {
     stopIncomingRingtone();
     const otherUserId = incomingCall?.otherUserId;
     if (otherUserId) getSocket()?.emit("video-call-ended", { to: otherUserId });
+    if (otherUserId) appendCallMessage(otherUserId, { callKind: "video", callStatus: "missed", direction: "incoming" });
     setIncomingCall(null);
   };
 
@@ -428,23 +524,55 @@ const Messaging = ({ openChatUserId = null }) => {
     stopIncomingRingtone();
     const otherUserId = incomingVoiceCall?.otherUserId;
     if (otherUserId) getSocket()?.emit("voice-call-ended", { to: otherUserId });
+    if (otherUserId) appendCallMessage(otherUserId, { callKind: "voice", callStatus: "missed", direction: "incoming" });
     setIncomingVoiceCall(null);
   };
 
   const handleEndVideoCall = () => {
     stopOutgoingRingtone();
-    if (videoCall?.otherUserId) getSocket()?.emit("video-call-ended", { to: videoCall.otherUserId });
+    const otherId = videoCall?.otherUserId;
+    const wasConnected = !!callConnectedAtRef.current;
+    const durationSec = callConnectedAtRef.current
+      ? Math.round((Date.now() - callConnectedAtRef.current) / 1000)
+      : undefined;
+    callConnectedAtRef.current = null;
+    const direction = videoCall?.isInitiator ? "outgoing" : "incoming";
+    if (otherId) getSocket()?.emit("video-call-ended", { to: otherId });
+    if (otherId) {
+      appendCallMessage(otherId, {
+        callKind: "video",
+        callStatus: wasConnected ? "ended" : "missed",
+        ...(wasConnected && durationSec != null && { durationSec }),
+        direction,
+      });
+    }
     setVideoCall(null);
   };
 
   const handleEndVoiceCall = () => {
     stopOutgoingRingtone();
-    if (voiceCall?.otherUserId) getSocket()?.emit("voice-call-ended", { to: voiceCall.otherUserId });
+    const otherId = voiceCall?.otherUserId;
+    const wasConnected = !!callConnectedAtRef.current;
+    const durationSec = callConnectedAtRef.current
+      ? Math.round((Date.now() - callConnectedAtRef.current) / 1000)
+      : undefined;
+    callConnectedAtRef.current = null;
+    const direction = voiceCall?.isInitiator ? "outgoing" : "incoming";
+    if (otherId) getSocket()?.emit("voice-call-ended", { to: otherId });
+    if (otherId) {
+      appendCallMessage(otherId, {
+        callKind: "voice",
+        callStatus: wasConnected ? "ended" : "missed",
+        ...(wasConnected && durationSec != null && { durationSec }),
+        direction,
+      });
+    }
     setVoiceCall(null);
   };
 
   const handleCallConnected = () => {
     stopOutgoingRingtone();
+    callConnectedAtRef.current = Date.now();
   };
 
   const formatTime = (dateStr) => {
@@ -561,30 +689,44 @@ const Messaging = ({ openChatUserId = null }) => {
               {loading && !activeChat ? (
                 <p className="p-3 text-xs text-slate-500">Loading...</p>
               ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.user._id}
-                    onClick={() => handleSelectChat(conv)}
-                    className={`flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50 ${activeChat?.user?._id === conv.user._id ? "bg-indigo-50" : ""}`}
-                  >
-                    <div className="relative flex-shrink-0 w-12 h-12 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
-                      {conv.user.profilePicture ? (
-                        <img src={resolveAvatarUrl(conv.user.profilePicture)} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        conv.user.name?.[0] || "?"
-                      )}
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <div className="flex justify-between items-baseline">
-                        <h4 className="text-[13px] font-black text-slate-800 truncate">{conv.user.name || conv.user.email}</h4>
-                        <span className="text-[10px] text-slate-400 font-bold">{formatTime(conv.lastMessage?.createdAt)}</span>
+                conversations.map((conv) => {
+                  if (!conv || !conv.user) return null;
+                  const convUser = conv.user;
+                  const convId = convUser._id || convUser.id;
+                  return (
+                    <div
+                      key={convId}
+                      onClick={() => handleSelectChat(conv)}
+                      className={`flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50 ${
+                        activeChat?.user?._id && convId && String(activeChat.user._id) === String(convId)
+                          ? "bg-indigo-50"
+                          : ""
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0 w-12 h-12 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+                        {convUser.profilePicture ? (
+                          <img src={resolveAvatarUrl(convUser.profilePicture)} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          convUser.name?.[0] || "?"
+                        )}
                       </div>
-                      <p className="text-xs text-slate-500 truncate font-medium">
-                        {conv.lastMessage?.content || (conv.lastMessage?.attachment ? "📎 Pièce jointe" : "No messages")}
-                      </p>
+                      <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-baseline">
+                          <h4 className="text-[13px] font-black text-slate-800 truncate">
+                            {convUser.name || convUser.email}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            {formatTime(conv.lastMessage?.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate font-medium">
+                          {conv.lastMessage?.content ||
+                            (conv.lastMessage?.attachment ? "📎 Pièce jointe" : "No messages")}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -611,36 +753,40 @@ const Messaging = ({ openChatUserId = null }) => {
             <p className="text-xs text-slate-400">Aucun ami pour le moment.</p>
           ) : (
             <div className="max-h-64 overflow-y-auto custom-scrollbar divide-y divide-slate-100">
-              {friends.map((f) => (
-                <button
-                  key={f._id}
-                  type="button"
-                  onClick={() => handleStartChatWithFriend(f)}
-                  className="w-full flex items-center gap-3 py-2 text-left hover:bg-slate-50 px-1"
-                >
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold shrink-0">
-                    {f.profilePicture ? (
-                      <img src={resolveAvatarUrl(f.profilePicture)} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      f.name?.[0] || "?"
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[12px] font-semibold text-slate-800">
-                      {f.name || f.email}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Friend
-                    </span>
-                  </div>
-                </button>
-              ))}
+              {friends.map((f) => {
+                if (!f) return null;
+                const friendId = f._id || f.id;
+                return (
+                  <button
+                    key={friendId}
+                    type="button"
+                    onClick={() => handleStartChatWithFriend(f)}
+                    className="w-full flex items-center gap-3 py-2 text-left hover:bg-slate-50 px-1"
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold shrink-0">
+                      {f.profilePicture ? (
+                        <img src={resolveAvatarUrl(f.profilePicture)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        f.name?.[0] || "?"
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[12px] font-semibold text-slate-800">
+                        {f.name || f.email}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Friend
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {activeChat && (
+      {activeChat?.user && (
         <div className="w-80 h-[450px] bg-white shadow-2xl rounded-t-xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
           <div className="p-2.5 flex items-center justify-between border-b border-slate-100 bg-white rounded-t-xl">
             <div className="flex items-center gap-2">
@@ -689,6 +835,47 @@ const Messaging = ({ openChatUserId = null }) => {
                       createdAt={formatTime(msg.createdAt)}
                       onDelete={isMe ? () => handleDeleteMessage(msg._id) : undefined}
                     />
+                  </div>
+                );
+              }
+              const callPayload = msg.callPayload;
+              if (callPayload) {
+                const kindLabel = callPayload.callKind === "video" ? "Appel vidéo" : "Appel vocal";
+                const statusLabel =
+                  callPayload.callStatus === "missed"
+                    ? "Sans réponse"
+                    : callPayload.durationSec != null
+                      ? `${callPayload.durationSec} s`
+                      : "Terminé";
+                const isOutgoingCall = callPayload.direction === "outgoing";
+                return (
+                  <div key={msg._id} className="flex justify-center my-1">
+                    <div
+                      className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl shadow-sm border ${
+                        isOutgoingCall
+                          ? "bg-indigo-100 border-indigo-200"
+                          : "bg-emerald-100 border-emerald-200"
+                      }`}
+                    >
+                      {callPayload.callKind === "video" ? (
+                        <FiVideo
+                          className={isOutgoingCall ? "text-indigo-700 shrink-0" : "text-emerald-700 shrink-0"}
+                          size={20}
+                        />
+                      ) : (
+                        <FiPhone
+                          className={isOutgoingCall ? "text-indigo-700 shrink-0" : "text-emerald-700 shrink-0"}
+                          size={20}
+                        />
+                      )}
+                      <div className="flex flex-col">
+                        <span className={`text-xs font-semibold ${isOutgoingCall ? "text-indigo-900" : "text-emerald-900"}`}>
+                          {kindLabel}
+                        </span>
+                        <span className="text-[11px] text-slate-600">{statusLabel}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 ml-1">{formatTime(msg.createdAt)}</p>
+                    </div>
                   </div>
                 );
               }
