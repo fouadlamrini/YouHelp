@@ -207,6 +207,12 @@ async function deleteUser(currentUserId, targetUserId) {
   return { ok: true };
 }
 
+async function deleteSelf(userId) {
+  const user = await User.findByIdAndDelete(userId);
+  if (!user) return { error: { status: 404, message: "User not found" } };
+  return { ok: true };
+}
+
 async function acceptUser(currentUserId, targetUserId) {
   const current = await getCurrentUserWithContext(currentUserId);
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
@@ -299,6 +305,7 @@ module.exports = {
   getById,
   update,
   deleteUser,
+  deleteSelf,
   acceptUser,
   rejectUser,
   create,

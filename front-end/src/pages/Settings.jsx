@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import Messaging from "../components/Messaging";
@@ -12,6 +13,8 @@ import {
   FiEdit3,
   FiCamera,
   FiMonitor,
+  FiLogOut,
+  FiTrash2,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import api, { usersApi, authApi, avatarsApi } from "../services/api";
@@ -26,7 +29,8 @@ function resolveAvatarUrl(src) {
 }
 
 const Settings = () => {
-  const { user: authUser, setUser } = useAuth();
+  const navigate = useNavigate();
+  const { user: authUser, setUser, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +49,35 @@ const Settings = () => {
     confirmPassword: "",
   });
   const [profileMessage, setProfileMessage] = useState({ type: null, text: "" });
+  const [activeTab, setActiveTab] = useState("profile");
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch {
+      // même si erreur API, logout() nettoie déjà le localStorage et le contexte
+      navigate("/login");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est définitive."
+    );
+    if (!confirmed) return;
+
+    try {
+      await usersApi.deleteMe();
+      await logout();
+      navigate("/login");
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        "Erreur lors de la suppression du compte. Veuillez réessayer.";
+      alert(msg);
+    }
+  };
 
   useEffect(() => {
     Promise.all([usersApi.getMe(), avatarsApi.getAll()])
@@ -187,301 +220,404 @@ const Settings = () => {
                 </div>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="p-8 md:p-12 space-y-10">
-                {/* Nom */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
-                    <FiUser size={14} /> Nom
-                  </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => handleProfileChange("name", e.target.value)}
-                    className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
-                  />
-                </div>
+              <div className="flex flex-col lg:flex-row">
+                {/* Navigation latérale */}
+                <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r border-slate-100 bg-slate-50/40 p-4 md:p-6 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("profile")}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                      activeTab === "profile"
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FiUser size={14} />
+                    <span>Éditer le profil</span>
+                  </button>
 
-                {/* Photo de profil : PC ou Avatar */}
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
-                    <FiCamera size={14} /> Photo de profil
-                  </label>
-                  <div className="flex gap-4 mb-2">
+                  {profile.provider === "local" && (
                     <button
                       type="button"
-                      onClick={() => setProfilePictureSource("avatar")}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                        profilePictureSource === "avatar"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-slate-100 text-slate-600"
+                      onClick={() => setActiveTab("password")}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                        activeTab === "password"
+                          ? "bg-slate-900 text-white shadow-sm"
+                          : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
                       }`}
                     >
-                      Avatar (galerie)
+                      <FiLock size={14} />
+                      <span>Mot de passe</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setProfilePictureSource("pc")}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                        profilePictureSource === "pc"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      Depuis mon PC
-                    </button>
-                  </div>
-                  {profilePictureSource === "pc" && (
-                    <div className="flex items-center gap-4">
-                      <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
-                        Choisir un fichier
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("delete")}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                      activeTab === "delete"
+                        ? "bg-rose-600 text-white shadow-sm"
+                        : "bg-white text-rose-600 border border-rose-100 hover:bg-rose-50"
+                    }`}
+                  >
+                    <FiTrash2 size={14} />
+                    <span>Supprimer le compte</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("logout")}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                      activeTab === "logout"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "bg-white text-amber-600 border border-amber-100 hover:bg-amber-50"
+                    }`}
+                  >
+                    <FiLogOut size={14} />
+                    <span>Déconnexion</span>
+                  </button>
+                </aside>
+
+                {/* Contenu de l'onglet */}
+                <div className="flex-1">
+                  {activeTab === "profile" && (
+                    <form onSubmit={handleSaveProfile} className="p-8 md:p-12 space-y-10">
+                      {/* Nom */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
+                          <FiUser size={14} /> Nom
+                        </label>
                         <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleProfilePictureUpload}
-                        />
-                      </label>
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100">
-                        <img
-                          src={resolveAvatarUrl(form.profilePicture)}
-                          alt=""
-                          className="w-full h-full object-cover"
+                          type="text"
+                          value={form.name}
+                          onChange={(e) => handleProfileChange("name", e.target.value)}
+                          className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
                         />
                       </div>
-                    </div>
-                  )}
-                  {profilePictureSource === "avatar" && (
-                    <div className="flex flex-wrap gap-2">
-                      {avatars.map((a) => (
-                        <button
-                          key={a.file}
-                          type="button"
-                          onClick={() => handleProfileChange("profilePicture", a.file)}
-                          className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 ${
-                            form.profilePicture === a.file
-                              ? "border-indigo-600 ring-2 ring-indigo-200"
-                              : "border-slate-200 hover:border-slate-300"
-                          }`}
-                        >
-                          <img
-                            src={a.url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
 
-                {/* Photo de couverture : PC ou Avatar */}
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
-                    <FiMonitor size={14} /> Photo de couverture
-                  </label>
-                  <div className="flex gap-4 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => setCoverPictureSource("avatar")}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                        coverPictureSource === "avatar"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      Avatar (galerie)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCoverPictureSource("pc")}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                        coverPictureSource === "pc"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      Depuis mon PC
-                    </button>
-                  </div>
-                  {coverPictureSource === "pc" && (
-                    <div className="flex items-center gap-4">
-                      <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
-                        Choisir un fichier
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleCoverPictureUpload}
-                        />
-                      </label>
-                      <div className="w-24 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
-                        <img
-                          src={resolveAvatarUrl(form.coverPicture || "couverture-default.jpg")}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
+                      {/* Photo de profil : PC ou Avatar */}
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
+                          <FiCamera size={14} /> Photo de profil
+                        </label>
+                        <div className="flex gap-4 mb-2">
+                          <button
+                            type="button"
+                            onClick={() => setProfilePictureSource("avatar")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
+                              profilePictureSource === "avatar"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            Avatar (galerie)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProfilePictureSource("pc")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
+                              profilePictureSource === "pc"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            Depuis mon PC
+                          </button>
+                        </div>
+                        {profilePictureSource === "pc" && (
+                          <div className="flex items-center gap-4">
+                            <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
+                              Choisir un fichier
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleProfilePictureUpload}
+                              />
+                            </label>
+                            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100">
+                              <img
+                                src={resolveAvatarUrl(form.profilePicture)}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {profilePictureSource === "avatar" && (
+                          <div className="flex flex-wrap gap-2">
+                            {avatars.map((a) => (
+                              <button
+                                key={a.file}
+                                type="button"
+                                onClick={() => handleProfileChange("profilePicture", a.file)}
+                                className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 ${
+                                  form.profilePicture === a.file
+                                    ? "border-indigo-600 ring-2 ring-indigo-200"
+                                    : "border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                <img
+                                  src={a.url}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                  {coverPictureSource === "avatar" && (
-                    <div className="flex flex-wrap gap-2">
-                      {avatars.map((a) => (
+
+                      {/* Photo de couverture : PC ou Avatar */}
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
+                          <FiMonitor size={14} /> Photo de couverture
+                        </label>
+                        <div className="flex gap-4 mb-2">
+                          <button
+                            type="button"
+                            onClick={() => setCoverPictureSource("avatar")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
+                              coverPictureSource === "avatar"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            Avatar (galerie)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCoverPictureSource("pc")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
+                              coverPictureSource === "pc"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            Depuis mon PC
+                          </button>
+                        </div>
+                        {coverPictureSource === "pc" && (
+                          <div className="flex items-center gap-4">
+                            <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
+                              Choisir un fichier
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleCoverPictureUpload}
+                              />
+                            </label>
+                            <div className="w-24 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
+                              <img
+                                src={resolveAvatarUrl(form.coverPicture || "couverture-default.jpg")}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {coverPictureSource === "avatar" && (
+                          <div className="flex flex-wrap gap-2">
+                            {avatars.map((a) => (
+                              <button
+                                key={a.file}
+                                type="button"
+                                onClick={() => handleProfileChange("coverPicture", a.file)}
+                                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 ${
+                                  form.coverPicture === a.file
+                                    ? "border-indigo-600 ring-2 ring-indigo-200"
+                                    : "border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                <img
+                                  src={a.url}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Champs désactivés : email, campus, class, level */}
+                      <div className="space-y-6 pt-4 border-t border-slate-100">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 border-l-4 border-slate-300">
+                          Informations non modifiables
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+                              <FiMail size={14} /> Email
+                            </label>
+                            <input
+                              type="text"
+                              value={profile.email ?? ""}
+                              disabled
+                              className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+                              <FiMapPin size={14} /> Campus
+                            </label>
+                            <input
+                              type="text"
+                              value={campusName}
+                              disabled
+                              className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+                              <FiLayers size={14} /> Classe
+                            </label>
+                            <input
+                              type="text"
+                              value={className}
+                              disabled
+                              className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+                              <FiLayers size={14} /> Niveau
+                            </label>
+                            <input
+                              type="text"
+                              value={levelName}
+                              disabled
+                              className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t border-slate-100 flex flex-col gap-3 items-end">
+                        {profileMessage.text && (
+                          <div
+                            className={`w-full md:w-auto px-4 py-3 rounded-2xl text-xs font-bold ${
+                              profileMessage.type === "success"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                            }`}
+                          >
+                            {profileMessage.text}
+                          </div>
+                        )}
                         <button
-                          key={a.file}
-                          type="button"
-                          onClick={() => handleProfileChange("coverPicture", a.file)}
-                          className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 ${
-                            form.coverPicture === a.file
-                              ? "border-indigo-600 ring-2 ring-indigo-200"
-                              : "border-slate-200 hover:border-slate-300"
-                          }`}
+                          type="submit"
+                          disabled={saving}
+                          className="flex items-center gap-3 bg-slate-900 text-white px-12 py-5 rounded-4xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
                         >
-                          <img
-                            src={a.url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
+                          <FiSave size={16} />
+                          {saving ? "Enregistrement..." : "Enregistrer le profil"}
                         </button>
-                      ))}
+                      </div>
+                    </form>
+                  )}
+
+                  {activeTab === "password" && profile.provider === "local" && (
+                    <div className="p-8 md:p-12">
+                      <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-2 border-l-4 border-indigo-600 mb-6">
+                        Mot de passe
+                      </h3>
+                      <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2">
+                            <FiLock size={14} /> Mot de passe actuel
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordForm.currentPassword}
+                            onChange={(e) =>
+                              setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
+                            }
+                            className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase ml-2">
+                            Nouveau mot de passe
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={(e) =>
+                              setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+                            }
+                            className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase ml-2">
+                            Confirmer le mot de passe
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordForm.confirmPassword}
+                            onChange={(e) =>
+                              setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                            }
+                            className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={passwordSaving}
+                          className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-wide hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {passwordSaving ? "Envoi..." : "Changer le mot de passe"}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {activeTab === "delete" && (
+                    <div className="p-8 md:p-12 space-y-6">
+                      <h3 className="text-[10px] font-black text-rose-600 uppercase tracking-[0.2em] px-2 border-l-4 border-rose-600">
+                        Supprimer le compte
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        Cette action est définitive. Votre compte, vos posts et toutes vos données
+                        associées seront supprimés de façon permanente.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDeleteAccount}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-600 text-white text-[10px] font-black uppercase tracking-[0.18em] hover:bg-rose-700"
+                      >
+                        <FiTrash2 size={14} />
+                        Supprimer mon compte
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTab === "logout" && (
+                    <div className="p-8 md:p-12 space-y-6">
+                      <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] px-2 border-l-4 border-amber-500">
+                        Déconnexion
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        Vous allez être déconnecté de votre session actuelle. Vous pourrez vous
+                        reconnecter à tout moment avec vos identifiants.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.18em] hover:bg-amber-600"
+                      >
+                        <FiLogOut size={14} />
+                        Me déconnecter
+                      </button>
                     </div>
                   )}
                 </div>
-
-                {/* Champs désactivés : email, campus, class, level */}
-                <div className="space-y-6 pt-4 border-t border-slate-100">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 border-l-4 border-slate-300">
-                    Informations non modifiables
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
-                        <FiMail size={14} /> Email
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.email ?? ""}
-                        disabled
-                        className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
-                        <FiMapPin size={14} /> Campus
-                      </label>
-                      <input
-                        type="text"
-                        value={campusName}
-                        disabled
-                        className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
-                        <FiLayers size={14} /> Classe
-                      </label>
-                      <input
-                        type="text"
-                        value={className}
-                        disabled
-                        className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
-                        <FiLayers size={14} /> Niveau
-                      </label>
-                      <input
-                        type="text"
-                        value={levelName}
-                        disabled
-                        className="w-full p-4 bg-slate-100 border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-500 cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-100 flex flex-col gap-3 items-end">
-                  {profileMessage.text && (
-                    <div
-                      className={`w-full md:w-auto px-4 py-3 rounded-2xl text-xs font-bold ${
-                        profileMessage.type === "success"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-rose-50 text-rose-700 border border-rose-200"
-                      }`}
-                    >
-                      {profileMessage.text}
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-3 bg-slate-900 text-white px-12 py-5 rounded-4xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
-                  >
-                    <FiSave size={16} />
-                    {saving ? "Enregistrement..." : "Enregistrer le profil"}
-                  </button>
-                </div>
-              </form>
-
-              {/* Mot de passe : uniquement pour les comptes inscrits par email (pas Google/GitHub) */}
-              {profile.provider === "local" && (
-              <div className="p-8 md:p-12 pt-0">
-                <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-2 border-l-4 border-indigo-600 mb-6">
-                  Mot de passe
-                </h3>
-                <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2">
-                      <FiLock size={14} /> Mot de passe actuel
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
-                      }
-                      className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-2">
-                      Nouveau mot de passe
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
-                      }
-                      className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-2">
-                      Confirmer le mot de passe
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
-                      }
-                      className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={passwordSaving}
-                    className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-wide hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {passwordSaving ? "Envoi..." : "Changer le mot de passe"}
-                  </button>
-                </form>
               </div>
-              )}
             </div>
           </div>
         </main>

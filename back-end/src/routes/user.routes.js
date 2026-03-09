@@ -9,6 +9,7 @@ const { createUserSchema, updateUserSchema } = require("../validators/user.valid
 // Profile (current user)
 router.get("/me", auth, controller.getMe);
 router.put("/me", auth, controller.updateProfile);
+router.delete("/me", auth, controller.deleteMe);
 
 // CRUD User - super_admin: all; admin: same campus; formateur: same class (etudiants)
 router.get(
