@@ -51,6 +51,7 @@ const UserManagement = () => {
   const [formSuccess, setFormSuccess] = useState("");
   const [availableAvatars, setAvailableAvatars] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [lastUpdatedUserId, setLastUpdatedUserId] = useState(null);
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
@@ -321,9 +322,18 @@ const UserManagement = () => {
     };
     usersApi
       .update(editingUser._id, payload)
-      .then(() => {
+      .then((res) => {
+        const updated = res.data?.data ?? res.data ?? null;
         setIsEditModalOpen(false);
-        fetchUsers();
+        setFormError("");
+        setFormSuccess("Utilisateur mis à jour avec succès.");
+        if (updated && updated._id) {
+          setUsers((prev) =>
+            prev.map((u) => (u._id === updated._id ? updated : u))
+          );
+          setLastUpdatedUserId(updated._id);
+          setTimeout(() => setLastUpdatedUserId(null), 5000);
+        }
       })
       .catch((err) => alert(err.response?.data?.message || "Erreur"))
       .finally(() => setSubmitLoading(false));
@@ -680,13 +690,18 @@ const UserManagement = () => {
                                 </div>
                               </td>
                               <td className="p-6">
-                                <div className="flex flex-col">
+                                <div className="flex flex-col gap-0.5">
                                   <p className="text-xs font-black text-slate-700 uppercase tracking-tighter">
                                     {user.campus?.name ?? "—"}
                                   </p>
                                   <p className="text-[10px] font-bold text-slate-400">
                                     {user.class?.name ?? "—"} • {user.level?.name ?? "—"}
                                   </p>
+                                  {lastUpdatedUserId === user._id && (
+                                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.16em]">
+                                      Mis à jour avec succès
+                                    </p>
+                                  )}
                                 </div>
                               </td>
                               <td className="p-6">
