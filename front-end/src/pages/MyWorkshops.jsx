@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
+import Messaging from "../components/Messaging";
 import { workshopsApi } from "../services/api";
 import { FiTool, FiCalendar, FiClock } from "react-icons/fi";
 
@@ -85,6 +86,8 @@ const MyWorkshops = () => {
           </main>
         </div>
       </div>
+
+      <Messaging />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import { 
   FiPlus, FiEdit3, FiTrash, FiGrid, FiHash, 
   FiSettings, FiActivity, FiCode, FiCpu, FiBook, FiLayers, FiStar
@@ -554,6 +555,8 @@ const CategoryManager = () => {
           </div>
         </div>
       )}
+
+      <Messaging />
     </div>
   );
 };

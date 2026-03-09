@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import { FiLayers, FiPlus, FiEdit2, FiTrash2, FiX, FiSave } from "react-icons/fi";
 import { levelApi } from "../services/api";
 
@@ -256,6 +257,8 @@ const LevelManager = () => {
           </div>
         </div>
       )}
+
+      <Messaging />
     </div>
   );
 };

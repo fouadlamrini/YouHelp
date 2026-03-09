@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave, FiCheck } from "react-icons/fi";
 import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -975,6 +976,8 @@ const UserManagement = () => {
           </div>
         </div>
       )}
+
+      <Messaging />
     </div>
   );
 };

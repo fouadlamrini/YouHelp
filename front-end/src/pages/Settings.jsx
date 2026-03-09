@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import {
   FiUser,
   FiMail,
@@ -156,6 +157,7 @@ const Settings = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-indigo-600 border-t-transparent" />
         </div>
+        <Messaging />
       </div>
     );
   }
@@ -475,6 +477,8 @@ const Settings = () => {
           </div>
         </main>
       </div>
+
+      <Messaging />
     </div>
   );
 };

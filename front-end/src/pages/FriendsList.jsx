@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
+import Messaging from "../components/Messaging";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import api, { friendsApi, friendRequestsApi } from "../services/api";
@@ -395,6 +396,8 @@ const FriendsList = () => {
           </div>
         </div>
       )}
+
+      <Messaging />
     </div>
   );
 };

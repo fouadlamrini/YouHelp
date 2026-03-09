@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import { FiBook, FiPlus, FiEdit2, FiTrash2, FiX, FiSave } from "react-icons/fi";
 import { classApi, campusApi } from "../services/api";
 
@@ -331,6 +332,8 @@ const ClassManager = () => {
           </div>
         </div>
       )}
+
+      <Messaging />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Messaging from "../components/Messaging";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -67,6 +68,7 @@ const Stats = () => {
             <p className="text-slate-500 font-bold">Chargement des statistiques...</p>
           </main>
         </div>
+        <Messaging />
       </div>
     );
   }
@@ -86,6 +88,7 @@ const Stats = () => {
             </div>
           </main>
         </div>
+        <Messaging />
       </div>
     );
   }
@@ -514,6 +517,7 @@ const Stats = () => {
           </div>
         </main>
       </div>
+      <Messaging />
     </div>
   );
 };
