@@ -22,12 +22,15 @@ function resolveAvatarUrl(src, defaultPath = "default-avatar.jpg") {
   return `${API_BASE}/avatars/${src}`;
 }
 
+// Cache global pour éviter le "clignotement" du nombre d'amis
+let cachedFriendsCount = null;
+
 const HeaderProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [profile, setProfile] = useState(authUser || null);
-  const [friendsCount, setFriendsCount] = useState(null);
+  const [friendsCount, setFriendsCount] = useState(cachedFriendsCount);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [coverFullscreen, setCoverFullscreen] = useState(false);
 
@@ -40,6 +43,12 @@ const HeaderProfile = () => {
   useEffect(() => {
     if (!isActive) {
       setFriendsCount(0);
+      cachedFriendsCount = 0;
+      return;
+    }
+    // Si on a déjà calculé le nombre d'amis pendant cette session, le réutiliser
+    if (cachedFriendsCount !== null) {
+      setFriendsCount(cachedFriendsCount);
       return;
     }
     setFriendsLoading(true);
@@ -47,9 +56,14 @@ const HeaderProfile = () => {
       .list()
       .then((res) => {
         const list = res.data?.data ?? [];
-        setFriendsCount(list.length);
+        const count = list.length;
+        setFriendsCount(count);
+        cachedFriendsCount = count;
       })
-      .catch(() => setFriendsCount(0))
+      .catch(() => {
+        setFriendsCount(0);
+        cachedFriendsCount = 0;
+      })
       .finally(() => setFriendsLoading(false));
   }, [isActive]);
 
