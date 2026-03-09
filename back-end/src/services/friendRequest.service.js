@@ -39,6 +39,14 @@ async function listReceived(me) {
   return { data: list };
 }
 
+async function listSent(me) {
+  const list = await FriendRequest.find({ fromUser: me, status: "pending" })
+    .populate("toUser", "name email profilePicture campus class level")
+    .sort({ createdAt: -1 })
+    .lean();
+  return { data: list };
+}
+
 async function accept(me, requestId) {
   const request = await FriendRequest.findById(requestId).populate("fromUser toUser");
   if (!request) return { error: { status: 404, message: "Request not found" } };
@@ -62,6 +70,17 @@ async function reject(me, requestId) {
   return { ok: true };
 }
 
+async function cancelSent(me, requestId) {
+  const request = await FriendRequest.findById(requestId);
+  if (!request) return { error: { status: 404, message: "Request not found" } };
+  if (request.fromUser.toString() !== me) return { error: { status: 403, message: "Forbidden" } };
+  if (request.status !== "pending") {
+    return { error: { status: 400, message: "Request already handled" } };
+  }
+  await FriendRequest.findByIdAndDelete(requestId);
+  return { ok: true };
+}
+
 async function availableUsers(me) {
   const friends = await Friend.find({ $or: [{ user1: me }, { user2: me }] });
   const friendIds = friends.map((d) => (d.user1.toString() === me ? d.user2.toString() : d.user1.toString()));
@@ -81,7 +100,9 @@ async function availableUsers(me) {
 module.exports = {
   send,
   listReceived,
+  listSent,
   accept,
   reject,
+  cancelSent,
   availableUsers,
 };

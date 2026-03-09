@@ -12,8 +12,10 @@ router.use(requireActive);
 
 router.post("/", requireRole(["super_admin", "admin", "formateur", "etudiant"]), validate(sendFriendRequestSchema), controller.send);
 router.get("/received", controller.listReceived);
+router.get("/sent", controller.listSent);
 router.get("/available-users", controller.availableUsers);
 router.put("/:id/accept", controller.accept);
 router.put("/:id/reject", controller.reject);
+router.delete("/:id/cancel", controller.cancelSent);
 
 module.exports = router;

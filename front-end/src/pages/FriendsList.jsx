@@ -28,6 +28,8 @@ const FriendsList = () => {
   const [sendingId, setSendingId] = useState(null);
   const [showUnfriendModal, setShowUnfriendModal] = useState(false);
   const [friendToUnfriend, setFriendToUnfriend] = useState(null); // { id, name } | null
+  const [sentRequests, setSentRequests] = useState([]);
+  const [showSentModal, setShowSentModal] = useState(false);
 
   const isActive = user?.status === "active";
 
@@ -48,6 +50,18 @@ const FriendsList = () => {
 
   useEffect(() => {
     if (isActive) fetchFriends();
+  }, [isActive]);
+
+  const loadSentRequests = () => {
+    if (!isActive) return;
+    friendRequestsApi
+      .getSent()
+      .then((res) => setSentRequests(res.data?.data ?? []))
+      .catch(() => setSentRequests([]));
+  };
+
+  useEffect(() => {
+    if (isActive) loadSentRequests();
   }, [isActive]);
 
   const handleUnfriend = (userId, name) => {
@@ -129,6 +143,21 @@ const FriendsList = () => {
                 >
                   <FiUserPlus size={18} /> Inviter
                 </button>
+                {sentRequests.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loadSentRequests();
+                      setShowSentModal(true);
+                    }}
+                    className="hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-[0.16em] hover:bg-indigo-100"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                    {sentRequests.length === 1
+                      ? "1 demande d'amitié envoyée"
+                      : `${sentRequests.length} demandes d'amitié envoyées`}
+                  </button>
+                )}
                 <div className="bg-slate-50 px-6 py-3 rounded-2xl border border-transparent focus-within:border-indigo-200 focus-within:bg-white transition-all flex items-center gap-3 w-full md:w-80">
                   <FiSearch className="text-slate-400" size={18} />
                   <input
@@ -266,6 +295,66 @@ const FriendsList = () => {
                         className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 disabled:opacity-50"
                       >
                         {sendingId === u._id ? "..." : "Inviter"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal demandes d'amitié envoyées */}
+      {showSentModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-lg font-black text-slate-900 uppercase">Demandes envoyées</h3>
+              <button
+                type="button"
+                onClick={() => setShowSentModal(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 flex-1">
+              {sentRequests.length === 0 ? (
+                <p className="text-center text-slate-400 py-8 text-sm">
+                  Aucune demande en attente.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {sentRequests.map((req) => (
+                    <li
+                      key={req._id}
+                      className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50"
+                    >
+                      <img
+                        src={resolveAvatarUrl(req.toUser?.profilePicture)}
+                        alt=""
+                        className="w-10 h-10 rounded-xl object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {req.toUser?.name || req.toUser?.email}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await friendRequestsApi.cancel(req._id);
+                            loadSentRequests();
+                          } catch (err) {
+                            // eslint-disable-next-line no-alert
+                            alert(err.response?.data?.message || "Erreur lors de l'annulation");
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[11px] font-bold hover:bg-rose-600 hover:text-white"
+                      >
+                        Annuler
                       </button>
                     </li>
                   ))}

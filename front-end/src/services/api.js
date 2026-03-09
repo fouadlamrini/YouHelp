@@ -235,10 +235,12 @@ export const friendsApi = {
 // —— Friend requests (invitations) ——
 export const friendRequestsApi = {
   getReceived: () => api.get("/friend-requests/received"),
+  getSent: () => api.get("/friend-requests/sent"),
   getAvailableUsers: () => api.get("/friend-requests/available-users"),
   send: (toUserId) => api.post("/friend-requests", { toUserId }),
   accept: (id) => api.put(`/friend-requests/${id}/accept`),
   reject: (id) => api.put(`/friend-requests/${id}/reject`),
+  cancel: (id) => api.delete(`/friend-requests/${id}/cancel`),
 };
 
 // —— Class Join Request ——
