@@ -265,9 +265,26 @@ function NavbarLoggedIn() {
                           <div className="flex-grow min-w-0">
                             <div className="flex justify-between items-baseline gap-2">
                               <span className="text-sm font-bold tracking-tight text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
-                              <span className="text-[10px] text-slate-400 shrink-0">{formatMessageTime(conv.lastMessage?.createdAt)}</span>
+                              <span className="text-[10px] text-slate-400 shrink-0">
+                                {formatMessageTime(conv.lastMessage?.createdAt)}
+                              </span>
                             </div>
-                            <p className="text-xs text-slate-500 truncate">{conv.lastMessage?.content || "Aucun message"}</p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {conv.lastMessage
+                                ? conv.lastMessage.content && conv.lastMessage.content.trim()
+                                  ? conv.lastMessage.content
+                                  : conv.lastMessage.attachment
+                                  ? (() => {
+                                      const att = conv.lastMessage.attachment;
+                                      const t = (att.type || "").toLowerCase();
+                                      if (t === "audio") return "Message vocal";
+                                      if (t === "image") return "Image";
+                                      if (t === "video") return "Vidéo";
+                                      return "Pièce jointe";
+                                    })()
+                                  : "Aucun message"
+                                : "Aucun message"}
+                            </p>
                           </div>
                         </button>
                       ))}
