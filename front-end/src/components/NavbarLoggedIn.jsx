@@ -139,6 +139,7 @@ function NavbarLoggedIn() {
   }, []);
 
   const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-[200] animate-in fade-in slide-in-from-top-2 duration-200";
+  const isEtudiant = roleName === "etudiant";
 
   return (
     <nav className="w-full bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-[100]">
@@ -309,7 +310,7 @@ function NavbarLoggedIn() {
               <div className={dropdownStyles}>
                 <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Notifications</p>
-                  {(user?.role === "super_admin" || user?.role === "admin" || user?.role === "formateur") && (
+                  {(roleName === "super_admin" || roleName === "admin" || roleName === "formateur") && (
                     <Link to="/users" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
                       Liste des utilisateurs
                     </Link>
@@ -322,22 +323,69 @@ function NavbarLoggedIn() {
                     <div className="italic text-center py-6 text-sm font-bold text-slate-400">Pas de notifications</div>
                   ) : (
                     <div className="space-y-1">
-                      {notifications.map((n) => (
-                        <Link
-                          key={n._id}
-                          to={n.link || "/users"}
-                          onClick={() => {
-                            setActiveDropdown(null);
-                            if (!n.read) notificationsApi.markAsRead(n._id).then(() => loadNotifications()).catch(() => {});
-                          }}
-                          className={`block px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 ${!n.read ? "bg-indigo-50/50" : ""}`}
-                        >
-                          <p className="text-sm font-bold tracking-tight text-slate-800 leading-snug">{n.message}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">
-                            {new Date(n.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        </Link>
-                      ))}
+                      {notifications.map((n) => {
+                        const targetLink = n.link || "/users";
+                        const isUsersLink = targetLink === "/users";
+                        const isStaff = roleName === "super_admin" || roleName === "admin" || roleName === "formateur";
+                        const canNavigate = !isUsersLink || isStaff;
+
+                        const content = (
+                          <>
+                            <p className="text-sm font-bold tracking-tight text-slate-800 leading-snug">{n.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {new Date(n.createdAt).toLocaleDateString("fr-FR", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </>
+                        );
+
+                        if (!canNavigate) {
+                          return (
+                            <button
+                              key={n._id}
+                              type="button"
+                              onClick={() => {
+                                if (!n.read) {
+                                  notificationsApi
+                                    .markAsRead(n._id)
+                                    .then(() => loadNotifications())
+                                    .catch(() => {});
+                                }
+                              }}
+                              className={`w-full text-left px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 ${
+                                !n.read ? "bg-indigo-50/50" : ""
+                              }`}
+                            >
+                              {content}
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <Link
+                            key={n._id}
+                            to={targetLink}
+                            onClick={() => {
+                              setActiveDropdown(null);
+                              if (!n.read) {
+                                notificationsApi
+                                  .markAsRead(n._id)
+                                  .then(() => loadNotifications())
+                                  .catch(() => {});
+                              }
+                            }}
+                            className={`block px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 ${
+                              !n.read ? "bg-indigo-50/50" : ""
+                            }`}
+                          >
+                            {content}
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
