@@ -28,7 +28,6 @@ import ClassManager from "./pages/ClassManager.jsx";
 import FriendsList from "./pages/FriendsList.jsx";
 import Info from "./pages/Info.jsx";
 import Settings from "./pages/Settings.jsx";
-import WaitingPage from "./pages/WaitingPage.jsx";
 import OAuthCallback from "./pages/OAuthCallback.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
@@ -212,10 +211,6 @@ const App = () => {
                 <Settings />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/pending"
-            element={<WaitingPage />}
           />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
         </Routes>

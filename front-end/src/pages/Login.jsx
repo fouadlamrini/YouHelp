@@ -46,7 +46,7 @@ const Login = () => {
       if (user && !user.completeProfile) {
         navigate("/complete-profile");
       } else if (user && user.status !== "active") {
-        navigate("/pending");
+        navigate("/complete-profile");
       } else {
         navigate("/posts");
       }

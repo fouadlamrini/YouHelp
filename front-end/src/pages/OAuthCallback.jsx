@@ -67,7 +67,7 @@ const OAuthCallback = () => {
             if (user && !user.completeProfile) {
               navigate("/complete-profile");
             } else if (user && user.status && user.status !== "active") {
-              navigate("/pending");
+              navigate("/complete-profile");
             } else {
               navigate("/posts");
             }
@@ -86,13 +86,10 @@ const OAuthCallback = () => {
     // Only call handleOAuthCallback if there are search or hash parameters
     if (location.search || location.hash) {
       handleOAuthCallback();
-    } else {
-      console.log('No search or hash parameters, skipping OAuth callback processing.');
-      // If no parameters, and not already on /pending, redirect to login
-      if (location.pathname !== '/pending') {
+      } else {
+        console.log('No search or hash parameters, skipping OAuth callback processing.');
         navigate('/login');
       }
-    }
   }, []); // Remove dependencies to prevent re-runs
 
   return (
