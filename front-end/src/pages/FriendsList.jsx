@@ -26,6 +26,11 @@ const FriendsList = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableLoading, setAvailableLoading] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteRole, setInviteRole] = useState("");
+  const [inviteCampus, setInviteCampus] = useState("");
+  const [inviteLevel, setInviteLevel] = useState("");
+  const [inviteClass, setInviteClass] = useState("");
   const [sendingId, setSendingId] = useState(null);
   const [showUnfriendModal, setShowUnfriendModal] = useState(false);
   const [friendToUnfriend, setFriendToUnfriend] = useState(null); // { id, name } | null
@@ -111,6 +116,70 @@ const FriendsList = () => {
     (f.name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Options de filtrage pour le modal "Inviter"
+  const roleOptions = Array.from(
+    new Set(
+      availableUsers
+        .map((u) => u.role?.name || u.role)
+        .filter(Boolean)
+    )
+  );
+
+  const campusOptions = Array.from(
+    new Map(
+      availableUsers
+        .filter((u) => u.campus)
+        .map((u) => [
+          u.campus._id || u.campus.id || u.campus,
+          u.campus.name || u.campus,
+        ])
+    ).entries()
+  );
+
+  const levelOptions = Array.from(
+    new Map(
+      availableUsers
+        .filter((u) => u.level)
+        .map((u) => [
+          u.level._id || u.level.id || u.level,
+          u.level.name || u.level,
+        ])
+    ).entries()
+  );
+
+  const classOptions = Array.from(
+    new Map(
+      availableUsers
+        .filter((u) => u.class)
+        .map((u) => [
+          u.class._id || u.class.id || u.class,
+          u.class.name || u.class,
+        ])
+    ).entries()
+  );
+
+  const filteredAvailableUsers = availableUsers.filter((u) => {
+    const term = inviteSearch.trim().toLowerCase();
+    if (term) {
+      const text = `${u.name || ""} ${u.email || ""}`.toLowerCase();
+      if (!text.includes(term)) return false;
+    }
+
+    const roleName = u.role?.name || u.role;
+    if (inviteRole && roleName !== inviteRole) return false;
+
+    const campusKey = u.campus && (u.campus._id || u.campus.id || u.campus);
+    if (inviteCampus && campusKey !== inviteCampus) return false;
+
+    const levelKey = u.level && (u.level._id || u.level.id || u.level);
+    if (inviteLevel && levelKey !== inviteLevel) return false;
+
+    const classKey = u.class && (u.class._id || u.class.id || u.class);
+    if (inviteClass && classKey !== inviteClass) return false;
+
+    return true;
+  });
+
   if (user && !isActive) return null;
 
   return (
@@ -190,7 +259,7 @@ const FriendsList = () => {
                         />
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full" />
                       </div>
-                      <div className="mb-6 min-h-[4rem]">
+                      <div className="mb-6 min-h-16">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight">
                           {friend.name || friend.email}
                         </h3>
@@ -252,7 +321,7 @@ const FriendsList = () => {
 
       {/* Modal Inviter */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-900 uppercase">Inviter un utilisateur</h3>
@@ -264,6 +333,70 @@ const FriendsList = () => {
                 <FiX size={24} />
               </button>
             </div>
+            <div className="p-4 border-b border-slate-100 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                  <FiSearch className="text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom ou email..."
+                    className="bg-transparent border-none outline-none text-[11px] font-bold w-full"
+                    value={inviteSearch}
+                    onChange={(e) => setInviteSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-bold text-slate-600 outline-none"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                >
+                  <option value="">Tous les rôles</option>
+                  {roleOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-bold text-slate-600 outline-none"
+                  value={inviteCampus}
+                  onChange={(e) => setInviteCampus(e.target.value)}
+                >
+                  <option value="">Tous les campus</option>
+                  {campusOptions.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-bold text-slate-600 outline-none"
+                  value={inviteLevel}
+                  onChange={(e) => setInviteLevel(e.target.value)}
+                >
+                  <option value="">Tous les niveaux</option>
+                  {levelOptions.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-bold text-slate-600 outline-none"
+                  value={inviteClass}
+                  onChange={(e) => setInviteClass(e.target.value)}
+                >
+                  <option value="">Toutes les classes</option>
+                  {classOptions.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="overflow-y-auto p-4 flex-1">
               {availableLoading ? (
                 <p className="text-center text-slate-400 py-8">Chargement...</p>
@@ -271,9 +404,13 @@ const FriendsList = () => {
                 <p className="text-center text-slate-400 py-8 text-sm">
                   Aucun utilisateur actif à inviter pour le moment.
                 </p>
+              ) : filteredAvailableUsers.length === 0 ? (
+                <p className="text-center text-slate-400 py-8 text-sm">
+                  Aucun utilisateur ne correspond à ces filtres.
+                </p>
               ) : (
                 <ul className="space-y-2">
-                  {availableUsers.map((u) => (
+                  {filteredAvailableUsers.map((u) => (
                     <li
                       key={u._id}
                       className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50"
@@ -308,7 +445,7 @@ const FriendsList = () => {
 
       {/* Modal demandes d'amitié envoyées */}
       {showSentModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-150 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-900 uppercase">Demandes envoyées</h3>
@@ -368,7 +505,7 @@ const FriendsList = () => {
 
       {/* Modal Annuler Amitié */}
       {showUnfriendModal && friendToUnfriend && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-200 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6">
             <p className="text-sm font-semibold text-slate-800 mb-6">
               Voulez-vous vraiment annuler l'amitié avec{" "}

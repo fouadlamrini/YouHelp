@@ -88,10 +88,11 @@ async function availableUsers(me) {
   const pendingToMe = await FriendRequest.find({ toUser: me, status: "pending" }).distinct("fromUser");
   const exclude = [me, ...friendIds, ...pendingFromMe.map(String), ...pendingToMe.map(String)];
   const users = await User.find({ _id: { $nin: exclude }, status: "active" })
-    .select("name email profilePicture campus class level")
+    .select("name email profilePicture campus class level role")
     .populate("campus", "name")
     .populate("class", "name")
     .populate("level", "name")
+    .populate("role", "name")
     .limit(50)
     .lean();
   return { data: users };
