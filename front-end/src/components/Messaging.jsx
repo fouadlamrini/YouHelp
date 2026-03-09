@@ -50,6 +50,7 @@ const Messaging = ({ openChatUserId = null }) => {
   const callConnectedAtRef = useRef(null);
   const [deleteModalMessageId, setDeleteModalMessageId] = useState(null);
   const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
+  const [showClearConversationModal, setShowClearConversationModal] = useState(false);
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
@@ -423,6 +424,37 @@ const Messaging = ({ openChatUserId = null }) => {
     } finally {
       setDeleteModalMessageId(null);
       setDeleteForMeMessageId(null);
+    }
+  };
+
+  const handleClearConversationConfirm = async () => {
+    if (!activeChat?.user?._id || !messages.length) {
+      setShowClearConversationModal(false);
+      return;
+    }
+    try {
+      const ids = messages.map((m) => m._id || m.id).filter(Boolean);
+      // Supprimer pour moi uniquement, message par message
+      // (utilise la logique hiddenFor côté backend)
+      // On envoie les requêtes en série pour rester simple
+      // et éviter de saturer l'API.
+      // eslint-disable-next-line no-restricted-syntax
+      for (const id of ids) {
+        // eslint-disable-next-line no-await-in-loop
+        await messagesApi.delete(id, "forMe");
+      }
+      setMessages([]);
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.user?._id && String(c.user._id) === String(activeChat.user._id)
+            ? { ...c, lastMessage: null }
+            : c
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setShowClearConversationModal(false);
     }
   };
 
@@ -854,6 +886,12 @@ const Messaging = ({ openChatUserId = null }) => {
                 onClick={handleVideoCall}
                 title="Appel vidéo"
               />
+              <FiTrash2
+                size={14}
+                className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
+                onClick={() => setShowClearConversationModal(true)}
+                title="Supprimer la conversation (pour vous)"
+              />
               <FiMinus onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
               <FiX onClick={() => setActiveChat(null)} size={14} className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6" />
             </div>
@@ -1053,6 +1091,33 @@ const Messaging = ({ openChatUserId = null }) => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Supprimer conversation (pour vous uniquement) */}
+      {showClearConversationModal && (
+        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={() => setShowClearConversationModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-medium text-slate-800 mb-3">
+              Supprimer toute la conversation pour vous ?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleClearConversationConfirm}
+                className="w-full py-2.5 px-3 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600"
+              >
+                Supprimer la conversation
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowClearConversationModal(false)}
+                className="w-full py-2 px-3 rounded-lg text-slate-600 text-sm hover:bg-slate-100"
+              >
+                Annuler
+              </button>
+            </div>
           </div>
         </div>
       )}
