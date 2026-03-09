@@ -6,6 +6,7 @@ const passport = require("./src/config/passport");
 const cors = require("cors");
 const path = require("path");
 const { setupSocket } = require("./src/config/socket");
+const { setNotificationEmitter } = require("./src/config/notificationEmitter");
 
 const app = express();
 const server = http.createServer(app);
@@ -71,6 +72,7 @@ app.use("/api/notifications", notificationRoutes);
 const { io, emitToUser } = setupSocket(server);
 app.set("io", io);
 app.set("emitToUser", emitToUser);
+setNotificationEmitter(emitToUser);
 
 // ======== START SERVER & CONNECT MONGO ========
 async function start() {

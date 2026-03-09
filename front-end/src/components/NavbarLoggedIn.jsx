@@ -119,6 +119,19 @@ function NavbarLoggedIn() {
     return () => window.removeEventListener("messages-read", onMessagesRead);
   }, []);
 
+  // Real-time notifications via socket (reaction, share, commentaires, etc.)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !user?.id) return;
+    const handler = () => {
+      loadNotifications();
+    };
+    socket.on("notification-updated", handler);
+    return () => {
+      socket.off("notification-updated", handler);
+    };
+  }, [user?.id]);
+
   const handleAcceptInvitation = (id) => {
     friendRequestsApi.accept(id).then(() => loadInvitations()).catch(() => {});
   };
