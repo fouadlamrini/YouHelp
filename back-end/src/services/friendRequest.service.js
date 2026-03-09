@@ -25,7 +25,34 @@ async function send(me, body) {
     status: "pending",
   });
   if (existing) return { error: { status: 400, message: "Request already sent or received" } };
-  const request = await FriendRequest.create({ fromUser: me, toUser: toUserId });
+  let request;
+  try {
+    request = await FriendRequest.create({ fromUser: me, toUser: toUserId });
+  } catch (err) {
+    // Gérer le cas où une ancienne demande (rejetée / acceptée) existe déjà à cause de l'index unique
+    if (err && err.code === 11000) {
+      const existingPair = await FriendRequest.findOne({
+        $or: [
+          { fromUser: me, toUser: toUserId },
+          { fromUser: toUserId, toUser: me },
+        ],
+      });
+      if (!existingPair) {
+        throw err;
+      }
+      if (existingPair.status === "rejected") {
+        existingPair.fromUser = me;
+        existingPair.toUser = toUserId;
+        existingPair.status = "pending";
+        await existingPair.save();
+        request = existingPair;
+      } else {
+        return { error: { status: 400, message: "Request already handled" } };
+      }
+    } else {
+      throw err;
+    }
+  }
   const populated = await FriendRequest.findById(request._id)
     .populate("fromUser", "name email profilePicture")
     .populate("toUser", "name email profilePicture");
