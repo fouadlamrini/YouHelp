@@ -44,6 +44,7 @@ const Settings = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [profileMessage, setProfileMessage] = useState({ type: null, text: "" });
 
   useEffect(() => {
     Promise.all([usersApi.getMe(), avatarsApi.getAll()])
@@ -93,6 +94,7 @@ const Settings = () => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    setProfileMessage({ type: null, text: "" });
     setSaving(true);
     try {
       const res = await usersApi.updateProfile({
@@ -112,9 +114,10 @@ const Settings = () => {
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
       setProfile(data ?? profile);
-      alert("Profil enregistré.");
+      setProfileMessage({ type: "success", text: "Profil enregistré avec succès." });
     } catch (err) {
-      alert(err.response?.data?.message || "Erreur lors de l'enregistrement.");
+      const msg = err.response?.data?.message || "Erreur lors de l'enregistrement du profil.";
+      setProfileMessage({ type: "error", text: msg });
     } finally {
       setSaving(false);
     }
@@ -397,7 +400,18 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                <div className="pt-6 border-t border-slate-100 flex flex-col gap-3 items-end">
+                  {profileMessage.text && (
+                    <div
+                      className={`w-full md:w-auto px-4 py-3 rounded-2xl text-xs font-bold ${
+                        profileMessage.type === "success"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-rose-50 text-rose-700 border border-rose-200"
+                      }`}
+                    >
+                      {profileMessage.text}
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={saving}
