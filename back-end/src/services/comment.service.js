@@ -143,7 +143,13 @@ async function updateComment(userId, userRole, commentId, body, files) {
     if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
     isOwner = knowledge.author && knowledge.author.toString() === userId;
   }
-  if (!isAdmin && !isCommentAuthor && !isOwner) {
+
+  // Étudiant : peut seulement modifier ses propres commentaires
+  if (userRole === "etudiant") {
+    if (!isCommentAuthor) {
+      return { error: { status: 403, message: "Vous n'êtes pas autorisé à modifier ce commentaire" } };
+    }
+  } else if (!isAdmin && !isCommentAuthor && !isOwner) {
     return { error: { status: 403, message: "Vous n'êtes pas autorisé à modifier ce commentaire" } };
   }
   if (files && files.length) {
@@ -158,21 +164,76 @@ async function updateComment(userId, userRole, commentId, body, files) {
 async function deleteComment(userId, userRole, commentId) {
   const comment = await Comment.findById(commentId);
   if (!comment) return { error: { status: 404, message: "Commentaire non trouvé" } };
-  const isAdmin = userRole === "admin";
+
   const isCommentAuthor = comment.author.toString() === userId;
   let isOwner = false;
+
+  // Propriétaire du post / knowledge
+  let targetAuthor = null;
   if (comment.post) {
     const post = await Post.findById(comment.post);
     if (!post) return { error: { status: 404, message: "Post non trouvé" } };
     isOwner = post.author && post.author.toString() === userId;
+    targetAuthor = post.author;
   } else if (comment.knowledge) {
     const knowledge = await Knowledge.findById(comment.knowledge);
     if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
     isOwner = knowledge.author && knowledge.author.toString() === userId;
+    targetAuthor = knowledge.author;
   }
-  if (!isAdmin && !isCommentAuthor && !isOwner) {
+
+  // Rôle et contexte du modérateur (super_admin / admin / formateur)
+  let canModerate = false;
+  const me = await User.findById(userId).populate("role", "name").populate("campus class level").lean();
+  const roleName = me?.role?.name ?? userRole ?? null;
+
+  if (roleName === "super_admin") {
+    canModerate = true;
+  } else if ((roleName === "admin" || roleName === "formateur") && targetAuthor) {
+    const target = await User.findById(targetAuthor)
+      .populate("role", "name")
+      .populate("campus class level")
+      .lean();
+    if (target) {
+      const targetRoleName = target.role?.name ?? null;
+      const sameCampus =
+        me?.campus &&
+        target.campus &&
+        me.campus.toString() === target.campus.toString();
+
+      if (roleName === "admin") {
+        // admin: même campus + (étudiant ou formateur)
+        if (sameCampus && (targetRoleName === "etudiant" || targetRoleName === "formateur")) {
+          canModerate = true;
+        }
+      } else if (roleName === "formateur") {
+        // formateur: même campus / classe / niveau + cible = étudiant
+        const sameClass =
+          me?.class &&
+          target.class &&
+          me.class.toString() === target.class.toString();
+        const sameLevel =
+          me?.level &&
+          target.level &&
+          me.level.toString() === target.level.toString();
+        if (sameCampus && sameClass && sameLevel && targetRoleName === "etudiant") {
+          canModerate = true;
+        }
+      }
+    }
+  }
+
+  // Étudiant : peut seulement supprimer ses propres commentaires (pas ceux des autres, même sur son propre post)
+  let canDelete = false;
+  if (roleName === "etudiant") {
+    canDelete = isCommentAuthor;
+  } else {
+    canDelete = isCommentAuthor || isOwner || canModerate;
+  }
+  if (!canDelete) {
     return { error: { status: 403, message: "Vous n'êtes pas autorisé à supprimer ce commentaire" } };
   }
+
   const toDelete = [comment._id.toString()];
   for (let i = 0; i < toDelete.length; i++) {
     const parentIds = toDelete.slice(i);

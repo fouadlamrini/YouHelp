@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { FiMoreHorizontal, FiSend, FiEdit2, FiTrash2, FiX, FiSmile, FiImage } from "react-icons/fi";
 import { commentApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
 const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
@@ -43,6 +44,7 @@ const CommentItem = ({
   const [deleting, setDeleting] = useState(false);
   const [replyMediaFiles, setReplyMediaFiles] = useState([]);
   const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const replyInputRef = useRef(null);
   const replyFileInputRef = useRef(null);
 
@@ -58,6 +60,11 @@ const CommentItem = ({
   const avatarUrl = rawAvatar ? resolveAvatarUrl(rawAvatar) : resolveAvatarUrl("default-avatar.jpg");
   const likeCount = Array.isArray(comment.likes) ? comment.likes.length : 0;
   const isRootComment = !isReply;
+  const { user } = useAuth();
+  const authorId = author?._id || author?.id || author;
+  const isAuthor = !!(user?.id && authorId && String(user.id) === String(authorId));
+  const roleName = user?.role?.name ?? user?.role;
+  const canSeeMenu = !!user && (roleName !== "etudiant" || isAuthor);
 
   const handleReplyMediaChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -163,10 +170,16 @@ const CommentItem = ({
 
   const handleDelete = () => {
     if (!comment._id || !onRefresh) return;
-    if (!window.confirm("Supprimer ce commentaire ?")) return;
     setDeleting(true);
     setShowMenu(false);
-    commentApi.delete(comment._id).then(() => onRefresh()).catch(() => {}).finally(() => setDeleting(false));
+    commentApi
+      .delete(comment._id)
+      .then(() => {
+        setShowDeleteConfirm(false);
+        onRefresh();
+      })
+      .catch(() => {})
+      .finally(() => setDeleting(false));
   };
 
   return (
@@ -188,33 +201,46 @@ const CommentItem = ({
               </div>
               <div className="flex items-center gap-2 relative">
                 <span className="text-[10px] font-bold text-slate-400">{time}</span>
-                <button
-                  type="button"
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="text-slate-300 hover:text-slate-600 p-1"
-                >
-                  <FiMoreHorizontal size={14} />
-                </button>
-                {showMenu && (
+                {canSeeMenu && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} aria-hidden />
-                    <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-20 py-1">
-                      <button
-                        type="button"
-                        onClick={() => { setEditMode(true); setEditText(comment.content || ""); setShowMenu(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                      >
-                        <FiEdit2 size={12} /> Modifier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <FiTrash2 size={12} /> Supprimer
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="text-slate-300 hover:text-slate-600 p-1"
+                    >
+                      <FiMoreHorizontal size={14} />
+                    </button>
+                    {showMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} aria-hidden />
+                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-20 py-1">
+                          {isAuthor && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditMode(true);
+                                setEditText(comment.content || "");
+                                setShowMenu(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <FiEdit2 size={12} /> Modifier
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMenu(false);
+                              setShowDeleteConfirm(true);
+                            }}
+                            disabled={deleting}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <FiTrash2 size={12} /> Supprimer
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -396,6 +422,33 @@ const CommentItem = ({
           )}
         </div>
       </div>
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
+            <p className="text-sm font-semibold text-slate-800 mb-6">
+              Supprimer ce commentaire ?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                disabled={deleting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50"
+                disabled={deleting}
+              >
+                {deleting ? "Suppression..." : "Confirmer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
