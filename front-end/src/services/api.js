@@ -207,7 +207,8 @@ export const messagesApi = {
   },
   getConversations: () => api.get("/messages/conversations"),
   getConversation: (userId) => api.get(`/messages/conversation/${userId}`),
-  delete: (id) => api.delete(`/messages/${id}`),
+  delete: (id, scope) =>
+    api.delete(`/messages/${id}`, scope ? { params: { scope } } : undefined),
   reaction: (id, emoji) => api.post(`/messages/${id}/reaction`, { emoji }),
 };
 

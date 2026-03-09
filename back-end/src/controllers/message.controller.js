@@ -44,7 +44,8 @@ class MessageController {
   async deleteMessage(req, res) {
     try {
       const emitToUser = req.app.get("emitToUser");
-      const result = await messageService.deleteMessage(req.user.id, req.params.id, emitToUser);
+      const body = { ...(req.body || {}), scope: req.query.scope || req.body?.scope };
+      const result = await messageService.deleteMessage(req.user.id, req.params.id, body, emitToUser);
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }

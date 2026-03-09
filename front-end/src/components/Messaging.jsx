@@ -48,6 +48,8 @@ const Messaging = ({ openChatUserId = null }) => {
   const recordingStreamRef = useRef(null);
   const [pendingUserId, setPendingUserId] = useState(null);
   const callConnectedAtRef = useRef(null);
+  const [deleteModalMessageId, setDeleteModalMessageId] = useState(null);
+  const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
@@ -412,14 +414,31 @@ const Messaging = ({ openChatUserId = null }) => {
     handleSend(file);
   };
 
-  const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm("Supprimer ce message ?")) return;
+  const performDelete = async (messageId, scope) => {
     try {
-      await messagesApi.delete(messageId);
+      await messagesApi.delete(messageId, scope);
       setMessages((prev) => prev.filter((m) => (m._id || m.id) !== messageId));
     } catch (e) {
       console.error(e);
+    } finally {
+      setDeleteModalMessageId(null);
+      setDeleteForMeMessageId(null);
     }
+  };
+
+  const handleDeleteMessage = (msg, scope) => {
+    const messageId = msg?._id || msg?.id || msg;
+    const senderId = msg?.sender?._id || msg?.sender;
+    const isMyMessage = user?.id && String(senderId) === String(user.id);
+    if (scope) {
+      performDelete(messageId, scope);
+      return;
+    }
+    if (!isMyMessage) {
+      setDeleteForMeMessageId(messageId);
+      return;
+    }
+    setDeleteModalMessageId(messageId);
   };
 
   const insertEmoji = (emoji) => {
@@ -853,7 +872,7 @@ const Messaging = ({ openChatUserId = null }) => {
                       src={attachmentUrl}
                       isMe={isMe}
                       createdAt={formatTime(msg.createdAt)}
-                      onDelete={isMe ? () => handleDeleteMessage(msg._id) : undefined}
+                      onDelete={() => handleDeleteMessage(msg)}
                     />
                   </div>
                 );
@@ -898,7 +917,7 @@ const Messaging = ({ openChatUserId = null }) => {
                       {isMe && (
                         <button
                           type="button"
-                          onClick={() => handleDeleteMessage(msg._id)}
+                          onClick={() => handleDeleteMessage(msg)}
                           className="ml-2 p-1 rounded-full hover:bg-black/5 text-slate-500"
                           title="Supprimer cet appel"
                         >
@@ -957,16 +976,14 @@ const Messaging = ({ openChatUserId = null }) => {
                     >
                       😊
                     </button>
-                    {isMe && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteMessage(msg._id)}
-                        className="p-1 rounded hover:bg-white/20 opacity-90"
-                        title="Supprimer"
-                      >
-                        <FiTrash2 size={12} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMessage(msg)}
+                      className="p-1 rounded hover:bg-white/20 opacity-90"
+                      title="Supprimer"
+                    >
+                      <FiTrash2 size={12} />
+                    </button>
                     {reactionPickerMsgId === msg._id && (
                       <div className="absolute bottom-full left-0 mb-1 flex gap-0.5 p-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
                         {QUICK_REACTIONS.map((emoji) => (
@@ -1039,7 +1056,64 @@ const Messaging = ({ openChatUserId = null }) => {
           </div>
         </div>
       )}
-      
+
+      {/* Modal Supprimer message de l'autre (pour vous uniquement) */}
+      {deleteForMeMessageId && (
+        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={() => setDeleteForMeMessageId(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-medium text-slate-800 mb-3">Supprimer ce message pour vous ?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => performDelete(deleteForMeMessageId, "forMe")}
+                className="w-full py-2.5 px-3 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600"
+              >
+                Supprimer
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteForMeMessageId(null)}
+                className="w-full py-2 px-3 rounded-lg text-slate-600 text-sm hover:bg-slate-100"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Supprimer message (pour moi / pour tout le monde) */}
+      {deleteModalMessageId && (
+        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={() => setDeleteModalMessageId(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-medium text-slate-800 mb-3">Supprimer ce message ?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => performDelete(deleteModalMessageId, "forEveryone")}
+                className="w-full py-2.5 px-3 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600"
+              >
+                Supprimer pour tout le monde
+              </button>
+              <button
+                type="button"
+                onClick={() => performDelete(deleteModalMessageId, "forMe")}
+                className="w-full py-2.5 px-3 rounded-lg bg-slate-200 text-slate-800 text-sm font-medium hover:bg-slate-300"
+              >
+                Supprimer pour moi
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteModalMessageId(null)}
+                className="w-full py-2 px-3 rounded-lg text-slate-600 text-sm hover:bg-slate-100"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Video Call Modal */}
       {videoCall && (
         <VideoCall

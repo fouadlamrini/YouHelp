@@ -22,6 +22,7 @@ const messageSchema = new mongoose.Schema(
     reactions: [
       { user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, emoji: { type: String } },
     ],
+    hiddenFor: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], default: [] },
   },
   { timestamps: true }
 );

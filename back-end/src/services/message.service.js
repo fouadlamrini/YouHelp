@@ -54,6 +54,7 @@ async function getConversation(me, partnerId) {
       { sender: me, receiver: partnerId },
       { sender: partnerId, receiver: me },
     ],
+    $and: [{ $or: [{ hiddenFor: { $exists: false } }, { hiddenFor: { $nin: [me] } }] }],
   })
     .sort({ createdAt: 1 })
     .populate("sender", "name email")
@@ -74,6 +75,7 @@ async function getConversations(me) {
           { sender: me, receiver: p._id },
           { sender: p._id, receiver: me },
         ],
+        $and: [{ $or: [{ hiddenFor: { $exists: false } }, { hiddenFor: { $nin: [me] } }] }],
       })
         .sort({ createdAt: -1 })
         .select("content attachment createdAt readAt receiver")
@@ -90,15 +92,33 @@ async function getConversations(me) {
   return { data: list };
 }
 
-async function deleteMessage(userId, messageId, emitToUser) {
+async function deleteMessage(userId, messageId, body, emitToUser) {
   const message = await Message.findById(messageId);
   if (!message) return { error: { status: 404, message: "Message not found" } };
-  if (message.sender.toString() !== userId) {
-    return { error: { status: 403, message: "Can only delete your own messages" } };
-  }
+  const isMyMessage = message.sender.toString() === userId;
   const receiverId = message.receiver.toString();
-  await Message.findByIdAndDelete(messageId);
-  if (emitToUser) emitToUser(receiverId, "message-deleted", { messageId });
+
+  if (!isMyMessage) {
+    if (!message.hiddenFor) message.hiddenFor = [];
+    if (!message.hiddenFor.some((id) => id.toString() === userId)) {
+      message.hiddenFor.push(userId);
+      await message.save();
+    }
+    return { ok: true };
+  }
+
+  const scope = body?.scope === "forEveryone" ? "forEveryone" : "forMe";
+  if (scope === "forEveryone") {
+    await Message.findByIdAndDelete(messageId);
+    if (emitToUser) emitToUser(receiverId, "message-deleted", { messageId });
+    return { ok: true };
+  }
+
+  if (!message.hiddenFor) message.hiddenFor = [];
+  if (!message.hiddenFor.some((id) => id.toString() === userId)) {
+    message.hiddenFor.push(userId);
+    await message.save();
+  }
   return { ok: true };
 }
 
