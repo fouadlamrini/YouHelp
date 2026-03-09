@@ -133,6 +133,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [workchopRequested, setWorkchopRequested] = useState(!!rawPost?.workchopRequestAlreadySent);
   const [loadingWorkchop, setLoadingWorkchop] = useState(false);
   const [workchopSuccessMessage, setWorkchopSuccessMessage] = useState(false);
+  const isArabicContent = /[\u0600-\u06FF]/.test(post?.content || "");
+  const contentDirection = isArabicContent ? "rtl" : "ltr";
+  const contentAlignClass = isArabicContent ? "text-right" : "text-left";
 
   useEffect(() => {
     setLocalSolved(rawPost?.isSolved ?? false);
@@ -609,8 +612,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         </div>
       </div>
 
-      <div className="px-6 pb-4 text-right">
-        <p className="text-slate-700 leading-relaxed font-medium">{post.content}</p>
+      <div className="px-6 pb-4">
+        <p
+          dir={contentDirection}
+          className={`text-slate-700 leading-relaxed font-medium ${contentAlignClass}`}
+        >
+          {post.content}
+        </p>
       </div>
 
       {/* Media block: large viewer + unified thumbnails (images / videos / pdf) */}

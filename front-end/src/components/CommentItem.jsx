@@ -50,6 +50,9 @@ const CommentItem = ({
   const userName = comment.userName ?? author.name ?? author.email ?? "?";
   const userRole = comment.userRole ?? author.role?.name ?? "";
   const text = comment.text ?? comment.content ?? "";
+  const isArabicText = /[\u0600-\u06FF]/.test(text);
+  const textDirection = isArabicText ? "rtl" : "ltr";
+  const textAlignClass = isArabicText ? "text-right" : "text-left";
   const time = comment.time ?? formatTime(comment.createdAt);
   const rawAvatar = comment.avatar ?? author.profilePicture;
   const avatarUrl = rawAvatar ? resolveAvatarUrl(rawAvatar) : resolveAvatarUrl("default-avatar.jpg");
@@ -244,7 +247,12 @@ const CommentItem = ({
               </div>
             ) : (
               <>
-                <p className="text-sm text-slate-700 font-medium leading-relaxed mt-1 text-right">{text}</p>
+                <p
+                  dir={textDirection}
+                  className={`text-sm text-slate-700 font-medium leading-relaxed mt-1 ${textAlignClass}`}
+                >
+                  {text}
+                </p>
                 {Array.isArray(comment.media) && comment.media.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {comment.media.map((m, idx) => {

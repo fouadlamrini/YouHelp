@@ -79,6 +79,9 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
     (data.subCategory && typeof data.subCategory === "object" && data.subCategory.name) ||
     data.subCategory ||
     "";
+  const isArabicContent = /[\u0600-\u06FF]/.test(data.content || "");
+  const contentDirection = isArabicContent ? "rtl" : "ltr";
+  const contentAlignClass = isArabicContent ? "text-right" : "text-left";
 
   useEffect(() => {
     if (!data.id) return;
@@ -384,7 +387,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             );
           })()}
 
-          <div className="text-slate-700 font-medium leading-relaxed">
+          <div
+            dir={contentDirection}
+            className={`text-slate-700 font-medium leading-relaxed ${contentAlignClass}`}
+          >
             {data.content}
           </div>
         </div>
