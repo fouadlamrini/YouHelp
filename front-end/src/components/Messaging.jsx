@@ -218,12 +218,18 @@ const Messaging = ({ openChatUserId = null }) => {
     };
 
     const onVideoCallEnded = () => {
+      // Arrêt des sonneries des deux côtés
       stopOutgoingRingtone();
+      stopIncomingRingtone();
+      // Fermer les modales d'appel (initiateur ou receveur)
       setVideoCall(null);
+      setIncomingCall(null);
     };
     const onVoiceCallEnded = () => {
       stopOutgoingRingtone();
+      stopIncomingRingtone();
       setVoiceCall(null);
+      setIncomingVoiceCall(null);
     };
 
     socket.on("message", onMessage);
