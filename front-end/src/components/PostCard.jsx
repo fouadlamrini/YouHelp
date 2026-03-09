@@ -89,6 +89,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [shareCount, setShareCount] = useState(rawPost?.shareCount ?? 0);
   const [commentCount, setCommentCount] = useState(rawPost?.commentCount ?? 0);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // 'post' | 'share' | null
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState(post?.content || "");
   const [editedMedia, setEditedMedia] = useState(post?.originalMedia || []);
@@ -272,7 +274,6 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   const handleDelete = () => {
     if (readOnly || deleting || !post.id) return;
-    if (!window.confirm("Supprimer ce post ?")) return;
     setDeleting(true);
     postApi
       .delete(post.id)
@@ -280,12 +281,15 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         onRefresh?.();
       })
       .catch(() => {})
-      .finally(() => setDeleting(false));
+      .finally(() => {
+        setDeleting(false);
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+      });
   };
 
   const handleDeleteShare = () => {
     if (readOnly || deleting || !sharedInfo?.id) return;
-    if (!window.confirm("Supprimer ce partage ?")) return;
     setDeleting(true);
     postApi
       .deleteShare(sharedInfo.id)
@@ -293,7 +297,11 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         onRefresh?.();
       })
       .catch(() => {})
-      .finally(() => setDeleting(false));
+      .finally(() => {
+        setDeleting(false);
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+      });
   };
 
   const openEditModal = () => {
@@ -530,7 +538,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                     {isSharedInstance ? (
                       <button
                         type="button"
-                        onClick={handleDeleteShare}
+                        onClick={() => {
+                          setDeleteTarget("share");
+                          setShowDeleteConfirm(true);
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold disabled:opacity-50"
                         disabled={deleting}
                       >
@@ -550,7 +561,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                         {(isAuthor || canModeratePost) && (
                           <button
                             type="button"
-                            onClick={handleDelete}
+                            onClick={() => {
+                              setDeleteTarget("post");
+                              setShowDeleteConfirm(true);
+                            }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-bold border-t border-slate-50 disabled:opacity-50"
                             disabled={deleting}
                           >
@@ -1031,6 +1045,46 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                   {saving ? "Enregistrement..." : "Enregistrer"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
+            <p className="text-sm font-semibold text-slate-800 mb-6">
+              {deleteTarget === "share"
+                ? "Supprimer ce partage ?"
+                : "Supprimer ce post ?"}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleting) return;
+                  setShowDeleteConfirm(false);
+                  setDeleteTarget(null);
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                disabled={deleting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteTarget === "share") {
+                    handleDeleteShare();
+                  } else {
+                    handleDelete();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50"
+                disabled={deleting}
+              >
+                {deleting ? "Suppression..." : "Confirmer"}
+              </button>
             </div>
           </div>
         </div>
