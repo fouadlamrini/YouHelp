@@ -325,7 +325,9 @@ const FriendsList = () => {
               <div className="py-20 text-center text-slate-400 text-sm font-bold">Chargement...</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {friendPageItems.map((friend) => (
+                {friendPageItems.map((friend) => {
+                  const isOnline = !!friend.online;
+                  return (
                   <div
                     key={friend._id}
                     className="bg-white p-6 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 transition-all group"
@@ -337,7 +339,12 @@ const FriendsList = () => {
                           alt={friend.name}
                           className="w-24 h-24 rounded-[2.2rem] object-cover border-4 border-slate-50 shadow-inner"
                         />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full" />
+                        <div
+                          className={
+                            "absolute -bottom-1 -right-1 w-6 h-6 border-4 border-white rounded-full " +
+                            (isOnline ? "bg-emerald-500" : "bg-rose-500")
+                          }
+                        />
                       </div>
                       <div className="mb-6 min-h-16">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight">
@@ -379,7 +386,7 @@ const FriendsList = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             )}
 

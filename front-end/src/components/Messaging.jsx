@@ -809,6 +809,8 @@ const Messaging = ({ openChatUserId = null }) => {
               ) : (
                 user?.name?.[0] && <span className="flex items-center justify-center h-full text-sm font-bold text-indigo-600">{user.name[0]}</span>
               )}
+              {/* Current user is always considered online on this client */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-emerald-500" />
             </div>
             <span className="text-sm font-black text-slate-800 tracking-tight">Messaging</span>
           </div>
@@ -843,6 +845,7 @@ const Messaging = ({ openChatUserId = null }) => {
                   if (!conv || !conv.user) return null;
                   const convUser = conv.user;
                   const convId = convUser._id || convUser.id;
+                  const isOnline = !!convUser.online;
                   return (
                     <div
                       key={convId}
@@ -868,6 +871,14 @@ const Messaging = ({ openChatUserId = null }) => {
                           <span className="text-[10px] text-slate-400 font-bold">
                             {formatTime(conv.lastMessage?.createdAt)}
                           </span>
+                        </div>
+                        <div className="mt-0.5">
+                          <span
+                            className={
+                              "inline-block w-2.5 h-2.5 rounded-full " +
+                              (isOnline ? "bg-emerald-500" : "bg-rose-500")
+                            }
+                          />
                         </div>
                         <p className="text-xs text-slate-500 truncate font-medium">
                           {conv.lastMessage?.content ||
@@ -940,16 +951,31 @@ const Messaging = ({ openChatUserId = null }) => {
         <div className="w-80 h-[450px] bg-white shadow-2xl rounded-t-xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
           <div className="p-2.5 flex items-center justify-between border-b border-slate-100 bg-white rounded-t-xl">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0 relative">
                 {activeChat.user.profilePicture ? (
                   <img src={resolveAvatarUrl(activeChat.user.profilePicture)} alt="" className="w-full h-full object-cover" />
                 ) : (
                   activeChat.user.name?.[0] || "?"
                 )}
+                <span
+                  className={
+                    "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white " +
+                    (activeChat.user.online ? "bg-emerald-500" : "bg-rose-500")
+                  }
+                />
               </div>
               <div>
-                <h4 className="text-xs font-black text-slate-800 leading-none">{activeChat.user.name || activeChat.user.email}</h4>
-                <p className="text-[9px] text-emerald-500 font-bold mt-1">Active</p>
+                <h4 className="text-xs font-black text-slate-800 leading-none flex items-center gap-1">
+                  {activeChat.user.name || activeChat.user.email}
+                </h4>
+                <p
+                  className={
+                    "text-[9px] font-bold mt-1 " +
+                    (activeChat.user.online ? "text-emerald-500" : "text-slate-400")
+                  }
+                >
+                  {activeChat.user.online ? "En ligne" : "Hors ligne"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-indigo-600">

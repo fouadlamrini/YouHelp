@@ -2,14 +2,18 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Global maps shared across the server for presence
+// userId -> Set(socketId)
+const userSockets = new Map();
+// userId -> Date (last time we saw the user disconnected)
+const lastSeenMap = new Map();
+
 /** Attach Socket.io and auth, map userId -> socketId for private messages */
 function setupSocket(server) {
   const { Server } = require("socket.io");
   const io = new Server(server, {
     cors: { origin: process.env.FRONTEND_URL || "http://localhost:5173" },
   });
-
-  const userSockets = new Map(); // userId -> Set(socketId)
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -30,12 +34,26 @@ function setupSocket(server) {
     if (!userSockets.has(uid)) userSockets.set(uid, new Set());
     userSockets.get(uid).add(socket.id);
 
+    // Explicit presence event from client (used on initial connect / reconnect)
+    socket.on("user:online", (userId) => {
+      const id = String(userId || uid);
+      lastSeenMap.delete(id);
+      // broadcast to everyone (including sender)
+      io.emit("user:status", { userId: id, status: "online" });
+    });
+
     socket.on("disconnect", () => {
       console.log('❌ Socket disconnected - User ID:', uid);
       const set = userSockets.get(uid);
       if (set) {
         set.delete(socket.id);
-        if (set.size === 0) userSockets.delete(uid);
+        if (set.size === 0) {
+          userSockets.delete(uid);
+          const id = String(uid);
+          const now = new Date();
+          lastSeenMap.set(id, now);
+          io.emit("user:status", { userId: id, status: "offline", lastSeen: now.toISOString() });
+        }
       }
     });
 
@@ -142,7 +160,23 @@ function setupSocket(server) {
     console.log('[socket] 📤', event, 'sent to', id);
   }
 
-  return { io, emitToUser };
+  function isUserOnline(userId) {
+    return userSockets.has(String(userId));
+  }
+
+  function getLastSeen(userId) {
+    return lastSeenMap.get(String(userId)) || null;
+  }
+
+  return { io, emitToUser, isUserOnline, getLastSeen };
 }
 
-module.exports = { setupSocket };
+function isUserOnline(userId) {
+  return userSockets.has(String(userId));
+}
+
+function getLastSeen(userId) {
+  return lastSeenMap.get(String(userId)) || null;
+}
+
+module.exports = { setupSocket, isUserOnline, getLastSeen };

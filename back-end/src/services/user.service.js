@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
+const { isUserOnline, getLastSeen } = require("../config/socket");
 const { notifyUserActivated, notifyUserRefused } = require("./notification.service");
 
 /** Get current user doc with role (and campus, class) for permission checks */
@@ -134,7 +135,17 @@ async function getAll(currentUserId, query = {}) {
     .populate("level", "name")
     .select("-password")
     .sort({ createdAt: -1 });
-  return { data: users };
+
+  const enriched = users.map((u) => {
+    const plain = u.toObject();
+    const id = plain._id.toString();
+    plain.online = isUserOnline(id);
+    const ls = getLastSeen(id);
+    plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+    return plain;
+  });
+
+  return { data: enriched };
 }
 
 async function getById(currentUserId, targetUserId) {
@@ -149,7 +160,12 @@ async function getById(currentUserId, targetUserId) {
     .populate("level", "name")
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
-  return { data: user };
+  const plain = user.toObject();
+  const id = plain._id.toString();
+  plain.online = isUserOnline(id);
+  const ls = getLastSeen(id);
+  plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+  return { data: plain };
 }
 
 async function update(currentUserId, targetUserId, body) {

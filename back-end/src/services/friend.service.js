@@ -1,6 +1,7 @@
 const Friend = require("../models/Friend");
 const FriendRequest = require("../models/FriendRequest");
 const User = require("../models/User");
+const { isUserOnline, getLastSeen } = require("../config/socket");
 
 function normalizePair(a, b) {
   return [a.toString(), b.toString()].sort();
@@ -78,8 +79,19 @@ async function list(me) {
       select: "name email profilePicture",
       populate: [{ path: "campus", select: "name" }, { path: "class", select: "name" }],
     });
-  const friends = docs.map((d) => (d.user1._id.toString() === me ? d.user2 : d.user1));
-  return { data: friends };
+  const friends = docs
+    .map((d) => (d && d.user1 && d.user2 ? (d.user1._id.toString() === me ? d.user2 : d.user1) : null))
+    .filter((u) => !!u);
+  const enriched = friends.map((u) => {
+    const plain = u.toObject ? u.toObject() : u;
+    if (!plain || !plain._id) return plain;
+    const id = plain._id.toString();
+    plain.online = isUserOnline(id);
+    const ls = getLastSeen(id);
+    plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+    return plain;
+  });
+  return { data: enriched };
 }
 
 module.exports = {

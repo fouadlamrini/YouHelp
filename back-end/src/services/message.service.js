@@ -1,5 +1,6 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
+const { isUserOnline, getLastSeen } = require("../config/socket");
 const { areFriends } = require("./friend.service");
 
 function buildAttachment(file) {
@@ -81,7 +82,15 @@ async function getConversations(me) {
         .select("content attachment createdAt readAt receiver")
         .lean();
       const unread = last && last.receiver && last.receiver.toString() === me && !last.readAt;
-      return { user: p, lastMessage: last || null, unread: !!unread };
+      const id = p._id.toString();
+      const online = isUserOnline(id);
+      const ls = getLastSeen(id);
+      const enrichedUser = {
+        ...p,
+        online,
+        lastSeen: ls ? (ls.toISOString ? ls.toISOString() : ls) : null,
+      };
+      return { user: enrichedUser, lastMessage: last || null, unread: !!unread };
     })
   );
   list.sort((a, b) => {
