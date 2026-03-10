@@ -36,6 +36,8 @@ const FriendsList = () => {
   const [showUnfriendModal, setShowUnfriendModal] = useState(false);
   const [friendToUnfriend, setFriendToUnfriend] = useState(null); // { id, name } | null
   const [sentRequests, setSentRequests] = useState([]);
+  const [friendsPage, setFriendsPage] = useState(1);
+  const FRIENDS_PER_PAGE = 8;
   const [showSentModal, setShowSentModal] = useState(false);
 
   const isActive = user?.status === "active";
@@ -206,6 +208,36 @@ const FriendsList = () => {
     ).entries()
   );
 
+  const totalFriendPages = Math.max(1, Math.ceil(filteredFriends.length / FRIENDS_PER_PAGE));
+  const currentFriendPage = Math.min(friendsPage, totalFriendPages);
+  const friendStartIndex = (currentFriendPage - 1) * FRIENDS_PER_PAGE;
+  const friendPageItems = filteredFriends.slice(friendStartIndex, friendStartIndex + FRIENDS_PER_PAGE);
+
+  const getFriendPageNumbers = () => {
+    const pages = [];
+    const maxButtons = 7;
+    if (totalFriendPages <= maxButtons) {
+      for (let i = 1; i <= totalFriendPages; i += 1) {
+        pages.push(i);
+      }
+      return pages;
+    }
+    const showLeftEllipsis = currentFriendPage > 3;
+    const showRightEllipsis = currentFriendPage < totalFriendPages - 2;
+    pages.push(1);
+    const start = Math.max(2, currentFriendPage - 1);
+    const end = Math.min(totalFriendPages - 1, currentFriendPage + 1);
+    if (showLeftEllipsis && start > 2) pages.push("...");
+    for (let i = start; i <= end; i += 1) {
+      pages.push(i);
+    }
+    if (showRightEllipsis && end < totalFriendPages - 1) pages.push("...");
+    pages.push(totalFriendPages);
+    return pages;
+  };
+
+  const friendPageNumbers = getFriendPageNumbers();
+
   const filteredAvailableUsers = availableUsers.filter((u) => {
     const term = inviteSearch.trim().toLowerCase();
     if (term) {
@@ -293,7 +325,7 @@ const FriendsList = () => {
               <div className="py-20 text-center text-slate-400 text-sm font-bold">Chargement...</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredFriends.map((friend) => (
+                {friendPageItems.map((friend) => (
                   <div
                     key={friend._id}
                     className="bg-white p-6 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 transition-all group"
@@ -361,6 +393,57 @@ const FriendsList = () => {
                     ? "Aucun ami pour le moment. Cliquez sur Inviter pour envoyer des demandes."
                     : "Aucun ami ne correspond à ce nom."}
                 </p>
+              </div>
+            )}
+            {filteredFriends.length > 0 && (
+              <div className="flex items-center justify-between mt-6 text-[11px] text-slate-500">
+                <span>
+                  Page <span className="font-bold">{currentFriendPage}</span> sur{" "}
+                  <span className="font-bold">{totalFriendPages}</span> —{" "}
+                  <span className="font-bold">{filteredFriends.length}</span> amis
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFriendsPage((p) => Math.max(1, p - 1))}
+                    disabled={currentFriendPage === 1}
+                    className="px-3 py-1 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    Précédent
+                  </button>
+                  {friendPageNumbers.map((p, index) =>
+                    p === "..." ? (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="px-2 text-[10px] font-bold text-slate-400 select-none"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setFriendsPage(p)}
+                        className={
+                          "min-w-[28px] px-2 py-1 rounded-xl text-[10px] font-black tracking-widest border " +
+                          (p === currentFriendPage
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50")
+                        }
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setFriendsPage((p) => Math.min(totalFriendPages, p + 1))}
+                    disabled={currentFriendPage === totalFriendPages}
+                    className="px-3 py-1 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    Suivant
+                  </button>
+                </div>
               </div>
             )}
           </div>

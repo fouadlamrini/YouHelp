@@ -121,6 +121,7 @@ export default function RegisterYouHelp() {
                 <input
                   type={field.id === "password" && showPassword ? "text" : field.type}
                   name={field.id}
+                  autoComplete={field.id === "fullName" ? "name" : field.id === "email" ? "email" : field.id === "password" ? "new-password" : "off"}
                   placeholder=" "
                   value={formData[field.id]}
                   onChange={handleChange}

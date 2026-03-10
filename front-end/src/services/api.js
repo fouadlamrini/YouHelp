@@ -245,12 +245,4 @@ export const friendRequestsApi = {
   cancel: (id) => api.delete(`/friend-requests/${id}/cancel`),
 };
 
-// —— Class Join Request ——
-export const classJoinRequestApi = {
-  create: (data) => api.post("/class-join-request", data),
-  getMyClassRequests: () => api.get("/class-join-request/my-class"),
-  accept: (id) => api.put(`/class-join-request/${id}/accept`),
-  reject: (id) => api.put(`/class-join-request/${id}/reject`),
-};
-
 export default api;

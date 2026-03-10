@@ -35,6 +35,7 @@ const UserManagement = () => {
   const [filterClass, setFilterClass] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -52,6 +53,8 @@ const UserManagement = () => {
   const [availableAvatars, setAvailableAvatars] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null);
   const [lastUpdatedUserId, setLastUpdatedUserId] = useState(null);
+  const [userPage, setUserPage] = useState(1);
+  const USERS_PER_PAGE = 10;
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
@@ -246,6 +249,7 @@ const UserManagement = () => {
       .then(() => {
         setFormData({ name: "", email: "", password: "", campus: "", class: "", level: "", role: "", profilePicture: "" });
         setFormSuccess("Utilisateur créé avec succès.");
+        setIsCreateModalOpen(false);
         fetchUsers();
       })
       .catch((err) => setFormError(err.response?.data?.message || "Erreur"))
@@ -344,6 +348,36 @@ const UserManagement = () => {
     (u.email || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const currentUserPage = Math.min(userPage, totalUserPages);
+  const userStartIndex = (currentUserPage - 1) * USERS_PER_PAGE;
+  const userPageItems = filteredUsers.slice(userStartIndex, userStartIndex + USERS_PER_PAGE);
+
+  const getUserPageNumbers = () => {
+    const pages = [];
+    const maxButtons = 7;
+    if (totalUserPages <= maxButtons) {
+      for (let i = 1; i <= totalUserPages; i += 1) {
+        pages.push(i);
+      }
+      return pages;
+    }
+    const showLeftEllipsis = currentUserPage > 3;
+    const showRightEllipsis = currentUserPage < totalUserPages - 2;
+    pages.push(1);
+    const start = Math.max(2, currentUserPage - 1);
+    const end = Math.min(totalUserPages - 1, currentUserPage + 1);
+    if (showLeftEllipsis && start > 2) pages.push("...");
+    for (let i = start; i <= end; i += 1) {
+      pages.push(i);
+    }
+    if (showRightEllipsis && end < totalUserPages - 1) pages.push("...");
+    pages.push(totalUserPages);
+    return pages;
+  };
+
+  const userPageNumbers = getUserPageNumbers();
+
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden">
       <Sidebar />
@@ -351,241 +385,49 @@ const UserManagement = () => {
         <NavbarLoggedIn />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto space-y-8 pb-10">
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight text-left">
-                Gestion des Utilisateurs
-              </h1>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 text-left">
-                Gérer les profils et les accès
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight text-left">
+                  Gestion des Utilisateurs
+                </h1>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 text-left">
+                  Gérer les profils et les accès
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    name: "",
+                    email: "",
+                    password: "",
+                    campus: "",
+                    class: "",
+                    level: "",
+                    role: "",
+                    profilePicture: "",
+                  });
+                  setFormError("");
+                  setFormSuccess("");
+                  setIsCreateModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+              >
+                <FiUserPlus size={18} />
+                Créer un utilisateur
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm h-fit">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-lg shadow-indigo-100">
-                    <FiUserPlus size={20} />
-                  </div>
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Ajouter un profil</h3>
-                </div>
-
-                <form onSubmit={handleCreateUser} className="space-y-4 text-left">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Nom Complet</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="Nom et Prénom"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 text-left block">
-                      Email & Password
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="email@youcode.ma"
-                      />
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Campus</label>
-                      {isAdmin || isFormateur ? (
-                        <div
-                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                          title="Votre campus (lecture seule)"
-                        >
-                          {(isAdmin ? adminCampusName : formateurCampusName) || "—"}
-                        </div>
-                      ) : (
-                        <select
-                          name="campus"
-                          value={formData.campus}
-                          onChange={handleInputChange}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                        >
-                          <option value="">Sélectionner</option>
-                          {campuses.map((c) => (
-                            <option key={c._id} value={c._id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Rôle</label>
-                      {isFormateur ? (
-                        <div
-                          className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                          title="Un formateur ne peut créer que des étudiants"
-                        >
-                          Étudiant
-                        </div>
-                      ) : (
-                        <select
-                          name="role"
-                          value={formData.role}
-                          onChange={handleInputChange}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                        >
-                          <option value="">Sélectionner</option>
-                          {(isAdmin ? rolesForAdmin : isSuperAdmin ? rolesForSuperAdmin : roles).map((r) => (
-                            <option key={r._id} value={r._id}>
-                              {r.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                  {(() => {
-                    const selectedRoleName = roles.find((r) => r._id === formData.role)?.name || "";
-                    if (selectedRoleName === "admin") return null;
-                    return (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
-                          {isFormateur ? (
-                            <div
-                              className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                              title="Votre classe (lecture seule)"
-                            >
-                              {formateurClassName || "—"}
-                            </div>
-                          ) : (
-                            <select
-                              name="class"
-                              value={formData.class}
-                              onChange={handleInputChange}
-                              className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                            >
-                              <option value="">Sélectionner</option>
-                              {classes.map((cl) => (
-                                <option key={cl._id} value={cl._id}>
-                                  {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Level</label>
-                          {isFormateur ? (
-                            <div
-                              className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed"
-                              title="Votre level (lecture seule)"
-                            >
-                              {formateurLevelName || "—"}
-                            </div>
-                          ) : (
-                            <select
-                              name="level"
-                              value={formData.level}
-                              onChange={handleInputChange}
-                              className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
-                            >
-                              <option value="">Sélectionner</option>
-                              {levels.map((l) => (
-                                <option key={l._id} value={l._id}>
-                                  {l.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 block">
-                      Photo de profil / Avatar
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {availableAvatars.map((av) => {
-                        const url = resolveAvatarUrl(av.url || av);
-                        const selected = formData.profilePicture === url;
-                        return (
-                          <button
-                            key={url}
-                            type="button"
-                            onClick={() => setFormData((prev) => ({ ...prev, profilePicture: url }))}
-                            className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
-                              selected ? "border-indigo-500 ring-2 ring-indigo-300" : "border-transparent hover:border-slate-200"
-                            }`}
-                          >
-                            <img src={url} alt="avatar" className="w-full h-full object-cover" />
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
-                      >
-                        Depuis mon PC
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLocalAvatarChange}
-                      />
-                      <input
-                        type="text"
-                        name="profilePicture"
-                        value={formData.profilePicture}
-                        onChange={handleInputChange}
-                        placeholder="URL photo personnelle"
-                        className="flex-1 min-w-[140px] p-3 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
-                    </div>
-                  </div>
-                  {formError && (
-                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                      <span>{formError}</span>
-                      <button type="button" onClick={() => setFormError("")} className="p-1 hover:bg-rose-100 rounded">
-                        <FiX size={14} />
-                      </button>
-                    </div>
-                  )}
-                  {formSuccess && (
-                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-                      <span>{formSuccess}</span>
-                      <button type="button" onClick={() => setFormSuccess("")} className="p-1 hover:bg-emerald-100 rounded">
-                        <FiX size={14} />
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={submitLoading}
-                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all mt-4 shadow-xl disabled:opacity-50"
-                  >
-                    Créer le profil
-                  </button>
-                </form>
+            {formSuccess && (
+              <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                <span>{formSuccess}</span>
+                <button type="button" onClick={() => setFormSuccess("")} className="p-1 hover:bg-emerald-100 rounded">
+                  <FiX size={14} />
+                </button>
               </div>
+            )}
 
-              <div className="lg:col-span-2 space-y-4">
+            <div className="space-y-4">
                 <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm space-y-4">
                   <div className="flex items-center gap-4">
                     <FiSearch className="text-slate-400 ml-2 shrink-0" size={20} />
@@ -654,14 +496,14 @@ const UserManagement = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {filteredUsers.length === 0 ? (
+                        {userPageItems.length === 0 ? (
                           <tr>
                             <td colSpan={4} className="p-8 text-center text-slate-400 text-sm">
                               Aucun utilisateur.
                             </td>
                           </tr>
                         ) : (
-                          filteredUsers.map((user) => (
+                          userPageItems.map((user) => (
                             <tr key={user._id} className="hover:bg-slate-50/20 transition-colors">
                               <td className="p-6">
                                 <div className="flex items-center gap-4">
@@ -790,11 +632,213 @@ const UserManagement = () => {
                     </table>
                   )}
                 </div>
-              </div>
+                {filteredUsers.length > 0 && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 text-[11px] text-slate-500">
+                    <span>
+                      Page <span className="font-bold">{currentUserPage}</span> sur{" "}
+                      <span className="font-bold">{totalUserPages}</span> —{" "}
+                      <span className="font-bold">{filteredUsers.length}</span> utilisateurs
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                        disabled={currentUserPage === 1}
+                        className="px-3 py-1 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:bg-slate-50"
+                      >
+                        Précédent
+                      </button>
+                      {userPageNumbers.map((p, index) =>
+                        p === "..." ? (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="px-2 text-[10px] font-bold text-slate-400 select-none"
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setUserPage(p)}
+                            className={
+                              "min-w-[28px] px-2 py-1 rounded-xl text-[10px] font-black tracking-widest border " +
+                              (p === currentUserPage
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50")
+                            }
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setUserPage((p) => Math.min(totalUserPages, p + 1))}
+                        disabled={currentUserPage === totalUserPages}
+                        className="px-3 py-1 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:bg-slate-50"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </main>
       </div>
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setIsCreateModalOpen(false)}>
+          <div className="bg-white w-full max-w-lg rounded-[3rem] p-10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6 border-b pb-6">
+              <h3 className="text-lg font-black text-slate-900 uppercase">Créer un utilisateur</h3>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-2 bg-slate-50 rounded-xl hover:text-rose-500 transition-colors"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Nom Complet</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Nom et Prénom"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 text-left block">Email & Password</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="email@youcode.ma"
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Campus</label>
+                  {isAdmin || isFormateur ? (
+                    <div className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed" title="Votre campus (lecture seule)">
+                      {(isAdmin ? adminCampusName : formateurCampusName) || "—"}
+                    </div>
+                  ) : (
+                    <select name="campus" value={formData.campus} onChange={handleInputChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer">
+                      <option value="">Sélectionner</option>
+                      {campuses.map((c) => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Rôle</label>
+                  {isFormateur ? (
+                    <div className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed" title="Un formateur ne peut créer que des étudiants">
+                      Étudiant
+                    </div>
+                  ) : (
+                    <select name="role" value={formData.role} onChange={handleInputChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer">
+                      <option value="">Sélectionner</option>
+                      {(isAdmin ? rolesForAdmin : isSuperAdmin ? rolesForSuperAdmin : roles).map((r) => (
+                        <option key={r._id} value={r._id}>{r.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+              {(() => {
+                const selectedRoleName = roles.find((r) => r._id === formData.role)?.name || "";
+                if (selectedRoleName === "admin") return null;
+                return (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
+                      {isFormateur ? (
+                        <div className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed" title="Votre classe (lecture seule)">
+                          {formateurClassName || "—"}
+                        </div>
+                      ) : (
+                        <select name="class" value={formData.class} onChange={handleInputChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer">
+                          <option value="">Sélectionner</option>
+                          {classes.map((cl) => (
+                            <option key={cl._id} value={cl._id}>{cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Level</label>
+                      {isFormateur ? (
+                        <div className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-600 cursor-not-allowed" title="Votre level (lecture seule)">
+                          {formateurLevelName || "—"}
+                        </div>
+                      ) : (
+                        <select name="level" value={formData.level} onChange={handleInputChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer">
+                          <option value="">Sélectionner</option>
+                          {levels.map((l) => (
+                            <option key={l._id} value={l._id}>{l.name}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 block">Photo de profil / Avatar</label>
+                <div className="flex flex-wrap gap-3">
+                  {availableAvatars.map((av) => {
+                    const url = resolveAvatarUrl(av.url || av);
+                    const selected = formData.profilePicture === url;
+                    return (
+                      <button key={url} type="button" onClick={() => setFormData((prev) => ({ ...prev, profilePicture: url }))} className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${selected ? "border-indigo-500 ring-2 ring-indigo-300" : "border-transparent hover:border-slate-200"}`}>
+                        <img src={url} alt="avatar" className="w-full h-full object-cover" />
+                      </button>
+                    );
+                  })}
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-400 hover:text-indigo-600">
+                    Depuis mon PC
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLocalAvatarChange} />
+                  <input type="text" name="profilePicture" value={formData.profilePicture} onChange={handleInputChange} placeholder="URL photo personnelle" className="flex-1 min-w-[140px] p-3 bg-slate-50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+              </div>
+              {formError && (
+                <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                  <span>{formError}</span>
+                  <button type="button" onClick={() => setFormError("")} className="p-1 hover:bg-rose-100 rounded">
+                    <FiX size={14} />
+                  </button>
+                </div>
+              )}
+              <button type="submit" disabled={submitLoading} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all mt-4 shadow-xl disabled:opacity-50">
+                Créer le profil
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isEditModalOpen && editingUser && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
