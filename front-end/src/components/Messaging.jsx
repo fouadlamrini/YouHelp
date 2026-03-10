@@ -253,17 +253,60 @@ const Messaging = ({ openChatUserId = null }) => {
     if (!socket) return;
     
     const onMessage = (msg) => {
-      if (activeChat?.user?._id === msg.sender?._id) {
+      const senderId = msg.sender?._id || msg.sender;
+      const receiverId = msg.receiver?._id || msg.receiver;
+      const myId = user?.id;
+
+      // Si c'est moi qui ai envoyé le message sur CE client,
+      // on ne l'ajoute pas une 2ème fois (handleSend l'a déjà ajouté).
+      if (myId && String(senderId) === String(myId)) {
+        return;
+      }
+
+      const otherUser =
+        myId && String(senderId) === String(myId)
+          ? msg.receiver
+          : msg.sender;
+
+      if (activeChat?.user?._id && otherUser?._id && String(activeChat.user._id) === String(otherUser._id)) {
         setMessages((prev) => [...prev, msg]);
       }
+
       setConversations((prev) => {
-        const list = prev.map((c) => {
-          if (c.user._id === msg.sender?._id || c.user._id === msg.receiver?._id) {
-            return { ...c, lastMessage: { content: msg.content, createdAt: msg.createdAt } };
+        let found = false;
+        const updated = prev.map((c) => {
+          const convUserId = c.user?._id || c.user;
+          if (
+            (convUserId && otherUser?._id && String(convUserId) === String(otherUser._id)) ||
+            (convUserId && (String(convUserId) === String(senderId) || String(convUserId) === String(receiverId)))
+          ) {
+            found = true;
+            return {
+              ...c,
+              user: c.user?._id ? c.user : otherUser || c.user,
+              lastMessage: {
+                content: msg.content || "",
+                createdAt: msg.createdAt || new Date().toISOString(),
+              },
+            };
           }
           return c;
         });
-        return list;
+
+        if (!found && otherUser && otherUser._id) {
+          return [
+            {
+              user: otherUser,
+              lastMessage: {
+                content: msg.content || "",
+                createdAt: msg.createdAt || new Date().toISOString(),
+              },
+            },
+            ...updated,
+          ];
+        }
+
+        return updated;
       });
     };
 
@@ -389,19 +432,55 @@ const Messaging = ({ openChatUserId = null }) => {
     if ((!text && !attachmentFile) || !activeChat?.user?._id || sending) return;
     setSending(true);
     try {
+      let createdMessage = null;
       if (attachmentFile) {
         const formData = new FormData();
         formData.append("receiverId", String(activeChat.user._id));
         formData.append("content", text);
         formData.append("attachment", attachmentFile);
         const res = await messagesApi.send(formData);
-        setMessages((prev) => [...prev, res.data.data]);
+        createdMessage = res.data.data;
+        setMessages((prev) => [...prev, createdMessage]);
       } else {
         const res = await messagesApi.send({ receiverId: activeChat.user._id, content: text });
-        setMessages((prev) => [...prev, res.data.data]);
+        createdMessage = res.data.data;
+        setMessages((prev) => [...prev, createdMessage]);
       }
       setInputText("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+
+      if (createdMessage) {
+        setConversations((prev) => {
+          const updated = prev.map((c) =>
+            c.user?._id && String(c.user._id) === String(activeChat.user._id)
+              ? {
+                  ...c,
+                  lastMessage: {
+                    content: createdMessage.content || "",
+                    createdAt: createdMessage.createdAt || new Date().toISOString(),
+                  },
+                }
+              : c
+          );
+
+          const exists = updated.some(
+            (c) => c.user?._id && String(c.user._id) === String(activeChat.user._id)
+          );
+          if (!exists) {
+            return [
+              {
+                user: activeChat.user,
+                lastMessage: {
+                  content: createdMessage.content || "",
+                  createdAt: createdMessage.createdAt || new Date().toISOString(),
+                },
+              },
+              ...updated,
+            ];
+          }
+          return updated;
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {
