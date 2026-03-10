@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Engagement = require("../models/Engagement");
 const Notification = require("../models/Notification");
 const { areFriends, getMyFriendIds } = require("./friend.service");
+const { haveSameClassContext } = require("../utils/contextUtils");
 
 async function canModerateKnowledge(currentUserId, currentUser, knowledge) {
   if (!currentUserId || !currentUser) return false;
@@ -24,9 +25,7 @@ async function canModerateKnowledge(currentUserId, currentUser, knowledge) {
   }
   if (roleName === "formateur") {
     if (authorRoleName !== "etudiant") return false;
-    const sameClass = [currentUser.class?._id ?? currentUser.class, author.class?._id ?? author.class].every(Boolean) && (currentUser.class?._id ?? currentUser.class).toString() === (author.class?._id ?? author.class).toString();
-    const sameLevel = [currentUser.level?._id ?? currentUser.level, author.level?._id ?? author.level].every(Boolean) && (currentUser.level?._id ?? currentUser.level).toString() === (author.level?._id ?? author.level).toString();
-    return sameCampus && sameClass && sameLevel;
+    return haveSameClassContext(currentUser, author);
   }
   return false;
 }
@@ -40,10 +39,7 @@ async function knowledgeCanReact(currentUserId, currentUser, knowledge, viewFilt
   if (currentUser.role?.name === "super_admin") return true;
   if (author?.role?.name === "super_admin") return true;
   if (viewFilter === "friends") return true;
-  const sameCampus = currentUser.campus && author.campus && currentUser.campus._id.toString() === author.campus._id.toString();
-  const sameClass = currentUser.class && author.class && currentUser.class._id.toString() === author.class._id.toString();
-  const sameLevel = currentUser.level && author.level && currentUser.level._id.toString() === author.level._id.toString();
-  const sameContext = !!sameCampus && !!sameClass && !!sameLevel;
+  const sameContext = haveSameClassContext(currentUser, author);
   if (viewFilter === "my_campus") return sameContext;
   const friend = await areFriends(currentUserId, authorId);
   return sameContext || friend;
@@ -225,10 +221,7 @@ async function toggleReaction(userId, knowledgeId) {
   const isCurrentUserSuperAdmin = currentUser.role?.name === "super_admin";
   if (!isCurrentUserSuperAdmin && !isAuthorSuperAdmin && currentUser.role?.name === "etudiant") {
     const author = knowledge.author;
-    const sameCampus = currentUser.campus && author?.campus && currentUser.campus._id.toString() === author.campus._id.toString();
-    const sameClass = currentUser.class && author?.class && currentUser.class._id.toString() === author.class._id.toString();
-    const sameLevel = currentUser.level && author?.level && currentUser.level._id.toString() === author.level._id.toString();
-    const sameContext = sameCampus && sameClass && sameLevel;
+    const sameContext = haveSameClassContext(currentUser, author);
     const friend = await areFriends(userId, author._id || author);
     if (!sameContext && !friend) {
       return { error: { status: 403, message: "Vous ne pouvez réagir qu'aux connaissances de votre même campus/classe/niveau ou de vos amis." } };

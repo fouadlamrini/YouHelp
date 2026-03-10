@@ -8,17 +8,9 @@ class FavoriteController {
   // Ajouter un post ou knowledge aux favoris
   async addToFavorites(req, res) {
     try {
-      const currentUser = await User.findById(req.user.id)
-        .select("status role")
-        .populate("role", "name")
-        .lean();
-
-      const isSuperAdmin = currentUser?.role?.name === "super_admin";
-
-      if (!isSuperAdmin && currentUser?.status !== "active") {
-        return res
-          .status(403)
-          .json({ message: "Seuls les comptes activés peuvent ajouter aux favoris." });
+      const currentUser = await User.findById(req.user.id).select("status").lean();
+      if (currentUser?.status !== "active") {
+        return res.status(403).json({ message: "Seuls les comptes activés peuvent ajouter aux favoris." });
       }
       const { contentType, contentId } = req.body;
       const userId = req.user.id;
@@ -73,12 +65,6 @@ class FavoriteController {
       });
 
       if (existingFavorite) {
-        console.log("Favorite already exists (from findOne):", {
-          user: userId,
-          contentType,
-          contentId,
-          favoriteId: existingFavorite._id,
-        });
         return res.status(400).json({ 
           message: "Ce contenu est déjà dans vos favoris" 
         });
@@ -101,13 +87,6 @@ class FavoriteController {
       } catch (err) {
         // gérer les erreurs de doublon de clé unique
         if (err.code === 11000) {
-          console.error("Mongo duplicate key error on Favorite.create:", {
-            favoriteData,
-            keyValue: err.keyValue,
-            keyPattern: err.keyPattern,
-            index: err.index,
-            message: err.message,
-          });
           return res.status(400).json({ message: "Ce contenu est déjà dans vos favoris" });
         }
         throw err; // laisser le catch principal s'occuper du reste
@@ -124,17 +103,9 @@ class FavoriteController {
   // Supprimer un favori
   async removeFromFavorites(req, res) {
     try {
-      const currentUser = await User.findById(req.user.id)
-        .select("status role")
-        .populate("role", "name")
-        .lean();
-
-      const isSuperAdmin = currentUser?.role?.name === "super_admin";
-
-      if (!isSuperAdmin && currentUser?.status !== "active") {
-        return res
-          .status(403)
-          .json({ message: "Seuls les comptes activés peuvent gérer les favoris." });
+      const currentUser = await User.findById(req.user.id).select("status").lean();
+      if (currentUser?.status !== "active") {
+        return res.status(403).json({ message: "Seuls les comptes activés peuvent gérer les favoris." });
       }
       const { contentType, contentId } = req.body;
       const userId = req.user.id;

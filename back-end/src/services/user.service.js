@@ -2,20 +2,15 @@ const User = require("../models/User");
 const Role = require("../models/Role");
 const { isUserOnline, getLastSeen } = require("../config/socket");
 const { notifyUserActivated, notifyUserRefused } = require("./notification.service");
+const { refId, haveSameClassContext } = require("../utils/contextUtils");
 
 /** Get current user doc with role (and campus, class) for permission checks */
 async function getCurrentUserWithContext(userId) {
   return User.findById(userId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name");
-}
-
-/** Id for comparison (works for populated doc or raw ObjectId) */
-function refId(ref) {
-  if (!ref) return null;
-  return (ref._id || ref).toString();
 }
 
 /** Check if current user can manage target user (for get/update/delete) */
@@ -54,13 +49,7 @@ async function canAcceptUser(currentUserDoc, targetUserDoc) {
   }
   if (roleName === "formateur") {
     if (!targetUserDoc.role || targetUserDoc.role.name !== "etudiant") return false;
-    const sameCampus = refId(currentUserDoc.campus) && refId(targetUserDoc.campus) &&
-      refId(currentUserDoc.campus) === refId(targetUserDoc.campus);
-    const sameClass = refId(currentUserDoc.class) && refId(targetUserDoc.class) &&
-      refId(currentUserDoc.class) === refId(targetUserDoc.class);
-    const sameLevel = refId(currentUserDoc.level) && refId(targetUserDoc.level) &&
-      refId(currentUserDoc.level) === refId(targetUserDoc.level);
-    return sameCampus && sameClass && sameLevel;
+    return haveSameClassContext(currentUserDoc, targetUserDoc);
   }
   return false;
 }
@@ -90,7 +79,7 @@ async function getMe(userId) {
   const user = await User.findById(userId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
@@ -113,7 +102,7 @@ async function updateProfile(userId, body) {
   })
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
@@ -131,7 +120,7 @@ async function getAll(currentUserId, query = {}) {
   const users = await User.find(filter)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password")
     .sort({ createdAt: -1 });
@@ -156,7 +145,7 @@ async function getById(currentUserId, targetUserId) {
   const user = await User.findById(targetUserId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
@@ -203,7 +192,7 @@ async function update(currentUserId, targetUserId, body) {
   })
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
@@ -235,7 +224,7 @@ async function acceptUser(currentUserId, targetUserId) {
   const target = await User.findById(targetUserId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name");
   if (!target) return { error: { status: 404, message: "User not found" } };
   if (target.status === "active") return { error: { status: 400, message: "User already accepted" } };
@@ -245,7 +234,7 @@ async function acceptUser(currentUserId, targetUserId) {
   const updated = await User.findById(targetUserId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   await notifyUserActivated(current, target).catch((err) => console.error("notifyUserActivated:", err));
@@ -258,7 +247,7 @@ async function rejectUser(currentUserId, targetUserId) {
   const target = await User.findById(targetUserId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name");
   if (!target) return { error: { status: 404, message: "User not found" } };
   if (target.status === "rejected") return { error: { status: 400, message: "User already rejected" } };
@@ -268,7 +257,7 @@ async function rejectUser(currentUserId, targetUserId) {
   const updated = await User.findById(targetUserId)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   await notifyUserRefused(current, target).catch((err) => console.error("notifyUserRefused:", err));
@@ -308,7 +297,7 @@ async function create(currentUserId, body) {
   const populated = await User.findById(user._id)
     .populate("role", "name")
     .populate("campus", "name")
-    .populate("class", "name")
+    .populate("class", "name nickName year")
     .populate("level", "name")
     .select("-password");
   return { data: populated };

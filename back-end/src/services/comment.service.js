@@ -4,6 +4,7 @@ const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { mapFilesToMedia } = require("../utils/media");
+const { haveSameClassContext } = require("../utils/contextUtils");
 
 async function createComment(userId, postId, body, files) {
   const { content, parentComment } = body;
@@ -208,15 +209,7 @@ async function deleteComment(userId, userRole, commentId) {
         }
       } else if (roleName === "formateur") {
         // formateur: même campus / classe / niveau + cible = étudiant
-        const sameClass =
-          me?.class &&
-          target.class &&
-          me.class.toString() === target.class.toString();
-        const sameLevel =
-          me?.level &&
-          target.level &&
-          me.level.toString() === target.level.toString();
-        if (sameCampus && sameClass && sameLevel && targetRoleName === "etudiant") {
+        if (sameCampus && haveSameClassContext(me, target) && targetRoleName === "etudiant") {
           canModerate = true;
         }
       }

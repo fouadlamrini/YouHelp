@@ -9,6 +9,7 @@ const Notification = require("../models/Notification");
 const WorkshopRequest = require("../models/WorkshopRequest");
 const { notifyPostDeleted, notifyPostSolved } = require("./notification.service");
 const { areFriends, getMyFriendIds } = require("./friend.service");
+const { haveSameClassContext } = require("../utils/contextUtils");
 
 async function postsAuthorFilter(userId) {
   const current = await User.findById(userId).populate("campus class level").populate("role", "name");
@@ -56,14 +57,7 @@ async function totalSameContextCount(authorId) {
 
 function sameContextAsAuthor(currentUser, post) {
   const author = post.author?.toObject ? post.author : post.author;
-  if (!author?.campus && !author?.class && !author?.level) return false;
-  const sameCampus = !!(currentUser.campus && author?.campus &&
-    (currentUser.campus._id?.toString() || currentUser.campus.toString()) === (author.campus?._id?.toString() || author.campus?.toString()));
-  const sameClass = !!(currentUser.class && author?.class &&
-    (currentUser.class._id?.toString() || currentUser.class.toString()) === (author.class?._id?.toString() || author.class?.toString()));
-  const sameLevel = !!(currentUser.level && author?.level &&
-    (currentUser.level._id?.toString() || currentUser.level.toString()) === (author.level?._id?.toString() || author.level?.toString()));
-  return sameCampus && sameClass && sameLevel;
+  return haveSameClassContext(currentUser, author || {});
 }
 
 async function canModeratePost(currentUserId, currentUser, post) {
@@ -84,9 +78,7 @@ async function canModeratePost(currentUserId, currentUser, post) {
   }
   if (roleName === "formateur") {
     if (authorRoleName !== "etudiant") return false;
-    const sameClass = [currentUser.class?._id ?? currentUser.class, author.class?._id ?? author.class].every(Boolean) && (currentUser.class?._id ?? currentUser.class).toString() === (author.class?._id ?? author.class).toString();
-    const sameLevel = [currentUser.level?._id ?? currentUser.level, author.level?._id ?? author.level].every(Boolean) && (currentUser.level?._id ?? currentUser.level).toString() === (author.level?._id ?? author.level).toString();
-    return sameCampus && sameClass && sameLevel;
+    return haveSameClassContext(currentUser, author);
   }
   return false;
 }
@@ -100,13 +92,7 @@ async function postCanReact(currentUserId, currentUser, post, viewFilter) {
   if (currentUser.role?.name === "super_admin") return true;
   if (author?.role?.name === "super_admin") return true;
   if (viewFilter === "friends") return true;
-  const sameCampus = currentUser.campus && author?.campus &&
-    (currentUser.campus._id?.toString() || currentUser.campus.toString()) === (author.campus?._id?.toString() || author.campus?.toString());
-  const sameClass = currentUser.class && author?.class &&
-    (currentUser.class._id?.toString() || currentUser.class.toString()) === (author.class?._id?.toString() || author.class?.toString());
-  const sameLevel = currentUser.level && author?.level &&
-    (currentUser.level._id?.toString() || currentUser.level.toString()) === (author.level?._id?.toString() || author.level?.toString());
-  const sameContext = sameCampus && sameClass && sameLevel;
+  const sameContext = haveSameClassContext(currentUser, author || {});
   if (viewFilter === "my_campus") return sameContext;
   const friend = await areFriends(currentUserId, authorId);
   return sameContext || friend;
@@ -353,9 +339,7 @@ async function canToggleSolved(userId, post) {
   }
   if (roleName === "formateur") {
     if (authorRoleName !== "etudiant") return false;
-    const sameClass = [me.class?._id ?? me.class, author.class?._id ?? author.class].every(Boolean) && (me.class?._id ?? me.class).toString() === (author.class?._id ?? author.class).toString();
-    const sameLevel = [me.level?._id ?? me.level, author.level?._id ?? author.level].every(Boolean) && (me.level?._id ?? me.level).toString() === (author.level?._id ?? author.level).toString();
-    return sameCampus && sameClass && sameLevel;
+    return haveSameClassContext(me, author);
   }
   return false;
 }
@@ -397,10 +381,7 @@ async function toggleReaction(userId, postId) {
   const isAuthorSuperAdmin = post.author?.role?.name === "super_admin";
   if (roleName !== "super_admin" && !isAuthorSuperAdmin && roleName === "etudiant") {
     const author = await User.findById(post.author._id || post.author).populate("campus class level");
-    const sameCampus = me.campus && author?.campus && me.campus._id.toString() === author.campus._id.toString();
-    const sameClass = me.class && author?.class && me.class._id.toString() === author.class._id.toString();
-    const sameLevel = me.level && author?.level && me.level._id.toString() === author.level._id.toString();
-    const sameContext = sameCampus && sameClass && sameLevel;
+    const sameContext = haveSameClassContext(me, author);
     const friend = await areFriends(userId, post.author._id || post.author);
     if (!sameContext && !friend) {
       return { error: { status: 403, message: "You can only react to posts from same campus/class/level or from friends" } };

@@ -5,16 +5,10 @@ const Post = require("../models/Post");
 const Engagement = require("../models/Engagement");
 const Notification = require("../models/Notification");
 const Role = require("../models/Role");
+const { haveSameClassContext } = require("../utils/contextUtils");
 
 function sameContextAsAuthor(me, author) {
-  if (!author || (!author.campus && !author.class && !author.level)) return false;
-  const sameCampus = !!(me.campus && author.campus &&
-    (me.campus._id?.toString() || me.campus.toString()) === (author.campus?._id?.toString() || author.campus?.toString()));
-  const sameClass = !!(me.class && author.class &&
-    (me.class._id?.toString() || me.class.toString()) === (author.class?._id?.toString() || author.class?.toString()));
-  const sameLevel = !!(me.level && author.level &&
-    (me.level._id?.toString() || me.level.toString()) === (author.level?._id?.toString() || author.level?.toString()));
-  return sameCampus && sameClass && sameLevel;
+  return haveSameClassContext(me, author);
 }
 
 async function createWorkshop(userId, body) {
