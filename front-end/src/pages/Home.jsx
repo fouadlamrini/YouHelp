@@ -1,8 +1,114 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiSearch, FiMessageCircle, FiVideo, FiCheckCircle, FiArrowRight, FiUsers } from "react-icons/fi";
+import { publicStatsApi } from "../services/api";
 
 const Home = () => {
+  const [activeStudents, setActiveStudents] = useState(0);
+  const [displayedStudents, setDisplayedStudents] = useState(0);
+  const [solvedPosts, setSolvedPosts] = useState(0);
+  const [displayedSolvedPosts, setDisplayedSolvedPosts] = useState(0);
+  const [totalFormateurs, setTotalFormateurs] = useState(0);
+  const [displayedFormateurs, setDisplayedFormateurs] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    publicStatsApi
+      .get()
+      .then((res) => {
+        if (!isMounted) return;
+        const totalStudents = res.data?.data?.activeStudents ?? 0;
+        const totalSolved = res.data?.data?.solvedPosts ?? 0;
+        const totalFormateursValue = res.data?.data?.totalFormateurs ?? 0;
+        setActiveStudents(totalStudents);
+        setSolvedPosts(totalSolved);
+        setTotalFormateurs(totalFormateursValue);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setActiveStudents(0);
+        setSolvedPosts(0);
+        setTotalFormateurs(0);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const target = activeStudents || 0;
+    if (target <= 0) {
+      setDisplayedStudents(0);
+      return;
+    }
+    let frameId;
+    const duration = 1500; // ms
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const value = Math.floor(progress * target);
+      setDisplayedStudents(value);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [activeStudents]);
+
+  useEffect(() => {
+    const target = solvedPosts || 0;
+    if (target <= 0) {
+      setDisplayedSolvedPosts(0);
+      return;
+    }
+    let frameId;
+    const duration = 1500; // ms
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const value = Math.floor(progress * target);
+      setDisplayedSolvedPosts(value);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [solvedPosts]);
+
+  useEffect(() => {
+    const target = totalFormateurs || 0;
+    if (target <= 0) {
+      setDisplayedFormateurs(0);
+      return;
+    }
+    let frameId;
+    const duration = 1500; // ms
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const value = Math.floor(progress * target);
+      setDisplayedFormateurs(value);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [totalFormateurs]);
   return (
     <div className="min-h-screen bg-white font-sans">
       
@@ -122,16 +228,22 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-wrap justify-center gap-16 md:gap-32">
             <div className="text-center">
-              <p className="text-5xl font-black text-slate-900 mb-2">500+</p>
+              <p className="text-5xl font-black text-slate-900 mb-2">
+                {displayedStudents.toLocaleString()}+
+              </p>
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Students Active</p>
             </div>
             <div className="text-center">
-              <p className="text-5xl font-black text-indigo-600 mb-2">1.2k</p>
+              <p className="text-5xl font-black text-indigo-600 mb-2">
+                {displayedSolvedPosts.toLocaleString()}+
+              </p>
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Problems Solved</p>
             </div>
             <div className="text-center">
-              <p className="text-5xl font-black text-slate-900 mb-2">50+</p>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Expert Mentors</p>
+              <p className="text-5xl font-black text-slate-900 mb-2">
+                {displayedFormateurs.toLocaleString()}+
+              </p>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Formateurs</p>
             </div>
           </div>
         </div>

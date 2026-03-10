@@ -74,6 +74,11 @@ export const statsApi = {
   get: () => api.get("/stats"),
 };
 
+// —— Public stats (landing page, no auth required) ——
+export const publicStatsApi = {
+  get: () => api.get("/public-stats"),
+};
+
 // —— Notifications ——
 export const notificationsApi = {
   getMine: () => api.get("/notifications"),
