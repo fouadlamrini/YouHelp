@@ -1,4 +1,5 @@
 const friendRequestService = require("../services/friendRequest.service");
+const Notification = require("../models/Notification");
 
 class FriendRequestController {
   send = async (req, res) => {
@@ -79,6 +80,25 @@ class FriendRequestController {
         }
       } catch (e) {
         // ignore socket errors
+      }
+
+      // Créer une notification pour l'expéditeur : "X a accepté votre invitation"
+      try {
+        if (accepted?.fromUser?._id && accepted?.toUser?._id) {
+          const actor = accepted.toUser;
+          const recipientId = accepted.fromUser._id;
+          const actorName = actor.name || "Un utilisateur";
+          await Notification.create({
+            recipient: recipientId,
+            actor: actor._id,
+            type: "friend_request_accepted",
+            message: `${actorName} a accepté votre invitation.`,
+            relatedUser: actor._id,
+            link: "/profile/friends",
+          });
+        }
+      } catch (e) {
+        // ignorer les erreurs de notification pour ne pas casser l'acceptation
       }
 
       return res.json({ success: true, message: "Friend added" });

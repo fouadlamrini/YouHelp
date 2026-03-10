@@ -25,6 +25,8 @@ const notificationSchema = new mongoose.Schema(
         "workchop_request",
         "workchop_accepted",
         "workchop_rejected",
+        // Amis
+        "friend_request_accepted",
       ],
       required: true,
     },
