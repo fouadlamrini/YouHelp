@@ -412,6 +412,46 @@ const Messaging = ({ openChatUserId = null }) => {
     };
   }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
 
+  // Real-time presence updates for conversations and active chat
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !user?.id) return;
+    const handler = ({ userId, status, lastSeen }) => {
+      const id = String(userId);
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (!c || !c.user) return c;
+          const convUserId = c.user._id || c.user.id || c.user;
+          if (!convUserId || String(convUserId) !== id) return c;
+          return {
+            ...c,
+            user: {
+              ...c.user,
+              online: status === "online",
+              lastSeen: lastSeen || c.user.lastSeen,
+            },
+          };
+        })
+      );
+      setActiveChat((prev) => {
+        if (!prev || !prev.user?._id) return prev;
+        if (String(prev.user._id) !== id) return prev;
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            online: status === "online",
+            lastSeen: lastSeen || prev.user.lastSeen,
+          },
+        };
+      });
+    };
+    socket.on("user:status", handler);
+    return () => {
+      socket.off("user:status", handler);
+    };
+  }, [user?.id]);
+
   const handleSelectChat = (conv) => {
     setActiveChat(conv);
   };
@@ -917,6 +957,7 @@ const Messaging = ({ openChatUserId = null }) => {
               {friends.map((f) => {
                 if (!f) return null;
                 const friendId = f._id || f.id;
+                const isOnline = !!f.online;
                 return (
                   <button
                     key={friendId}
@@ -924,20 +965,29 @@ const Messaging = ({ openChatUserId = null }) => {
                     onClick={() => handleStartChatWithFriend(f)}
                     className="w-full flex items-center gap-3 py-2 text-left hover:bg-slate-50 px-1"
                   >
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold shrink-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold shrink-0 relative">
                       {f.profilePicture ? (
                         <img src={resolveAvatarUrl(f.profilePicture)} alt="" className="w-full h-full object-cover" />
                       ) : (
                         f.name?.[0] || "?"
                       )}
+                      <span
+                        className={
+                          "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white " +
+                          (isOnline ? "bg-emerald-500" : "bg-rose-500")
+                        }
+                      />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[12px] font-semibold text-slate-800">
                         {f.name || f.email}
                       </span>
-                      <span className="text-[10px] text-slate-400">
-                        Friend
-                      </span>
+                      <span
+                        className={
+                          "mt-0.5 inline-block w-2.5 h-2.5 rounded-full " +
+                          (isOnline ? "bg-emerald-500" : "bg-rose-500")
+                        }
+                      />
                     </div>
                   </button>
                 );

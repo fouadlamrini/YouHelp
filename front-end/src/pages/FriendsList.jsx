@@ -95,6 +95,26 @@ const FriendsList = () => {
     };
   }, [isActive, showInviteModal]);
 
+  // Real-time presence updates for friends
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !isActive) return;
+    const handler = ({ userId, status, lastSeen }) => {
+      const id = String(userId);
+      setFriends((prev) =>
+        (prev || []).map((f) =>
+          f && f._id && String(f._id) === id
+            ? { ...f, online: status === "online", lastSeen: lastSeen || f.lastSeen }
+            : f
+        )
+      );
+    };
+    socket.on("user:status", handler);
+    return () => {
+      socket.off("user:status", handler);
+    };
+  }, [isActive]);
+
   // Realtime update of friends list (accept / unfriend)
   useEffect(() => {
     const socket = getSocket();
