@@ -366,6 +366,14 @@ const FriendsList = () => {
                       <div className="grid grid-cols-2 gap-2 w-full">
                         <button
                           type="button"
+                          onClick={() => {
+                            if (!friend?._id) return;
+                            window.dispatchEvent(
+                              new CustomEvent("open-chat", {
+                                detail: { userId: friend._id },
+                              })
+                            );
+                          }}
                           className="bg-slate-900 text-white py-3.5 rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-2 group/btn shadow-lg shadow-slate-200"
                         >
                           <FiMessageCircle size={14} className="group-hover/btn:animate-pulse" />
