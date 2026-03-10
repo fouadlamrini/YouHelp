@@ -5,6 +5,7 @@ import Messaging from "../components/Messaging";
 import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave, FiCheck } from "react-icons/fi";
 import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { getSocket } from "../services/socket";
 
 const roleBadgeClass = (roleName) => {
   const r = roleName?.toLowerCase?.() ?? "";
@@ -90,17 +91,40 @@ const UserManagement = () => {
 
   useEffect(() => {
     setLoading(true);
+    const isAdminLike = authUser?.role === "super_admin" || authUser?.role === "admin";
+
+    const campusPromise = isAdminLike
+      ? campusApi
+          .getAll()
+          .then((r) => setCampuses(r.data?.data ?? []))
+          .catch(() => setCampuses([]))
+      : Promise.resolve().then(() => setCampuses([]));
+
+    const classPromise = isAdminLike
+      ? classApi
+          .getAll()
+          .then((r) => setClasses(r.data?.data ?? []))
+          .catch(() => setClasses([]))
+      : Promise.resolve().then(() => setClasses([]));
+
+    const levelPromise = isAdminLike
+      ? levelApi
+          .getAll()
+          .then((r) => setLevels(r.data?.data ?? []))
+          .catch(() => setLevels([]))
+      : Promise.resolve().then(() => setLevels([]));
+
     Promise.all([
-      campusApi.getAll().then((r) => setCampuses(r.data?.data ?? [])).catch(() => setCampuses([])),
-      classApi.getAll().then((r) => setClasses(r.data?.data ?? [])).catch(() => setClasses([])),
-      levelApi.getAll().then((r) => setLevels(r.data?.data ?? [])).catch(() => setLevels([])),
+      campusPromise,
+      classPromise,
+      levelPromise,
       rolesApi.getAll().then((r) => setRoles(r.data?.data ?? [])).catch(() => setRoles([])),
       avatarsApi
         .getAll()
         .then((r) => setAvailableAvatars(r.data?.data ?? []))
         .catch(() => setAvailableAvatars([])),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [authUser?.role]);
 
   useEffect(() => {
     const params = {};
