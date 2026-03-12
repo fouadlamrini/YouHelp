@@ -1,0 +1,104 @@
+const { isObject, getTargetUserId, getOtherUserId } = require("./helpers");
+
+function registerCallHandlers({ socket, emitToUser }) {
+  const userId = socket.userId;
+
+  function forwardRequest(eventName, data) {
+    const targetUserId = getTargetUserId(data);
+    if (!targetUserId) return;
+
+    const payload = isObject(data) ? data : {};
+    const { to, fromUser } = payload;
+
+    emitToUser(targetUserId, eventName, { from: userId, to, fromUser });
+  }
+
+  function joinCallRoom(data, prefix = "") {
+    const otherUserId = getOtherUserId(data);
+    if (!otherUserId) return;
+
+    // Keep room join for compatibility and future room-based signaling.
+    const room = prefix + [userId, otherUserId].sort().join("-");
+    socket.join(room);
+    console.log("[socket] room joined:", room);
+  }
+
+  function forwardSessionPayload(eventName, fieldName, data) {
+    const targetUserId = getTargetUserId(data);
+    if (!targetUserId || !isObject(data) || !data[fieldName]) return;
+
+    emitToUser(targetUserId, eventName, {
+      [fieldName]: data[fieldName],
+      from: userId,
+    });
+  }
+
+  function forwardFromOnly(eventName, data) {
+    const targetUserId = getTargetUserId(data);
+    if (!targetUserId) return;
+
+    emitToUser(targetUserId, eventName, { from: userId });
+  }
+
+  // Video call events
+  socket.on("video-call-request", (data) => {
+    forwardRequest("video-call-request", data);
+  });
+
+  socket.on("join-video-call", (data) => {
+    joinCallRoom(data);
+  });
+
+  socket.on("offer", (data) => {
+    forwardSessionPayload("offer", "offer", data);
+  });
+
+  socket.on("answer", (data) => {
+    forwardSessionPayload("answer", "answer", data);
+  });
+
+  socket.on("ice-candidate", (data) => {
+    forwardSessionPayload("ice-candidate", "candidate", data);
+  });
+
+  socket.on("callee-ready", (data) => {
+    forwardFromOnly("callee-ready", data);
+  });
+
+  socket.on("video-call-ended", (data) => {
+    forwardFromOnly("video-call-ended", data);
+  });
+
+  // Voice call events
+  socket.on("voice-call-request", (data) => {
+    forwardRequest("voice-call-request", data);
+  });
+
+  socket.on("join-voice-call", (data) => {
+    joinCallRoom(data, "voice-");
+  });
+
+  socket.on("voice-offer", (data) => {
+    forwardSessionPayload("voice-offer", "offer", data);
+  });
+
+  socket.on("voice-answer", (data) => {
+    forwardSessionPayload("voice-answer", "answer", data);
+  });
+
+  socket.on("voice-ice-candidate", (data) => {
+    forwardSessionPayload("voice-ice-candidate", "candidate", data);
+  });
+
+  socket.on("voice-callee-ready", (data) => {
+    forwardFromOnly("voice-callee-ready", data);
+  });
+
+  socket.on("voice-call-ended", (data) => {
+    forwardFromOnly("voice-call-ended", data);
+  });
+}
+
+module.exports = {
+  registerCallHandlers,
+};
