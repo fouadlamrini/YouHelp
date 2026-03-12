@@ -6,9 +6,7 @@ import KnowledgeCard from "../components/KnowledgeCard";
 import Messaging from "../components/Messaging";
 import Sidebar from "../components/Sidebar";
 import { FiSearch, FiStar, FiTrendingUp } from "react-icons/fi";
-import { favoritesApi } from "../services/api";
-
-const API_BASE = "http://localhost:3000";
+import { API_BASE, favoritesApi } from "../services/api";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;

@@ -8,10 +8,8 @@ import {
   FiImage, FiSend, 
   FiChevronDown, FiFileText, FiSearch, FiX 
 } from "react-icons/fi";
-import { knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
+import { API_BASE, knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE = "http://localhost:3000";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;

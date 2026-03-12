@@ -9,6 +9,7 @@ import {
   FiShield
 } from "react-icons/fi";
 import { AuthContext } from "../context/AuthContext";
+import { API_BASE } from "../services/api";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -196,14 +197,14 @@ const Login = () => {
           {/* Social Logins Buttons */}
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => window.open('http://localhost:3000/api/auth/google', '_self')}
+              onClick={() => window.open(`${API_BASE}/api/auth/google`, '_self')}
               className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
             >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
               Google
             </button>
             <button 
-              onClick={() => window.open('http://localhost:3000/api/auth/github', '_self')}
+              onClick={() => window.open(`${API_BASE}/api/auth/github`, '_self')}
               className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
             >
               <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="GitHub" />

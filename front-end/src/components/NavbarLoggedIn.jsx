@@ -5,10 +5,8 @@ import {
   FiEdit, FiCalendar, FiCheck, FiX
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api, { friendRequestsApi, messagesApi, notificationsApi } from "../services/api";
+import { API_BASE, friendRequestsApi, messagesApi, notificationsApi } from "../services/api";
 import { getSocket } from "../services/socket";
-
-const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;

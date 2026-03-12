@@ -1,7 +1,10 @@
 import axios from "axios";
 
+export const API_BASE = (import.meta.env.VITE_API__BASE || "http://localhost:3000").replace(/\/+$/, "");
+const API_URL = `${API_BASE}/api`;
+
 const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -216,8 +219,6 @@ export const messagesApi = {
     api.delete(`/messages/${id}`, scope ? { params: { scope } } : undefined),
   reaction: (id, emoji) => api.post(`/messages/${id}/reaction`, { emoji }),
 };
-
-export const API_BASE = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, "") : "http://localhost:3000";
 
 // —— Workshops ——
 export const workshopsApi = {

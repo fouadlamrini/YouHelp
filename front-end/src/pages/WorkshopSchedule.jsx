@@ -6,9 +6,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { FiCheck, FiX, FiExternalLink, FiClock, FiCalendar, FiEye, FiEdit3 } from "react-icons/fi";
-import { workshopsApi } from "../services/api";
+import { API_BASE, workshopsApi } from "../services/api";
 
-const API_BASE = "http://localhost:3000";
 const resolveAvatar = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http")) return src;

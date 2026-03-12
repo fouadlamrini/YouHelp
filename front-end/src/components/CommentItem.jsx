@@ -1,9 +1,7 @@
 import React, { useState, useRef } from "react";
 import { FiMoreHorizontal, FiSend, FiEdit2, FiTrash2, FiX, FiSmile, FiImage } from "react-icons/fi";
-import { commentApi } from "../services/api";
+import { API_BASE, commentApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE = "http://localhost:3000";
 const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 
 const resolveAvatarUrl = (src) => {

@@ -11,9 +11,9 @@ import {
   FiCamera,
 } from "react-icons/fi";
 import { AuthContext } from "../context/AuthContext";
-import api, { authApi, avatarsApi } from "../services/api";
+import { API_BASE, authApi, avatarsApi } from "../services/api";
 
-const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
+const API_ORIGIN = API_BASE;
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_ORIGIN}/avatars/default-avatar.jpg`;

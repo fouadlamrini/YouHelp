@@ -16,10 +16,8 @@ import {
   FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
-import { knowledgeApi, knowledgeCommentApi, favoritesApi, commentApi } from "../services/api";
+import { API_BASE, knowledgeApi, knowledgeCommentApi, favoritesApi, commentApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE = "http://localhost:3000";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;

@@ -6,10 +6,10 @@ import HeaderProfile from "../components/HeaderProfile";
 import Messaging from "../components/Messaging";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api, { friendsApi, friendRequestsApi } from "../services/api";
+import { API_BASE, friendsApi, friendRequestsApi } from "../services/api";
 import { getSocket } from "../services/socket";
 
-const API_ORIGIN = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
+const API_ORIGIN = API_BASE;
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_ORIGIN}/avatars/default-avatar.jpg`;
