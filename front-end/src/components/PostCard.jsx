@@ -19,7 +19,9 @@ import {
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE, postApi, commentApi, solutionApi, favoritesApi, workshopsApi } from "../services/api";
+import { postApi, commentApi, solutionApi, favoritesApi, workshopsApi } from "../services/api";
+
+const API_BASE = "http://localhost:3000";
 
 const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 

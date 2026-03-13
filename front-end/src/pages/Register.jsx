@@ -2,7 +2,6 @@ import React, { useState, useContext } from "react";
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiCheckCircle } from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { API_BASE } from "../services/api";
 
 export default function RegisterYouHelp() {
   const [formData, setFormData] = useState({ fullName: "", email: "", password: "" });
@@ -167,13 +166,13 @@ export default function RegisterYouHelp() {
 
             <div className="grid grid-cols-2 gap-4 mt-6">
               <button 
-                onClick={() => window.open(`${API_BASE}/api/auth/google`, '_self')}
+                onClick={() => window.open('http://localhost:3000/api/auth/google', '_self')}
                 className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
               >
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="" /> Google
               </button>
               <button 
-                onClick={() => window.open(`${API_BASE}/api/auth/github`, '_self')}
+                onClick={() => window.open('http://localhost:3000/api/auth/github', '_self')}
                 className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
               >
                 <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="" /> GitHub

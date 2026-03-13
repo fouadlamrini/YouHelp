@@ -3,9 +3,10 @@ import Sidebar from "../components/Sidebar";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import HeaderProfile from "../components/HeaderProfile";
 import Messaging from "../components/Messaging";
-import { API_BASE, workshopsApi } from "../services/api";
+import { workshopsApi } from "../services/api";
 import { FiTool, FiCalendar, FiClock } from "react-icons/fi";
 
+const API_BASE = "http://localhost:3000";
 const resolveAvatar = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http")) return src;

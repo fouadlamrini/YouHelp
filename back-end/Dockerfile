@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
@@ -7,8 +7,12 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+EXPOSE 3000
 
-EXPOSE 3001
+FROM base AS development
 
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "dev"]
+
+FROM base AS production
+
+CMD ["npm", "start"]

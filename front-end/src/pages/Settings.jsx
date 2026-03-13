@@ -17,7 +17,9 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE, usersApi, authApi, avatarsApi } from "../services/api";
+import api, { usersApi, authApi, avatarsApi } from "../services/api";
+
+const API_BASE = (api.defaults.baseURL || "").replace(/\/api\/?$/, "") || "http://localhost:3000";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
