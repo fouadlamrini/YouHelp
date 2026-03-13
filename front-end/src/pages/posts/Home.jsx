@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiSearch, FiMessageCircle, FiVideo, FiCheckCircle, FiArrowRight, FiUsers } from "react-icons/fi";
-import { publicStatsApi } from "../services/api";
+import { publicStatsApi } from "../../services/api";
 
 const Home = () => {
   const [activeStudents, setActiveStudents] = useState(0);
@@ -269,3 +269,4 @@ const Home = () => {
 };
 
 export default Home;
+

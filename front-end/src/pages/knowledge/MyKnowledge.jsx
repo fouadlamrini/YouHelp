@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import HeaderProfile from "../components/HeaderProfile";
-import KnowledgeCard from "../components/KnowledgeCard";
-import Messaging from "../components/Messaging";
-import Sidebar from "../components/Sidebar"; 
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import HeaderProfile from "../../components/HeaderProfile";
+import KnowledgeCard from "../../components/KnowledgeCard";
+import Messaging from "../../components/Messaging";
+import Sidebar from "../../components/Sidebar"; 
 import { 
   FiImage, FiSend, 
   FiChevronDown, FiFileText, FiSearch, FiX 
 } from "react-icons/fi";
-import { API_BASE, knowledgeApi, categoryApi, subCategoryApi } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { API_BASE, knowledgeApi, categoryApi, subCategoryApi } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
@@ -215,7 +215,7 @@ const MyKnowledge = () => {
                       </div>
                     </div>
 
-                      <div className="relative bg-slate-50 rounded-[2rem] p-5 border border-transparent focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                    <div className="relative bg-slate-50 rounded-[2rem] p-5 border border-transparent focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
                       <textarea 
                         rows="3" 
                         placeholder="Partagez une astuce technique..." 
@@ -322,3 +322,4 @@ const MyKnowledge = () => {
 };
 
 export default MyKnowledge;
+

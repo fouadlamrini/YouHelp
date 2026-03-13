@@ -6,9 +6,9 @@ import {
   FiEye,
   FiEyeOff,
   FiArrowRight,
-  FiShield
+  FiShield,
 } from "react-icons/fi";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -26,7 +26,8 @@ const Login = () => {
     const newErrors = {};
     const email = (formData.email ?? "").toString().trim();
     if (!email) newErrors.email = "L'email est requis";
-    else if (!email.match(/^\S+@\S+\.\S+$/)) newErrors.email = "Adresse email invalide";
+    else if (!email.match(/^\S+@\S+\.\S+$/))
+      newErrors.email = "Adresse email invalide";
     if (!formData.password) newErrors.password = "Le mot de passe est requis";
     return newErrors;
   };
@@ -38,7 +39,7 @@ const Login = () => {
       setErrors(validationErrors);
       return;
     }
-    
+
     setLoading(true);
     try {
       await login(formData.email, formData.password);
@@ -59,7 +60,6 @@ const Login = () => {
 
   return (
     <div className="min-h-[calc(100vh-73px)] w-full flex bg-white font-sans overflow-hidden">
-      
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-indigo-600 items-center justify-center p-16">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/circuit-board.png')]"></div>
@@ -77,8 +77,8 @@ const Login = () => {
           </h1>
 
           <p className="text-lg text-indigo-100 font-medium leading-relaxed opacity-90">
-            Log in to continue sharing knowledge, asking questions, and collaborating
-            with your YouCode peers.
+            Log in to continue sharing knowledge, asking questions, and
+            collaborating with your YouCode peers.
           </p>
         </div>
       </div>
@@ -173,7 +173,7 @@ const Login = () => {
                 {errors.general}
               </p>
             )}
-            
+
             <button
               type="submit"
               disabled={loading}
@@ -195,24 +195,36 @@ const Login = () => {
 
           {/* Social Logins Buttons */}
           <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={() => window.open('http://localhost:3000/api/auth/google', '_self')}
+            <button
+              onClick={() =>
+                window.open("http://localhost:3000/api/auth/google", "_self")
+              }
               className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
             >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                className="w-5 h-5"
+                alt="Google"
+              />
               Google
             </button>
-            <button 
-              onClick={() => window.open('http://localhost:3000/api/auth/github', '_self')}
+            <button
+              onClick={() =>
+                window.open("http://localhost:3000/api/auth/github", "_self")
+              }
               className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
             >
-              <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="GitHub" />
+              <img
+                src="https://www.svgrepo.com/show/512317/github-142.svg"
+                className="w-5 h-5"
+                alt="GitHub"
+              />
               GitHub
             </button>
           </div>
 
           {/* Hidden OAuth callback handler */}
-          <div id="oauth-callback" style={{display: 'none'}}></div>
+          <div id="oauth-callback" style={{ display: "none" }}></div>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">
             New here?{" "}
@@ -230,3 +242,4 @@ const Login = () => {
 };
 
 export default Login;
+

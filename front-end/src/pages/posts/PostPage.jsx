@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import PostCard from "../components/PostCard";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import PostCard from "../../components/PostCard";
+import Messaging from "../../components/Messaging";
 import { 
   FiImage, FiVideo, FiSmile, FiSend, FiX,
   FiChevronDown, FiSearch, FiCheckCircle, FiClock, FiGrid
 } from "react-icons/fi";
-import { postApi, categoryApi, subcategoryApi } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { postApi, categoryApi, subcategoryApi } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
 
@@ -171,7 +171,6 @@ const PostPage = () => {
           <div className="max-w-3xl mx-auto space-y-6 pb-20">
             
       
-
         
             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 space-y-4">
               {/* Filtres vue: All Campus / Friends (actifs uniquement) / My Campus */}
@@ -457,3 +456,4 @@ const PostPage = () => {
 };
 
 export default PostPage;
+

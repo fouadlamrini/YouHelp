@@ -10,8 +10,8 @@ import {
   FiArrowLeft,
   FiCamera,
 } from "react-icons/fi";
-import { AuthContext } from "../context/AuthContext";
-import { API_BASE, authApi, avatarsApi } from "../services/api";
+import { AuthContext } from "../../context/AuthContext";
+import { API_BASE, authApi, avatarsApi } from "../../services/api";
 
 const API_ORIGIN = API_BASE;
 
@@ -352,3 +352,4 @@ const InfoComplet = () => {
 };
 
 export default InfoComplet;
+

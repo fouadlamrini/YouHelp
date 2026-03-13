@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import HeaderProfile from "../components/HeaderProfile";
-import PostCard from "../components/PostCard";
-import KnowledgeCard from "../components/KnowledgeCard";
-import Messaging from "../components/Messaging";
-import Sidebar from "../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import HeaderProfile from "../../components/HeaderProfile";
+import PostCard from "../../components/PostCard";
+import KnowledgeCard from "../../components/KnowledgeCard";
+import Messaging from "../../components/Messaging";
+import Sidebar from "../../components/Sidebar";
 import { FiSearch, FiStar, FiTrendingUp } from "react-icons/fi";
-import { API_BASE, favoritesApi } from "../services/api";
+import { API_BASE, favoritesApi } from "../../services/api";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;
@@ -149,3 +149,4 @@ const MyFavorites = () => {
 };
 
 export default MyFavorites;
+

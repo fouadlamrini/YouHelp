@@ -16,7 +16,12 @@ import {
   FiImage,
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
-import { knowledgeApi, knowledgeCommentApi, favoritesApi, commentApi } from "../services/api";
+import {
+  knowledgeApi,
+  knowledgeCommentApi,
+  favoritesApi,
+  commentApi,
+} from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
@@ -24,20 +29,55 @@ const API_BASE = "http://localhost:3000";
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
-  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg")
+    return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 };
 
 const EMOJI_LIST = [
-  "😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣",
-  "✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔",
-  "💡","📌","⭐","🎯"
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "🎉",
+  "👍",
+  "❤️",
+  "🔥",
+  "😂",
+  "🤣",
+  "✅",
+  "❌",
+  "👋",
+  "🙏",
+  "💪",
+  "👏",
+  "😊",
+  "🥳",
+  "😎",
+  "🤔",
+  "💡",
+  "📌",
+  "⭐",
+  "🎯",
 ];
 
-const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteClick, onRefresh, readOnly = false, scrollToCommentId, canModerate = false }) => {
+const KnowledgeCard = ({
+  data,
+  isFavorite: isFavoriteProp = false,
+  onFavoriteClick,
+  onRefresh,
+  readOnly = false,
+  scrollToCommentId,
+  canModerate = false,
+}) => {
   const { user } = useAuth();
-  const isAuthor = !!(user?.id && data.authorId && String(user.id) === String(data.authorId));
+  const isAuthor = !!(
+    user?.id &&
+    data.authorId &&
+    String(user.id) === String(data.authorId)
+  );
   const showMenu = isAuthor || canModerate;
   const canDelete = isAuthor || canModerate;
   const cardRef = useRef(null);
@@ -53,12 +93,14 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [shareCount, setShareCount] = useState(data.shareCount ?? 0);
-  const [commentCount, setCommentCount] = useState(data.commentCount ?? (data.comments?.length ?? 0));
+  const [commentCount, setCommentCount] = useState(
+    data.commentCount ?? data.comments?.length ?? 0,
+  );
   const media = Array.isArray(data.media)
     ? data.media
     : data.mediaUrl
-    ? [{ url: data.mediaUrl, type: "image" }]
-    : [];
+      ? [{ url: data.mediaUrl, type: "image" }]
+      : [];
   const hasMedia = media.length > 0;
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -69,14 +111,18 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
   const myAvatar = user?.profilePicture
     ? resolveAvatarUrl(user.profilePicture)
-    : (data.userAvatar || resolveAvatarUrl("default-avatar.jpg"));
+    : data.userAvatar || resolveAvatarUrl("default-avatar.jpg");
 
   const categoryLabel =
-    (data.category && typeof data.category === "object" && data.category.name) ||
+    (data.category &&
+      typeof data.category === "object" &&
+      data.category.name) ||
     data.category ||
     "";
   const subCategoryLabel =
-    (data.subCategory && typeof data.subCategory === "object" && data.subCategory.name) ||
+    (data.subCategory &&
+      typeof data.subCategory === "object" &&
+      data.subCategory.name) ||
     data.subCategory ||
     "";
   const isArabicContent = /[\u0600-\u06FF]/.test(data.content || "");
@@ -100,7 +146,7 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   }, [data.shareCount]);
 
   useEffect(() => {
-    setCommentCount(data.commentCount ?? (data.comments?.length ?? 0));
+    setCommentCount(data.commentCount ?? data.comments?.length ?? 0);
   }, [data.commentCount, data.comments?.length]);
 
   useEffect(() => {
@@ -111,9 +157,17 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   }, [scrollToCommentId, data.id]);
 
   useEffect(() => {
-    if (!scrollToCommentId || !cardRef.current || loadingComments || !showComments) return;
+    if (
+      !scrollToCommentId ||
+      !cardRef.current ||
+      loadingComments ||
+      !showComments
+    )
+      return;
     const timer = setTimeout(() => {
-      const el = cardRef.current?.querySelector?.(`[data-comment-id="${scrollToCommentId}"]`);
+      const el = cardRef.current?.querySelector?.(
+        `[data-comment-id="${scrollToCommentId}"]`,
+      );
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 300);
     return () => clearTimeout(timer);
@@ -128,9 +182,11 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         setComments(list);
         setCommentCount(list.length);
       })
-      .catch(() => { setComments([]); });
+      .catch(() => {
+        setComments([]);
+      });
   };
-  
+
   // State dyal l-Menu (Update/Delete)
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -203,7 +259,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         })
         .catch((err) => {
           // eslint-disable-next-line no-console
-          console.log("Favorite REMOVE error (knowledge):", err?.response?.data || err?.message || err);
+          console.log(
+            "Favorite REMOVE error (knowledge):",
+            err?.response?.data || err?.message || err,
+          );
         })
         .finally(done);
     } else {
@@ -215,7 +274,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         })
         .catch((err) => {
           // eslint-disable-next-line no-console
-          console.log("Favorite ADD error (knowledge):", err?.response?.data || err?.message || err);
+          console.log(
+            "Favorite ADD error (knowledge):",
+            err?.response?.data || err?.message || err,
+          );
         })
         .finally(done);
     }
@@ -224,11 +286,14 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
   const handleShare = () => {
     if (readOnly) return;
     if (!data.id) return;
-    knowledgeApi.share(data.id).then((r) => {
-      const total = r.data?.shareCount ?? r.data?.data?.shareCount;
-      if (typeof total === "number") setShareCount(total);
-      else setShareCount((prev) => prev + 1);
-    }).catch(() => {});
+    knowledgeApi
+      .share(data.id)
+      .then((r) => {
+        const total = r.data?.shareCount ?? r.data?.data?.shareCount;
+        if (typeof total === "number") setShareCount(total);
+        else setShareCount((prev) => prev + 1);
+      })
+      .catch(() => {});
   };
 
   const handleDeleteKnowledge = () => {
@@ -246,17 +311,25 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
   return (
     <>
-      <div ref={cardRef} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md group flex flex-col font-sans">
-        
+      <div
+        ref={cardRef}
+        className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md group flex flex-col font-sans"
+      >
         {/* HEADER */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border border-white">
-              <img src={data.userAvatar} alt="avatar" className="w-full h-full object-cover" />
+              <img
+                src={data.userAvatar}
+                alt="avatar"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-[15px] font-black text-slate-900 leading-none">{data.userName}</h4>
+                <h4 className="text-[15px] font-black text-slate-900 leading-none">
+                  {data.userName}
+                </h4>
                 <div className="flex gap-1.5 items-center ml-1">
                   <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter shadow-sm shadow-indigo-100">
                     {categoryLabel}
@@ -267,7 +340,8 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                 </div>
               </div>
               <p className="text-slate-400 text-[10px] font-bold mt-1.5 uppercase tracking-wider">
-                {data.time} • PUBLIC <FiGlobe className="inline ml-1" size={10}/>
+                {data.time} • PUBLIC{" "}
+                <FiGlobe className="inline ml-1" size={10} />
               </p>
             </div>
           </div>
@@ -275,31 +349,42 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
           {/* DROPDOWN MENU (Update = auteur only, Delete + icon = auteur | super_admin | admin même campus | formateur même contexte) */}
           {showMenu && (
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className={`p-2 rounded-xl transition-all ${showDropdown ? 'bg-slate-100 text-indigo-600' : 'text-slate-300 hover:text-slate-600'}`}
+                className={`p-2 rounded-xl transition-all ${showDropdown ? "bg-slate-100 text-indigo-600" : "text-slate-300 hover:text-slate-600"}`}
               >
-                <FiMoreHorizontal size={20}/>
+                <FiMoreHorizontal size={20} />
               </button>
 
               {showDropdown && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowDropdown(false)}
+                  ></div>
                   <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     {isAuthor && (
-                      <button 
+                      <button
                         className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border-b border-slate-50 uppercase tracking-tight"
-                        onClick={() => { console.log("Update"); setShowDropdown(false); }}
+                        onClick={() => {
+                          console.log("Update");
+                          setShowDropdown(false);
+                        }}
                       >
-                        <FiEdit2 size={14} className="text-indigo-500" /> Update Knowledge
+                        <FiEdit2 size={14} className="text-indigo-500" /> Update
+                        Knowledge
                       </button>
                     )}
                     {canDelete && (
-                      <button 
+                      <button
                         className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black text-rose-500 hover:bg-rose-50 transition-all uppercase tracking-tight"
-                        onClick={() => { setShowDropdown(false); setShowDeleteConfirm(true); }}
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setShowDeleteConfirm(true);
+                        }}
                       >
-                        <FiTrash2 size={14} className="text-rose-500" /> Delete Knowledge
+                        <FiTrash2 size={14} className="text-rose-500" /> Delete
+                        Knowledge
                       </button>
                     )}
                   </div>
@@ -311,81 +396,86 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
         {/* MEDIA + CONTENT */}
         <div className="px-6 pb-4 space-y-4">
-          {hasMedia && (() => {
-            const current = media[activeIndex] || media[0];
-            if (!current) return null;
+          {hasMedia &&
+            (() => {
+              const current = media[activeIndex] || media[0];
+              if (!current) return null;
 
-            const filename = current.url?.split("/").pop();
+              const filename = current.url?.split("/").pop();
 
-            return (
-              <div className="space-y-3">
-                <div
-                  onClick={() => current.type === "image" && setIsImageOpen(true)}
-                  className="w-full aspect-video rounded-[1.5rem] overflow-hidden bg-slate-100 relative cursor-pointer border border-slate-50 flex items-center justify-center"
-                >
-                  {current.type === "image" && (
-                    <>
-                      <img
+              return (
+                <div className="space-y-3">
+                  <div
+                    onClick={() =>
+                      current.type === "image" && setIsImageOpen(true)
+                    }
+                    className="w-full aspect-video rounded-[1.5rem] overflow-hidden bg-slate-100 relative cursor-pointer border border-slate-50 flex items-center justify-center"
+                  >
+                    {current.type === "image" && (
+                      <>
+                        <img
+                          src={current.url}
+                          className="w-full h-full object-cover"
+                          alt="knowledge-media"
+                        />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <FiZoomIn className="text-white" size={24} />
+                        </div>
+                      </>
+                    )}
+                    {current.type === "video" && (
+                      <video
                         src={current.url}
-                        className="w-full h-full object-cover"
-                        alt="knowledge-media"
+                        controls
+                        className="w-full h-full object-contain bg-black"
                       />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <FiZoomIn className="text-white" size={24} />
-                      </div>
-                    </>
-                  )}
-                  {current.type === "video" && (
-                    <video
-                      src={current.url}
-                      controls
-                      className="w-full h-full object-contain bg-black"
-                    />
-                  )}
-                  {current.type !== "image" && current.type !== "video" && (
-                    <a
-                      href={current.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex flex-col items-center justify-center text-slate-700 hover:text-indigo-600"
-                    >
-                      <FiFileText size={32} className="mb-2" />
-                      <span className="text-xs font-bold truncate max-w-[220px]">
-                        {filename}
-                      </span>
-                    </a>
+                    )}
+                    {current.type !== "image" && current.type !== "video" && (
+                      <a
+                        href={current.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex flex-col items-center justify-center text-slate-700 hover:text-indigo-600"
+                      >
+                        <FiFileText size={32} className="mb-2" />
+                        <span className="text-xs font-bold truncate max-w-[220px]">
+                          {filename}
+                        </span>
+                      </a>
+                    )}
+                  </div>
+
+                  {media.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {media.map((m, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveIndex(idx)}
+                          className={`w-16 h-12 rounded-xl overflow-hidden border ${
+                            idx === activeIndex
+                              ? "border-indigo-500"
+                              : "border-slate-200"
+                          } flex-shrink-0 bg-slate-100 flex items-center justify-center`}
+                        >
+                          {m.type === "image" ? (
+                            <img
+                              src={m.url}
+                              className="w-full h-full object-cover"
+                              alt={`thumb-${idx}`}
+                            />
+                          ) : m.type === "video" ? (
+                            <FiPlay size={18} className="text-slate-700" />
+                          ) : (
+                            <FiFileText size={16} className="text-slate-700" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
-
-                {media.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {media.map((m, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveIndex(idx)}
-                        className={`w-16 h-12 rounded-xl overflow-hidden border ${
-                          idx === activeIndex ? "border-indigo-500" : "border-slate-200"
-                        } flex-shrink-0 bg-slate-100 flex items-center justify-center`}
-                      >
-                        {m.type === "image" ? (
-                          <img
-                            src={m.url}
-                            className="w-full h-full object-cover"
-                            alt={`thumb-${idx}`}
-                          />
-                        ) : m.type === "video" ? (
-                          <FiPlay size={18} className="text-slate-700" />
-                        ) : (
-                          <FiFileText size={16} className="text-slate-700" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           <div
             dir={contentDirection}
@@ -399,7 +489,11 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
         <div className="mx-6 mb-4 p-1 grid grid-cols-3 gap-1 bg-slate-50 rounded-2xl border border-slate-100">
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFavoriteClick(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleFavoriteClick();
+            }}
             disabled={loadingFavorite || readOnly}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
               isFavorite
@@ -410,32 +504,46 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
             <FiHeart className={isFavorite ? "fill-rose-600" : ""} size={16} />
             <span className="text-[11px] font-black uppercase">Favorite</span>
           </button>
-          
+
           <button
             onClick={handleToggleComments}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${
-              showComments ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-indigo-600"
+              showComments
+                ? "bg-white text-indigo-600 shadow-sm"
+                : "text-slate-500 hover:text-indigo-600"
             }`}
           >
             <FiMessageCircle size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Comment <span className="text-indigo-600">({commentCount})</span></span>
+            <span className="text-[11px] font-black uppercase tracking-tight">
+              Comment <span className="text-indigo-600">({commentCount})</span>
+            </span>
           </button>
 
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleShare();
+            }}
             disabled={readOnly}
             className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-slate-500 hover:text-emerald-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FiShare2 size={16} />
-            <span className="text-[11px] font-black uppercase tracking-tight">Share <span className="text-emerald-600">({shareCount})</span></span>
+            <span className="text-[11px] font-black uppercase tracking-tight">
+              Share <span className="text-emerald-600">({shareCount})</span>
+            </span>
           </button>
         </div>
 
         {showComments && (
           <div className="bg-slate-50/40 border-t border-slate-100 py-6 animate-in slide-in-from-top-4 duration-500">
             <div className="flex gap-3 px-6 mb-6">
-              <img src={myAvatar} className="w-9 h-9 rounded-full border border-slate-200" alt="me" />
+              <img
+                src={myAvatar}
+                className="w-9 h-9 rounded-full border border-slate-200"
+                alt="me"
+              />
               <div className="flex-grow">
                 <div className="relative">
                   <textarea
@@ -463,7 +571,11 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSendComment(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSendComment();
+                      }}
                       disabled={sendingComment}
                       className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
@@ -547,7 +659,10 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
                       }
 
                       return knowledgeCommentApi
-                        .create(data.id, { content: trimmed, parentComment: parentId })
+                        .create(data.id, {
+                          content: trimmed,
+                          parentComment: parentId,
+                        })
                         .then(() => loadComments())
                         .catch(() => {});
                     }}
@@ -561,31 +676,49 @@ const KnowledgeCard = ({ data, isFavorite: isFavoriteProp = false, onFavoriteCli
 
       {/* MODAL IMAGE (images only) */}
       {isImageOpen && hasMedia && media[activeIndex]?.type === "image" && (
-        <div 
-          className="fixed inset-0 z-[999] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4" 
+        <div
+          className="fixed inset-0 z-[999] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setIsImageOpen(false)}
         >
           <button className="absolute top-8 right-8 text-white hover:rotate-90 transition-transform">
             <FiX size={32} />
           </button>
-          <img 
-            src={media[activeIndex]?.url} 
-            className="max-w-6xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-white/10 animate-in zoom-in-95 duration-300" 
-            alt="full" 
+          <img
+            src={media[activeIndex]?.url}
+            className="max-w-6xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-white/10 animate-in zoom-in-95 duration-300"
+            alt="full"
           />
         </div>
       )}
 
       {/* MODAL CONFIRM DELETE */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" onClick={() => !deleting && setShowDeleteConfirm(false)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-100" onClick={(e) => e.stopPropagation()}>
-            <p className="text-slate-700 font-semibold mb-6">Supprimer cette knowledge ?</p>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          onClick={() => !deleting && setShowDeleteConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-slate-700 font-semibold mb-6">
+              Supprimer cette knowledge ?
+            </p>
             <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowDeleteConfirm(false)} disabled={deleting} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-60">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-60"
+              >
                 Annuler
               </button>
-              <button type="button" onClick={handleDeleteKnowledge} disabled={deleting} className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 disabled:opacity-60">
+              <button
+                type="button"
+                onClick={handleDeleteKnowledge}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 disabled:opacity-60"
+              >
                 {deleting ? "Suppression..." : "Confirmer"}
               </button>
             </div>

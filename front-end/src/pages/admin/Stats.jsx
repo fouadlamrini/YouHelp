@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import Messaging from "../../components/Messaging";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,7 +22,7 @@ import {
   FiLayers,
   FiTrendingUp,
 } from "react-icons/fi";
-import { statsApi } from "../services/api";
+import { statsApi } from "../../services/api";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -523,3 +523,4 @@ const Stats = () => {
 };
 
 export default Stats;
+

@@ -14,7 +14,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (e) => Promise.reject(e)
+  (e) => Promise.reject(e),
 );
 
 api.interceptors.response.use(
@@ -25,7 +25,7 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
     }
     return Promise.reject(e);
-  }
+  },
 );
 
 // —— Auth ——
@@ -140,10 +140,15 @@ export const postApi = {
   getMyShares: () => api.get("/post/shares/mine"),
   deleteShare: (shareId) => api.delete(`/post/share/${shareId}`),
   toggleSolved: (id, data) => api.patch(`/post/${id}/solved`, data),
-  create: (formData) => api.post("/post", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  create: (formData) =>
+    api.post("/post", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   update: (id, data) =>
     data instanceof FormData
-      ? api.put(`/post/${id}`, data, { headers: { "Content-Type": "multipart/form-data" } })
+      ? api.put(`/post/${id}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
       : api.put(`/post/${id}`, data),
   delete: (id) => api.delete(`/post/${id}`),
   reaction: (id) => api.post(`/post/${id}/reaction`),
@@ -155,22 +160,29 @@ export const commentApi = {
   getByPost: (postId) => api.get(`/comment/post/${postId}`),
   createOnPost: (postId, data, formData) =>
     formData
-      ? api.post(`/comment/post/${postId}`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+      ? api.post(`/comment/post/${postId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
       : api.post(`/comment/post/${postId}`, data),
   like: (id) => api.post(`/comment/${id}/like`),
   update: (id, data, formData) =>
     formData
-      ? api.put(`/comment/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+      ? api.put(`/comment/${id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
       : api.put(`/comment/${id}`, data),
   delete: (id) => api.delete(`/comment/${id}`),
 };
 
 // —— Comment (knowledge) ——
 export const knowledgeCommentApi = {
-  getByKnowledge: (knowledgeId) => api.get(`/knowledge/${knowledgeId}/comments`),
+  getByKnowledge: (knowledgeId) =>
+    api.get(`/knowledge/${knowledgeId}/comments`),
   create: (knowledgeId, data, formData) =>
     formData
-      ? api.post(`/knowledge/${knowledgeId}/comments`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+      ? api.post(`/knowledge/${knowledgeId}/comments`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
       : api.post(`/knowledge/${knowledgeId}/comments`, data),
 };
 
@@ -178,8 +190,10 @@ export const knowledgeCommentApi = {
 export const solutionApi = {
   getAll: () => api.get("/solution"),
   getByPost: (postId) => api.get(`/solution/${postId}`),
-  markSolved: (postId, data) => api.post(`/solution/${postId}/mark-solved`, data),
-  updateDescription: (postId, data) => api.put(`/solution/${postId}/update-description`, data),
+  markSolved: (postId, data) =>
+    api.post(`/solution/${postId}/mark-solved`, data),
+  updateDescription: (postId, data) =>
+    api.put(`/solution/${postId}/update-description`, data),
   unmarkSolved: (postId) => api.delete(`/solution/${postId}/unmark-solved`),
 };
 
@@ -187,8 +201,14 @@ export const solutionApi = {
 export const knowledgeApi = {
   getAll: (params) => api.get("/knowledge", { params }),
   getById: (id) => api.get(`/knowledge/${id}`),
-  create: (formData) => api.post("/knowledge", formData, { headers: { "Content-Type": "multipart/form-data" } }),
-  update: (id, formData) => api.put(`/knowledge/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  create: (formData) =>
+    api.post("/knowledge", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  update: (id, formData) =>
+    api.put(`/knowledge/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   delete: (id) => api.delete(`/knowledge/${id}`),
   reaction: (id) => api.post(`/knowledge/${id}/reaction`),
   share: (id) => api.post(`/knowledge/${id}/share`),
@@ -199,7 +219,8 @@ export const favoritesApi = {
   getMine: (params) => api.get("/favorites", { params }),
   add: (data) => api.post("/favorites", data),
   remove: (data) => api.delete("/favorites", { data }),
-  check: (contentType, contentId) => api.get(`/favorites/check/${contentType}/${contentId}`),
+  check: (contentType, contentId) =>
+    api.get(`/favorites/check/${contentType}/${contentId}`),
 };
 
 // —— Messages ——
@@ -217,7 +238,9 @@ export const messagesApi = {
   reaction: (id, emoji) => api.post(`/messages/${id}/reaction`, { emoji }),
 };
 
-export const API_BASE = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, "") : "http://localhost:3000";
+export const API_BASE = api.defaults.baseURL
+  ? api.defaults.baseURL.replace(/\/api\/?$/, "")
+  : "http://localhost:3000";
 
 // —— Workshops ——
 export const workshopsApi = {
@@ -225,9 +248,11 @@ export const workshopsApi = {
   create: (data) => api.post("/workshops", data),
   request: (workshopId) => api.post(`/workshops/${workshopId}/request`),
   myRequests: () => api.get("/workshops/my-requests"),
-  requestFromPost: (postId) => api.post("/workshops/request-from-post", { postId }),
+  requestFromPost: (postId) =>
+    api.post("/workshops/request-from-post", { postId }),
   pendingForFormateur: () => api.get("/workshops/requests/pending"),
-  acceptRequest: (id, data) => api.patch(`/workshops/requests/${id}/accept`, data),
+  acceptRequest: (id, data) =>
+    api.patch(`/workshops/requests/${id}/accept`, data),
   rejectRequest: (id) => api.patch(`/workshops/requests/${id}/reject`),
   myWorkshops: () => api.get("/workshops/my-workshops"),
 };

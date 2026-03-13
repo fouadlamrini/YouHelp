@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  FiUser, FiSettings, FiBell, FiMail, FiUserPlus, FiBookOpen, FiLogOut,
-  FiEdit, FiCalendar, FiCheck, FiX
+import {
+  FiUser,
+  FiSettings,
+  FiBell,
+  FiMail,
+  FiUserPlus,
+  FiBookOpen,
+  FiLogOut,
+  FiEdit,
+  FiCalendar,
+  FiCheck,
+  FiX,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import api, { friendRequestsApi, messagesApi, notificationsApi } from "../services/api";
+import api, {
+  friendRequestsApi,
+  messagesApi,
+  notificationsApi,
+} from "../services/api";
 import { getSocket } from "../services/socket";
 
-const API_BASE = (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
+const API_BASE =
+  (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
-  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg")
+    return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 }
 
@@ -35,7 +51,11 @@ function NavbarLoggedIn() {
     if (!dateStr) return "";
     const d = new Date(dateStr);
     const now = new Date();
-    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    if (d.toDateString() === now.toDateString())
+      return d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   };
 
@@ -44,7 +64,8 @@ function NavbarLoggedIn() {
   const loadInvitations = () => {
     if (!isActive) return;
     setInvitationsLoading(true);
-    friendRequestsApi.getReceived()
+    friendRequestsApi
+      .getReceived()
       .then((res) => setInvitations(res.data?.data ?? []))
       .catch(() => setInvitations([]))
       .finally(() => setInvitationsLoading(false));
@@ -133,11 +154,17 @@ function NavbarLoggedIn() {
   }, [user?.id]);
 
   const handleAcceptInvitation = (id) => {
-    friendRequestsApi.accept(id).then(() => loadInvitations()).catch(() => {});
+    friendRequestsApi
+      .accept(id)
+      .then(() => loadInvitations())
+      .catch(() => {});
   };
 
   const handleRejectInvitation = (id) => {
-    friendRequestsApi.reject(id).then(() => loadInvitations()).catch(() => {});
+    friendRequestsApi
+      .reject(id)
+      .then(() => loadInvitations())
+      .catch(() => {});
   };
 
   const handleLogout = async () => {
@@ -164,46 +191,54 @@ function NavbarLoggedIn() {
     return () => window.removeEventListener("click", closeAll);
   }, []);
 
-  const dropdownStyles = "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-200 animate-in fade-in slide-in-from-top-2 duration-200";
+  const dropdownStyles =
+    "absolute top-14 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 px-3 z-200 animate-in fade-in slide-in-from-top-2 duration-200";
   const isEtudiant = roleName === "etudiant";
 
   return (
     <nav className="w-full bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-100">
-      
       {/* 1. Logo & Navigation Links */}
       <div className="flex items-center gap-10">
         <div className="hidden lg:flex items-center gap-6">
-          
           {/* All Posts - Icon: FiEdit (Notebook with Pen) */}
-          <Link to="/posts" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+          <Link
+            to="/posts"
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+          >
             <FiEdit size={18} /> All Posts
           </Link>
 
           {/* Knowledge - Icon: FiBookOpen */}
-          <Link to="/knowledge" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+          <Link
+            to="/knowledge"
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+          >
             <FiBookOpen size={18} /> Knowledge
           </Link>
           {/* Workchop: Schedule (formateur) / Mes workchops (etudiant) */}
           {isFormateur && (
-            <Link to="/Shedule" className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+            <Link
+              to="/Shedule"
+              className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+            >
               <FiCalendar size={18} /> Workchop Schedule
             </Link>
           )}
           {/* Vertical Divider */}
           <div className="h-4 w-px bg-slate-200 mx-1"></div>
-
-          
         </div>
       </div>
 
       {/* 2. Action Icons (Invitations, Messages, Notifications, Profile) */}
       <div className="flex items-center gap-4">
-        
         <div className="flex items-center gap-1 mr-2 relative nav-dropdown-container">
           {/* INVITATIONS — réservé aux comptes activés */}
           {isActive && (
             <div className="relative">
-              <button onClick={() => toggleDropdown('invitations')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'invitations' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+              <button
+                onClick={() => toggleDropdown("invitations")}
+                className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "invitations" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}
+              >
                 <FiUserPlus size={20} />
                 {invitations.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
@@ -211,33 +246,68 @@ function NavbarLoggedIn() {
                   </span>
                 )}
               </button>
-              {activeDropdown === 'invitations' && (
+              {activeDropdown === "invitations" && (
                 <div className={dropdownStyles}>
                   <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Invitations</p>
-                    <Link to="/profile/friends" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                      Invitations
+                    </p>
+                    <Link
+                      to="/profile/friends"
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all"
+                      onClick={() => setActiveDropdown(null)}
+                    >
                       Inviter
                     </Link>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                     {invitationsLoading ? (
-                      <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
+                      <div className="py-6 text-center text-sm font-bold text-slate-400">
+                        Chargement...
+                      </div>
                     ) : invitations.length === 0 ? (
-                      <div className="italic text-center py-6 text-sm font-bold text-slate-400">Aucune demande</div>
+                      <div className="italic text-center py-6 text-sm font-bold text-slate-400">
+                        Aucune demande
+                      </div>
                     ) : (
                       <div className="space-y-1">
                         {invitations.map((req) => (
-                          <div key={req._id} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300">
+                          <div
+                            key={req._id}
+                            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300"
+                          >
                             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-100">
                               <img
-                                src={req.fromUser?.profilePicture ? resolveAvatarUrl(req.fromUser.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                                src={
+                                  req.fromUser?.profilePicture
+                                    ? resolveAvatarUrl(
+                                        req.fromUser.profilePicture,
+                                      )
+                                    : resolveAvatarUrl("default-avatar.jpg")
+                                }
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <span className="flex-1 text-sm font-bold tracking-tight truncate">{req.fromUser?.name || "?"}</span>
-                            <button type="button" onClick={() => handleAcceptInvitation(req._id)} className="p-2 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-all" title="Accepter"><FiCheck size={16} /></button>
-                            <button type="button" onClick={() => handleRejectInvitation(req._id)} className="p-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200 transition-all" title="Refuser"><FiX size={16} /></button>
+                            <span className="flex-1 text-sm font-bold tracking-tight truncate">
+                              {req.fromUser?.name || "?"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptInvitation(req._id)}
+                              className="p-2 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-all"
+                              title="Accepter"
+                            >
+                              <FiCheck size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectInvitation(req._id)}
+                              className="p-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200 transition-all"
+                              title="Refuser"
+                            >
+                              <FiX size={16} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -250,24 +320,35 @@ function NavbarLoggedIn() {
 
           {/* MESSAGES */}
           <div className="relative">
-            <button onClick={() => toggleDropdown("messages")} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "messages" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}>
+            <button
+              onClick={() => toggleDropdown("messages")}
+              className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "messages" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}
+            >
               <FiMail size={20} />
-              {(conversations.filter((c) => c.unread).length > 0) && (
+              {conversations.filter((c) => c.unread).length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
-                  {conversations.filter((c) => c.unread).length > 99 ? "99+" : conversations.filter((c) => c.unread).length}
+                  {conversations.filter((c) => c.unread).length > 99
+                    ? "99+"
+                    : conversations.filter((c) => c.unread).length}
                 </span>
               )}
             </button>
             {activeDropdown === "messages" && (
               <div className={dropdownStyles}>
                 <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Messages</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    Messages
+                  </p>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {conversationsLoading ? (
-                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
+                    <div className="py-6 text-center text-sm font-bold text-slate-400">
+                      Chargement...
+                    </div>
                   ) : conversations.length === 0 ? (
-                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Boîte vide</div>
+                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">
+                      Boîte vide
+                    </div>
                   ) : (
                     <div className="space-y-1">
                       {conversations.map((conv) => (
@@ -276,7 +357,9 @@ function NavbarLoggedIn() {
                           type="button"
                           onClick={() => {
                             window.dispatchEvent(
-                              new CustomEvent("open-chat", { detail: { userId: conv.user._id } })
+                              new CustomEvent("open-chat", {
+                                detail: { userId: conv.user._id },
+                              }),
                             );
                             setActiveDropdown(null);
                           }}
@@ -284,32 +367,42 @@ function NavbarLoggedIn() {
                         >
                           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold shrink-0 overflow-hidden">
                             {conv.user.profilePicture ? (
-                              <img src={resolveAvatarUrl(conv.user.profilePicture)} alt="" className="w-full h-full object-cover" />
+                              <img
+                                src={resolveAvatarUrl(conv.user.profilePicture)}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               (conv.user.name || "?")[0]
                             )}
                           </div>
                           <div className="grow min-w-0">
                             <div className="flex justify-between items-baseline gap-2">
-                              <span className="text-sm font-bold tracking-tight text-slate-800 truncate">{conv.user.name || conv.user.email}</span>
+                              <span className="text-sm font-bold tracking-tight text-slate-800 truncate">
+                                {conv.user.name || conv.user.email}
+                              </span>
                               <span className="text-[10px] text-slate-400 shrink-0">
                                 {formatMessageTime(conv.lastMessage?.createdAt)}
                               </span>
                             </div>
                             <p className="text-xs text-slate-500 truncate">
                               {conv.lastMessage
-                                ? conv.lastMessage.content && conv.lastMessage.content.trim()
+                                ? conv.lastMessage.content &&
+                                  conv.lastMessage.content.trim()
                                   ? conv.lastMessage.content
                                   : conv.lastMessage.attachment
-                                  ? (() => {
-                                      const att = conv.lastMessage.attachment;
-                                      const t = (att.type || "").toLowerCase();
-                                      if (t === "audio") return "Message vocal";
-                                      if (t === "image") return "Image";
-                                      if (t === "video") return "Vidéo";
-                                      return "Pièce jointe";
-                                    })()
-                                  : "Aucun message"
+                                    ? (() => {
+                                        const att = conv.lastMessage.attachment;
+                                        const t = (
+                                          att.type || ""
+                                        ).toLowerCase();
+                                        if (t === "audio")
+                                          return "Message vocal";
+                                        if (t === "image") return "Image";
+                                        if (t === "video") return "Vidéo";
+                                        return "Pièce jointe";
+                                      })()
+                                    : "Aucun message"
                                 : "Aucun message"}
                             </p>
                           </div>
@@ -324,47 +417,72 @@ function NavbarLoggedIn() {
 
           {/* NOTIFICATIONS */}
           <div className="relative nav-dropdown-container">
-            <button onClick={() => toggleDropdown('notifications')} className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <button
+              onClick={() => toggleDropdown("notifications")}
+              className={`p-2.5 rounded-xl transition-all relative ${activeDropdown === "notifications" ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-50"}`}
+            >
               <FiBell size={20} />
               {notifications.some((n) => !n.read) && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-md border-2 border-white">
-                  {notifications.filter((n) => !n.read).length > 99 ? "99+" : notifications.filter((n) => !n.read).length}
+                  {notifications.filter((n) => !n.read).length > 99
+                    ? "99+"
+                    : notifications.filter((n) => !n.read).length}
                 </span>
               )}
             </button>
-            {activeDropdown === 'notifications' && (
+            {activeDropdown === "notifications" && (
               <div className={dropdownStyles}>
                 <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Notifications</p>
-                  {(roleName === "super_admin" || roleName === "admin" || roleName === "formateur") && (
-                    <Link to="/users" className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all" onClick={() => setActiveDropdown(null)}>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    Notifications
+                  </p>
+                  {(roleName === "super_admin" ||
+                    roleName === "admin" ||
+                    roleName === "formateur") && (
+                    <Link
+                      to="/users"
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 rounded-2xl px-3 py-1.5 hover:bg-indigo-50 transition-all"
+                      onClick={() => setActiveDropdown(null)}
+                    >
                       Liste des utilisateurs
                     </Link>
                   )}
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {notificationsLoading ? (
-                    <div className="py-6 text-center text-sm font-bold text-slate-400">Chargement...</div>
+                    <div className="py-6 text-center text-sm font-bold text-slate-400">
+                      Chargement...
+                    </div>
                   ) : notifications.length === 0 ? (
-                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">Pas de notifications</div>
+                    <div className="italic text-center py-6 text-sm font-bold text-slate-400">
+                      Pas de notifications
+                    </div>
                   ) : (
                     <div className="space-y-1">
                       {notifications.map((n) => {
                         const targetLink = n.link || "/users";
                         const isUsersLink = targetLink === "/users";
-                        const isStaff = roleName === "super_admin" || roleName === "admin" || roleName === "formateur";
+                        const isStaff =
+                          roleName === "super_admin" ||
+                          roleName === "admin" ||
+                          roleName === "formateur";
                         const canNavigate = !isUsersLink || isStaff;
 
                         const content = (
                           <>
-                            <p className="text-sm font-bold tracking-tight text-slate-800 leading-snug">{n.message}</p>
+                            <p className="text-sm font-bold tracking-tight text-slate-800 leading-snug">
+                              {n.message}
+                            </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">
-                              {new Date(n.createdAt).toLocaleDateString("fr-FR", {
-                                day: "numeric",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(n.createdAt).toLocaleDateString(
+                                "fr-FR",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </p>
                           </>
                         );
@@ -424,10 +542,17 @@ function NavbarLoggedIn() {
 
         {/* PROFILE DROPDOWN - name and image from database (user context) */}
         <div className="relative nav-dropdown-container">
-          <button onClick={() => toggleDropdown('settings')} className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 transition-all group shadow-sm">
+          <button
+            onClick={() => toggleDropdown("settings")}
+            className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 transition-all group shadow-sm"
+          >
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-100 shrink-0">
               <img
-                src={user?.profilePicture ? resolveAvatarUrl(user.profilePicture) : resolveAvatarUrl("default-avatar.jpg")}
+                src={
+                  user?.profilePicture
+                    ? resolveAvatarUrl(user.profilePicture)
+                    : resolveAvatarUrl("default-avatar.jpg")
+                }
                 alt="profile"
                 className="w-full h-full object-cover"
               />
@@ -439,13 +564,19 @@ function NavbarLoggedIn() {
             </div>
           </button>
 
-          {activeDropdown === 'settings' && (
+          {activeDropdown === "settings" && (
             <div className={`${dropdownStyles} w-56`}>
               <div className="space-y-1">
-                <Link to="/my-posts" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight">
+                <Link
+                  to="/my-posts"
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight"
+                >
                   <FiUser size={20} /> Mon Profil
                 </Link>
-                <Link to="/settings" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight">
+                <Link
+                  to="/settings"
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 font-bold text-sm tracking-tight"
+                >
                   <FiSettings size={20} /> Paramètres
                 </Link>
                 <div className="my-2 border-t border-slate-100"></div>
@@ -460,7 +591,6 @@ function NavbarLoggedIn() {
             </div>
           )}
         </div>
-
       </div>
     </nav>
   );

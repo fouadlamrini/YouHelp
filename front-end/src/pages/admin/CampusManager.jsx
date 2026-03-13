@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import Messaging from "../../components/Messaging";
 import { FiMapPin, FiPlus, FiEdit2, FiTrash2, FiX, FiSave } from "react-icons/fi";
-import { campusApi } from "../services/api";
+import { campusApi } from "../../services/api";
 
 const CampusManager = () => {
   const [list, setList] = useState([]);
@@ -269,3 +269,4 @@ const CampusManager = () => {
 };
 
 export default CampusManager;
+

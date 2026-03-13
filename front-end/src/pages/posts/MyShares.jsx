@@ -1,19 +1,21 @@
-import React, { useEffect, useState } from "react";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import HeaderProfile from "../components/HeaderProfile";
-import PostCard from "../components/PostCard";
-import KnowledgeCard from "../components/KnowledgeCard";
-import Messaging from "../components/Messaging";
-import Sidebar from "../components/Sidebar";
-import { postApi } from "../services/api";
+import React, { useEffect, useRef, useState } from "react";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import HeaderProfile from "../../components/HeaderProfile";
+import PostCard from "../../components/PostCard";
+import KnowledgeCard from "../../components/KnowledgeCard";
+import Messaging from "../../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import { postApi } from "../../services/api";
 
 const API_BASE = "http://localhost:3000";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
-  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg")
+    return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 };
 
@@ -28,7 +30,9 @@ const mapKnowledgeToCardData = (knowledge) => {
   return {
     id: knowledge._id,
     userName: author.name || author.email || "?",
-    userAvatar: author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"),
+    userAvatar: author.profilePicture
+      ? resolveAvatarUrl(author.profilePicture)
+      : resolveAvatarUrl("default-avatar.jpg"),
     category: knowledge.category?.name || knowledge.category || "",
     subCategory: knowledge.subCategory?.name || knowledge.subCategory || "",
     time: knowledge.createdAt
@@ -123,3 +127,4 @@ const MyShares = () => {
 };
 
 export default MyShares;
+

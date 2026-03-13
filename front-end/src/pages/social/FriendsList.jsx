@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import HeaderProfile from "../components/HeaderProfile";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import HeaderProfile from "../../components/HeaderProfile";
+import Messaging from "../../components/Messaging";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
-import { API_BASE, friendsApi, friendRequestsApi } from "../services/api";
-import { getSocket } from "../services/socket";
+import { useAuth } from "../../context/AuthContext";
+import { API_BASE, friendsApi, friendRequestsApi } from "../../services/api";
+import { getSocket } from "../../services/socket";
 
 const API_ORIGIN = API_BASE;
 
@@ -488,7 +488,7 @@ const FriendsList = () => {
       {/* Modal Inviter */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-h-[80vh] flex flex-col">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-height-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-900 uppercase">Inviter un utilisateur</h3>
               <button
@@ -706,3 +706,4 @@ const FriendsList = () => {
 };
 
 export default FriendsList;
+

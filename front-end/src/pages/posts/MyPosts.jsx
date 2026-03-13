@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import HeaderProfile from "../components/HeaderProfile";
-import PostCard from "../components/PostCard";
-import Messaging from "../components/Messaging";
-import Sidebar from "../components/Sidebar"; 
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import HeaderProfile from "../../components/HeaderProfile";
+import PostCard from "../../components/PostCard";
+import Messaging from "../../components/Messaging";
+import Sidebar from "../../components/Sidebar"; 
 import { FiSearch, FiChevronDown, FiCheckCircle, FiXCircle } from "react-icons/fi";
-import { postApi } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { postApi } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const MyPost = () => {
   const { user } = useAuth();
@@ -162,3 +162,4 @@ const MyPost = () => {
 };
 
 export default MyPost;
+

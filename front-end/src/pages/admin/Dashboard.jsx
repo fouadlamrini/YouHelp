@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-import StatCard from "../components/StatCard";
+import StatCard from "../../components/StatCard";
 
 const dummyStats = [
   { title: "Total Posts", value: 12, icon: "📝" },
@@ -64,3 +64,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

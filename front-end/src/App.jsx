@@ -5,30 +5,30 @@ import "./App.css";
 import { AuthProvider } from "./context/AuthContext";
 
 // Pages
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Home from "./pages/posts/Home";
+import About from "./pages/misc/About";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 // Importi l-page jdida
-import PostPage from "./pages/PostPage";
-import CategoryManager from "./pages/CategoryManager";
-import KnowledgePage from "./pages/KnowledgePage.jsx";
-import MyPost from "./pages/MyPosts.jsx";
-import MyKnowledge from "./pages/MyKnowledge.jsx";
-import MyFavorites from "./pages/MyFavorites.jsx";
-import MyShares from "./pages/MyShares.jsx";
-import InfoComplet from "./pages/InfoComplet.jsx";
-import Stats from "./pages/Stats.jsx";
-import WorkshopSchedule from "./pages/WorkshopSchedule.jsx";
-import MyWorkshops from "./pages/MyWorkshops.jsx";
-import UserManagement from "./pages/UserManagement.jsx";
-import CampusManager from "./pages/CampusManager.jsx";
-import LevelManager from "./pages/LevelManager.jsx";
-import ClassManager from "./pages/ClassManager.jsx";
-import FriendsList from "./pages/FriendsList.jsx";
-import Info from "./pages/Info.jsx";
-import Settings from "./pages/Settings.jsx";
-import OAuthCallback from "./pages/OAuthCallback.jsx";
+import PostPage from "./pages/posts/PostPage";
+import CategoryManager from "./pages/admin/CategoryManager";
+import KnowledgePage from "./pages/knowledge/KnowledgePage.jsx";
+import MyPost from "./pages/posts/MyPosts.jsx";
+import MyKnowledge from "./pages/knowledge/MyKnowledge.jsx";
+import MyFavorites from "./pages/favorites/MyFavorites.jsx";
+import MyShares from "./pages/posts/MyShares.jsx";
+import InfoComplet from "./pages/auth/InfoComplet.jsx";
+import Stats from "./pages/admin/Stats.jsx";
+import WorkshopSchedule from "./pages/workshops/WorkshopSchedule.jsx";
+import MyWorkshops from "./pages/workshops/MyWorkshops.jsx";
+import UserManagement from "./pages/admin/UserManagement.jsx";
+import CampusManager from "./pages/admin/CampusManager.jsx";
+import LevelManager from "./pages/admin/LevelManager.jsx";
+import ClassManager from "./pages/admin/ClassManager.jsx";
+import FriendsList from "./pages/social/FriendsList.jsx";
+import Info from "./pages/misc/Info.jsx";
+import Settings from "./pages/misc/Settings.jsx";
+import OAuthCallback from "./pages/auth/OAuthCallback.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 const App = () => {

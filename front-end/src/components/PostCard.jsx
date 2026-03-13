@@ -19,17 +19,50 @@ import {
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 import { useAuth } from "../context/AuthContext";
-import { postApi, commentApi, solutionApi, favoritesApi, workshopsApi } from "../services/api";
+import {
+  postApi,
+  commentApi,
+  solutionApi,
+  favoritesApi,
+  workshopsApi,
+} from "../services/api";
 
 const API_BASE = "http://localhost:3000";
 
-const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
+const EMOJI_LIST = [
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "🎉",
+  "👍",
+  "❤️",
+  "🔥",
+  "😂",
+  "🤣",
+  "✅",
+  "❌",
+  "👋",
+  "🙏",
+  "💪",
+  "👏",
+  "😊",
+  "🥳",
+  "😎",
+  "🤔",
+  "💡",
+  "📌",
+  "⭐",
+  "🎯",
+];
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
-  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg")
+    return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 };
 
@@ -44,11 +77,11 @@ const normalizePost = (post) => {
     return { ...m, url };
   });
   const firstImage =
-    media.find((m) => m.type === "image")?.url ||
-    media[0]?.url ||
-    post.image;
+    media.find((m) => m.type === "image")?.url || media[0]?.url || post.image;
   const avatarUrl = author
-    ? (author.profilePicture ? resolveAvatarUrl(author.profilePicture) : resolveAvatarUrl("default-avatar.jpg"))
+    ? author.profilePicture
+      ? resolveAvatarUrl(author.profilePicture)
+      : resolveAvatarUrl("default-avatar.jpg")
     : null;
   if (!author) {
     // eslint-disable-next-line no-console
@@ -81,11 +114,22 @@ const normalizePost = (post) => {
   };
 };
 
-const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemoved = null, sharedInfo = null, scrollToCommentId = null }) => {
+const PostCard = ({
+  post: rawPost,
+  readOnly = false,
+  onRefresh,
+  onFavoriteRemoved = null,
+  sharedInfo = null,
+  scrollToCommentId = null,
+}) => {
   const { user } = useAuth();
   const post = normalizePost(rawPost);
   const authorId = rawPost?.author?._id || rawPost?.author;
-  const isAuthor = !!(user?.id && authorId && String(user.id) === String(authorId));
+  const isAuthor = !!(
+    user?.id &&
+    authorId &&
+    String(user.id) === String(authorId)
+  );
   const canModeratePost = !!rawPost?.canModerate;
   const showOptionsMenu = (isAuthor || canModeratePost) && !readOnly;
   const [showComments, setShowComments] = useState(false);
@@ -97,8 +141,12 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
   const [solution, setSolution] = useState(null);
-  const [reactionCount, setReactionCount] = useState(rawPost?.reactionCount ?? 0);
-  const [sameContextCount, setSameContextCount] = useState(rawPost?.sameContextReactionCount ?? 0);
+  const [reactionCount, setReactionCount] = useState(
+    rawPost?.reactionCount ?? 0,
+  );
+  const [sameContextCount, setSameContextCount] = useState(
+    rawPost?.sameContextReactionCount ?? 0,
+  );
   const [shareCount, setShareCount] = useState(rawPost?.shareCount ?? 0);
   const [commentCount, setCommentCount] = useState(rawPost?.commentCount ?? 0);
   const [deleting, setDeleting] = useState(false);
@@ -116,7 +164,12 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
     setSameContextCount(rawPost?.sameContextReactionCount ?? 0);
     setShareCount(rawPost?.shareCount ?? 0);
     setCommentCount(rawPost?.commentCount ?? 0);
-  }, [rawPost?.reactionCount, rawPost?.sameContextReactionCount, rawPost?.shareCount, rawPost?.commentCount]);
+  }, [
+    rawPost?.reactionCount,
+    rawPost?.sameContextReactionCount,
+    rawPost?.shareCount,
+    rawPost?.commentCount,
+  ]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [reacting, setReacting] = useState(false);
@@ -130,7 +183,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const [localSolved, setLocalSolved] = useState(rawPost?.isSolved ?? false);
   const [togglingSolved, setTogglingSolved] = useState(false);
   const [solutionText, setSolutionText] = useState("");
-  const [workchopRequested, setWorkchopRequested] = useState(!!rawPost?.workchopRequestAlreadySent);
+  const [workchopRequested, setWorkchopRequested] = useState(
+    !!rawPost?.workchopRequestAlreadySent,
+  );
   const [loadingWorkchop, setLoadingWorkchop] = useState(false);
   const [workchopSuccessMessage, setWorkchopSuccessMessage] = useState(false);
   const isArabicContent = /[\u0600-\u06FF]/.test(post?.content || "");
@@ -156,7 +211,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   // Utilisateur inactif ou auteur supprimé : on force l'affichage de son propre nom / avatar
   let displayUser = post.user;
   if (isAuthor && user) {
-    const overrideAvatar = user.profilePicture ? resolveAvatarUrl(user.profilePicture) : null;
+    const overrideAvatar = user.profilePicture
+      ? resolveAvatarUrl(user.profilePicture)
+      : null;
     displayUser = {
       ...post.user,
       name: user.name || post.user.name,
@@ -166,7 +223,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   useEffect(() => {
     if (!post.id) return;
-    favoritesApi.check("post", post.id).then((r) => setIsFavorite(!!r.data?.isFavorite)).catch(() => setIsFavorite(false));
+    favoritesApi
+      .check("post", post.id)
+      .then((r) => setIsFavorite(!!r.data?.isFavorite))
+      .catch(() => setIsFavorite(false));
   }, [post.id]);
 
   useEffect(() => {
@@ -178,7 +238,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
   useEffect(() => {
     if (localSolved && post.id) {
-      solutionApi.getByPost(post.id).then((r) => setSolution(r.data?.data ?? r.data)).catch(() => setSolution(null));
+      solutionApi
+        .getByPost(post.id)
+        .then((r) => setSolution(r.data?.data ?? r.data))
+        .catch(() => setSolution(null));
     } else {
       setSolution(null);
     }
@@ -229,7 +292,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         setComments(list);
         setCommentCount(list.length);
       })
-      .catch(() => { setComments([]); });
+      .catch(() => {
+        setComments([]);
+      });
   };
 
   useEffect(() => {
@@ -246,18 +311,28 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const handleReaction = () => {
     if (readOnly || reacting || !post.id) return;
     setReacting(true);
-    postApi.reaction(post.id).then((r) => {
-      setReactionCount(r.data.totalReactions ?? reactionCount + (r.data.message?.includes("Reacted") ? 1 : -1));
-    }).catch(() => {}).finally(() => setReacting(false));
+    postApi
+      .reaction(post.id)
+      .then((r) => {
+        setReactionCount(
+          r.data.totalReactions ??
+            reactionCount + (r.data.message?.includes("Reacted") ? 1 : -1),
+        );
+      })
+      .catch(() => {})
+      .finally(() => setReacting(false));
   };
 
   const handleShare = () => {
     if (readOnly || !post.id) return;
-    postApi.share(post.id).then((r) => {
-      const total = r.data?.totalShares ?? r.data?.data?.totalShares;
-      if (typeof total === "number") setShareCount(total);
-      else setShareCount((prev) => prev + 1);
-    }).catch(() => {});
+    postApi
+      .share(post.id)
+      .then((r) => {
+        const total = r.data?.totalShares ?? r.data?.data?.totalShares;
+        if (typeof total === "number") setShareCount(total);
+        else setShareCount((prev) => prev + 1);
+      })
+      .catch(() => {});
   };
 
   const handleFavorite = () => {
@@ -281,7 +356,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         .catch((err) => {
           // Debug erreur favoris (back renvoie 400, etc.)
           // eslint-disable-next-line no-console
-          console.log("Favorite REMOVE error (post):", err?.response?.data || err?.message || err);
+          console.log(
+            "Favorite REMOVE error (post):",
+            err?.response?.data || err?.message || err,
+          );
         })
         .finally(done);
     } else {
@@ -293,7 +371,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         .catch((err) => {
           // Debug erreur favoris (back renvoie 400, etc.)
           // eslint-disable-next-line no-console
-          console.log("Favorite ADD error (post):", err?.response?.data || err?.message || err);
+          console.log(
+            "Favorite ADD error (post):",
+            err?.response?.data || err?.message || err,
+          );
         })
         .finally(done);
     }
@@ -398,7 +479,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
       const after = commentText.slice(end);
       setCommentText(before + emoji + after);
       setShowCommentEmojiPicker(false);
-      setTimeout(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
     } else {
       setCommentText((prev) => prev + emoji);
       setShowCommentEmojiPicker(false);
@@ -408,7 +492,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
   const handleSendComment = () => {
     const hasContent = commentText.trim();
     const hasMedia = commentMediaFiles.length > 0;
-    if ((!hasContent && !hasMedia) || readOnly || sendingComment || !post.id) return;
+    if ((!hasContent && !hasMedia) || readOnly || sendingComment || !post.id)
+      return;
     setSendingComment(true);
     const content = hasContent || " ";
     const req = hasMedia
@@ -419,29 +504,44 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
           return commentApi.createOnPost(post.id, null, formData);
         })()
       : commentApi.createOnPost(post.id, { content });
-    req.then(() => {
-      setCommentText("");
-      setCommentMediaFiles([]);
-      setCommentCount((prev) => prev + 1);
-      loadComments();
-      setTimeout(() => commentInputRef.current?.focus(), 0);
-    }).catch(() => {}).finally(() => setSendingComment(false));
+    req
+      .then(() => {
+        setCommentText("");
+        setCommentMediaFiles([]);
+        setCommentCount((prev) => prev + 1);
+        loadComments();
+        setTimeout(() => commentInputRef.current?.focus(), 0);
+      })
+      .catch(() => {})
+      .finally(() => setSendingComment(false));
   };
 
-  const displaySolution = solution?.description || post.solution || "Aucune description détaillée.";
+  const displaySolution =
+    solution?.description || post.solution || "Aucune description détaillée.";
 
   useEffect(() => {
-    if (!scrollToCommentId || !showComments || loadingComments || !cardRef.current) return;
+    if (
+      !scrollToCommentId ||
+      !showComments ||
+      loadingComments ||
+      !cardRef.current
+    )
+      return;
     if (comments.length === 0) return;
     const t = setTimeout(() => {
-      const el = cardRef.current?.querySelector?.(`[data-comment-id="${scrollToCommentId}"]`);
+      const el = cardRef.current?.querySelector?.(
+        `[data-comment-id="${scrollToCommentId}"]`,
+      );
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 500);
     return () => clearTimeout(t);
   }, [scrollToCommentId, showComments, loadingComments, comments]);
 
   return (
-    <div ref={cardRef} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative">
+    <div
+      ref={cardRef}
+      className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative"
+    >
       {showWriteSolution && (
         <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
@@ -449,7 +549,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
               <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl shadow-sm">
                 <FiCheckCircle size={20} />
               </div>
-              <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">Écrire la solution</h3>
+              <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">
+                Écrire la solution
+              </h3>
             </div>
             <button
               type="button"
@@ -494,14 +596,22 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
               <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shadow-sm">
                 <FiCheckCircle size={20} />
               </div>
-              <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">Espace Solution</h3>
+              <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">
+                Espace Solution
+              </h3>
             </div>
-            <button type="button" onClick={() => setShowSolutionSection(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-400 transition-all">
+            <button
+              type="button"
+              onClick={() => setShowSolutionSection(false)}
+              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-400 transition-all"
+            >
               <FiX size={24} />
             </button>
           </div>
           <div className="bg-slate-50 border border-slate-100 rounded-[1.5rem] p-5">
-            <p className="text-slate-700 text-sm leading-relaxed">{displaySolution}</p>
+            <p className="text-slate-700 text-sm leading-relaxed">
+              {displaySolution}
+            </p>
           </div>
         </div>
       )}
@@ -510,14 +620,20 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm shrink-0 flex items-center justify-center text-slate-600 font-bold">
             {displayUser.avatar ? (
-              <img src={displayUser.avatar} alt="avatar" className="w-full h-full object-cover" />
+              <img
+                src={displayUser.avatar}
+                alt="avatar"
+                className="w-full h-full object-cover"
+              />
             ) : (
               displayUser.name?.[0] || "?"
             )}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-black text-slate-900 leading-none">{displayUser.name}</p>
+              <p className="text-sm font-black text-slate-900 leading-none">
+                {displayUser.name}
+              </p>
               {localSolved ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -529,7 +645,11 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                   >
                     <FiCheckCircle size={10} /> Solved
                   </button>
-                  <button type="button" onClick={() => setShowSolutionSection(true)} className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50 hover:bg-indigo-100/50">
+                  <button
+                    type="button"
+                    onClick={() => setShowSolutionSection(true)}
+                    className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50 hover:bg-indigo-100/50"
+                  >
                     Voir détail
                   </button>
                 </div>
@@ -541,7 +661,8 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                   className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-full text-[9px] font-black uppercase cursor-pointer hover:bg-red-100/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   title="Cliquer pour marquer comme résolu"
                 >
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Not Solved
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />{" "}
+                  Not Solved
                 </button>
               )}
             </div>
@@ -551,20 +672,32 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
               </p>
             )}
             <div className="flex gap-1.5 mt-2 text-[9px] font-black uppercase text-slate-500">
-              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg">{post.category}</span>
-              <span className="px-2 py-0.5 bg-slate-50 rounded-lg">{post.subCategory}</span>
+              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                {post.category}
+              </span>
+              <span className="px-2 py-0.5 bg-slate-50 rounded-lg">
+                {post.subCategory}
+              </span>
             </div>
           </div>
         </div>
         <div className="relative">
           {showOptionsMenu && (
             <>
-              <button type="button" onClick={() => setShowOptions(!showOptions)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all">
+              <button
+                type="button"
+                onClick={() => setShowOptions(!showOptions)}
+                className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"
+              >
                 <FiMoreHorizontal size={22} />
               </button>
               {showOptions && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowOptions(false)} aria-hidden />
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowOptions(false)}
+                    aria-hidden
+                  />
                   <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 py-2">
                     {isSharedInstance ? (
                       <button
@@ -632,7 +765,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
 
             const handlePrev = (e) => {
               e.stopPropagation();
-              setActiveImageIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+              setActiveImageIndex(
+                (prev) => (prev - 1 + mediaItems.length) % mediaItems.length,
+              );
             };
             const handleNext = (e) => {
               e.stopPropagation();
@@ -645,10 +780,16 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
               <div className="p-3 space-y-3">
                 <div
                   className="relative aspect-video overflow-hidden rounded-2xl border border-slate-800 bg-black flex items-center justify-center cursor-pointer"
-                  onClick={() => current.type === "image" && setZoomedMediaUrl(current.url)}
+                  onClick={() =>
+                    current.type === "image" && setZoomedMediaUrl(current.url)
+                  }
                   role={current.type === "image" ? "button" : undefined}
                   tabIndex={current.type === "image" ? 0 : undefined}
-                  onKeyDown={(e) => current.type === "image" && (e.key === "Enter" || e.key === " ") && setZoomedMediaUrl(current.url)}
+                  onKeyDown={(e) =>
+                    current.type === "image" &&
+                    (e.key === "Enter" || e.key === " ") &&
+                    setZoomedMediaUrl(current.url)
+                  }
                 >
                   {current.type === "image" && (
                     <img
@@ -670,7 +811,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                     <div className="text-center px-4">
                       <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-800/80 text-slate-50 text-xs font-bold">
                         <FiFileText />
-                        <span className="truncate max-w-[220px]">{filename}</span>
+                        <span className="truncate max-w-[220px]">
+                          {filename}
+                        </span>
                       </div>
                       <a
                         href={current.url}
@@ -709,11 +852,16 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                     onClick={() => setZoomedMediaUrl(null)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => e.key === "Escape" && setZoomedMediaUrl(null)}
+                    onKeyDown={(e) =>
+                      e.key === "Escape" && setZoomedMediaUrl(null)
+                    }
                   >
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setZoomedMediaUrl(null); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomedMediaUrl(null);
+                      }}
                       className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 z-10"
                       aria-label="Fermer"
                     >
@@ -753,11 +901,17 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                             <FiPlay />
                           </div>
                         )}
-                        {(m.type === "pdf" || m.type === "file" || m.type === "doc") && (
+                        {(m.type === "pdf" ||
+                          m.type === "file" ||
+                          m.type === "doc") && (
                           <div className="w-full h-full flex items-center justify-center bg-slate-800 text-[9px] text-slate-100 px-1 text-center">
                             <span className="truncate w-full">
-                              {(m.url || "").split("/").pop()?.split(".").pop()?.toUpperCase() ||
-                                "FILE"}
+                              {(m.url || "")
+                                .split("/")
+                                .pop()
+                                ?.split(".")
+                                .pop()
+                                ?.toUpperCase() || "FILE"}
                             </span>
                           </div>
                         )}
@@ -774,13 +928,20 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
       <div className="p-2 grid grid-cols-4 gap-1 border-t border-slate-50 bg-white">
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFavorite(e); }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFavorite(e);
+          }}
           disabled={readOnly || loadingFavorite}
           className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none ${
-            isFavorite ? "text-rose-600 bg-rose-50 hover:bg-rose-100" : "text-slate-600 hover:bg-rose-50 hover:text-rose-600"
+            isFavorite
+              ? "text-rose-600 bg-rose-50 hover:bg-rose-100"
+              : "text-slate-600 hover:bg-rose-50 hover:text-rose-600"
           }`}
         >
-          <FiHeart size={18} className={isFavorite ? "fill-current" : ""} /> Favorite
+          <FiHeart size={18} className={isFavorite ? "fill-current" : ""} />{" "}
+          Favorite
         </button>
         <button
           type="button"
@@ -788,23 +949,34 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
           disabled={readOnly}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiMessageCircle size={18} /> Commenter <span className="text-indigo-600">({commentCount})</span>
+          <FiMessageCircle size={18} /> Commenter{" "}
+          <span className="text-indigo-600">({commentCount})</span>
         </button>
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReaction(); }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleReaction();
+          }}
           disabled={readOnly || reacting}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiHelpCircle size={18} /> Même prob <span className="text-amber-600">({reactionCount})</span>
+          <FiHelpCircle size={18} /> Même prob{" "}
+          <span className="text-amber-600">({reactionCount})</span>
         </button>
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleShare();
+          }}
           disabled={readOnly}
           className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
         >
-          <FiShare2 size={18} /> Partager <span className="text-emerald-600">({shareCount})</span>
+          <FiShare2 size={18} /> Partager{" "}
+          <span className="text-emerald-600">({shareCount})</span>
         </button>
       </div>
 
@@ -813,7 +985,13 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
           {workchopSuccessMessage && (
             <div className="flex items-center justify-between gap-2 py-2.5 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
               <span>Demande envoyée avec succès.</span>
-              <button type="button" onClick={() => setWorkchopSuccessMessage(false)} className="text-emerald-600 hover:text-emerald-800 p-0.5">×</button>
+              <button
+                type="button"
+                onClick={() => setWorkchopSuccessMessage(false)}
+                className="text-emerald-600 hover:text-emerald-800 p-0.5"
+              >
+                ×
+              </button>
             </div>
           )}
           <button
@@ -821,8 +999,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
-              const alreadySent = workchopRequested || rawPost?.workchopRequestAlreadySent;
-              if (readOnly || loadingWorkchop || alreadySent || !post.id) return;
+              const alreadySent =
+                workchopRequested || rawPost?.workchopRequestAlreadySent;
+              if (readOnly || loadingWorkchop || alreadySent || !post.id)
+                return;
               setLoadingWorkchop(true);
               try {
                 await workshopsApi.requestFromPost(post.id);
@@ -836,11 +1016,18 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                 setLoadingWorkchop(false);
               }
             }}
-            disabled={readOnly || loadingWorkchop || workchopRequested || rawPost?.workchopRequestAlreadySent}
+            disabled={
+              readOnly ||
+              loadingWorkchop ||
+              workchopRequested ||
+              rawPost?.workchopRequestAlreadySent
+            }
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-600 text-white hover:bg-violet-700 font-black text-xs disabled:opacity-50 disabled:pointer-events-none transition-all"
           >
             <FiTool size={18} />
-            {workchopRequested || rawPost?.workchopRequestAlreadySent ? "Demande envoyée" : "Demande de workchop"}
+            {workchopRequested || rawPost?.workchopRequestAlreadySent
+              ? "Demande envoyée"
+              : "Demande de workchop"}
           </button>
         </div>
       )}
@@ -866,7 +1053,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                 />
               ))
             ) : (
-              <div className="text-[10px] text-slate-400 font-bold uppercase">No comments yet</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase">
+                No comments yet
+              </div>
             )}
             {!readOnly && (
               <div className="space-y-2">
@@ -878,7 +1067,12 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                       placeholder="Écrire un commentaire..."
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendComment();
+                        }
+                      }}
                       className="w-full px-4 py-2.5 bg-transparent rounded-xl text-sm resize-none outline-none"
                     />
                     {commentMediaFiles.length > 0 && (
@@ -888,9 +1082,19 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                             key={`${file.name}-${index}`}
                             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-200/80 text-[10px] font-bold text-slate-700"
                           >
-                            {file.type.startsWith("image") ? "🖼" : file.type.startsWith("video") ? "🎬" : "📄"}
-                            <span className="max-w-[100px] truncate">{file.name}</span>
-                            <button type="button" onClick={() => removeCommentMediaFile(index)} className="text-slate-500 hover:text-red-500">
+                            {file.type.startsWith("image")
+                              ? "🖼"
+                              : file.type.startsWith("video")
+                                ? "🎬"
+                                : "📄"}
+                            <span className="max-w-[100px] truncate">
+                              {file.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeCommentMediaFile(index)}
+                              className="text-slate-500 hover:text-red-500"
+                            >
                               <FiX size={12} />
                             </button>
                           </span>
@@ -909,12 +1113,23 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                         </button>
                         {showCommentEmojiPicker && (
                           <>
-                            <div className="fixed inset-0 z-10" onClick={() => setShowCommentEmojiPicker(false)} aria-hidden />
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setShowCommentEmojiPicker(false)}
+                              aria-hidden
+                            />
                             <div className="absolute left-0 bottom-full mb-1 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-3 w-[260px]">
-                              <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Choisir un emoji</p>
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-2">
+                                Choisir un emoji
+                              </p>
                               <div className="grid grid-cols-6 gap-1.5 overflow-y-auto max-h-40">
                                 {EMOJI_LIST.map((emoji) => (
-                                  <button key={emoji} type="button" onClick={() => insertCommentEmoji(emoji)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-slate-100 rounded-lg shrink-0">
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => insertCommentEmoji(emoji)}
+                                    className="w-9 h-9 flex items-center justify-center text-xl hover:bg-slate-100 rounded-lg shrink-0"
+                                  >
                                     {emoji}
                                   </button>
                                 ))}
@@ -941,8 +1156,15 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                       </div>
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSendComment(); }}
-                        disabled={sendingComment || (!commentText.trim() && !commentMediaFiles.length)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSendComment();
+                        }}
+                        disabled={
+                          sendingComment ||
+                          (!commentText.trim() && !commentMediaFiles.length)
+                        }
                         className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs disabled:opacity-50"
                       >
                         <FiSend size={16} />
@@ -992,10 +1214,10 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                         m.type === "image"
                           ? "Image"
                           : m.type === "video"
-                          ? "Vidéo"
-                          : m.type === "pdf"
-                          ? "PDF"
-                          : "Fichier";
+                            ? "Vidéo"
+                            : m.type === "pdf"
+                              ? "PDF"
+                              : "Fichier";
                       return (
                         <div
                           key={`${m.url}-${idx}`}
@@ -1030,9 +1252,7 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                   Ajouter des médias
                 </p>
                 <div className="flex items-center gap-3">
-                  <label
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-slate-50"
-                  >
+                  <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-slate-50">
                     <FiPlus size={14} /> Images / Vidéos / PDF
                     <input
                       type="file"
@@ -1050,7 +1270,9 @@ const PostCard = ({ post: rawPost, readOnly = false, onRefresh, onFavoriteRemove
                         key={`${file.name}-${file.size}-${idx}`}
                         className="px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-1.5 text-[10px]"
                       >
-                        <span className="max-w-[120px] truncate">{file.name}</span>
+                        <span className="max-w-[120px] truncate">
+                          {file.name}
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveNewFile(idx)}

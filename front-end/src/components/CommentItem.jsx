@@ -1,16 +1,51 @@
 import React, { useState, useRef } from "react";
-import { FiMoreHorizontal, FiSend, FiEdit2, FiTrash2, FiX, FiSmile, FiImage } from "react-icons/fi";
+import {
+  FiMoreHorizontal,
+  FiSend,
+  FiEdit2,
+  FiTrash2,
+  FiX,
+  FiSmile,
+  FiImage,
+} from "react-icons/fi";
 import { commentApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
-const EMOJI_LIST = ["😀","😃","😄","😁","🎉","👍","❤️","🔥","😂","🤣","✅","❌","👋","🙏","💪","👏","😊","🥳","😎","🤔","💡","📌","⭐","🎯"];
+const EMOJI_LIST = [
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "🎉",
+  "👍",
+  "❤️",
+  "🔥",
+  "😂",
+  "🤣",
+  "✅",
+  "❌",
+  "👋",
+  "🙏",
+  "💪",
+  "👏",
+  "😊",
+  "🥳",
+  "😎",
+  "🤔",
+  "💡",
+  "📌",
+  "⭐",
+  "🎯",
+];
 
 const resolveAvatarUrl = (src) => {
   if (!src) return null;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
-  if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
+  if (src === "default-avatar.png" || src === "default-avatar.jpg")
+    return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 };
 
@@ -57,12 +92,18 @@ const CommentItem = ({
   const textAlignClass = isArabicText ? "text-right" : "text-left";
   const time = comment.time ?? formatTime(comment.createdAt);
   const rawAvatar = comment.avatar ?? author.profilePicture;
-  const avatarUrl = rawAvatar ? resolveAvatarUrl(rawAvatar) : resolveAvatarUrl("default-avatar.jpg");
+  const avatarUrl = rawAvatar
+    ? resolveAvatarUrl(rawAvatar)
+    : resolveAvatarUrl("default-avatar.jpg");
   const likeCount = Array.isArray(comment.likes) ? comment.likes.length : 0;
   const isRootComment = !isReply;
   const { user } = useAuth();
   const authorId = author?._id || author?.id || author;
-  const isAuthor = !!(user?.id && authorId && String(user.id) === String(authorId));
+  const isAuthor = !!(
+    user?.id &&
+    authorId &&
+    String(user.id) === String(authorId)
+  );
   const roleName = user?.role?.name ?? user?.role;
   const canSeeMenu = !!user && (roleName !== "etudiant" || isAuthor);
 
@@ -85,7 +126,10 @@ const CommentItem = ({
       const after = replyText.slice(end);
       setReplyText(before + emoji + after);
       setShowReplyEmojiPicker(false);
-      setTimeout(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
     } else {
       setReplyText((prev) => prev + emoji);
       setShowReplyEmojiPicker(false);
@@ -123,7 +167,10 @@ const CommentItem = ({
           replyMediaFiles.forEach((f) => formData.append("media", f));
           return commentApi.createOnPost(postId, null, formData);
         })()
-      : commentApi.createOnPost(postId, { content, parentComment: comment._id });
+      : commentApi.createOnPost(postId, {
+          content,
+          parentComment: comment._id,
+        });
     req
       .then(() => {
         setReplyText("");
@@ -162,10 +209,14 @@ const CommentItem = ({
     if (!comment._id || !onRefresh || !editText.trim()) return;
     setSavingEdit(true);
     setShowMenu(false);
-    commentApi.update(comment._id, { content: editText.trim() }).then(() => {
-      setEditMode(false);
-      onRefresh();
-    }).catch(() => {}).finally(() => setSavingEdit(false));
+    commentApi
+      .update(comment._id, { content: editText.trim() })
+      .then(() => {
+        setEditMode(false);
+        onRefresh();
+      })
+      .catch(() => {})
+      .finally(() => setSavingEdit(false));
   };
 
   const handleDelete = () => {
@@ -183,10 +234,17 @@ const CommentItem = ({
   };
 
   return (
-    <div data-comment-id={comment._id || comment.id} className={`mb-4 animate-in fade-in duration-500 ${isReply ? "ml-8 pl-4 border-l-2 border-slate-100" : ""}`}>
+    <div
+      data-comment-id={comment._id || comment.id}
+      className={`mb-4 animate-in fade-in duration-500 ${isReply ? "ml-8 pl-4 border-l-2 border-slate-100" : ""}`}
+    >
       <div className="flex gap-3">
         {avatarUrl ? (
-          <img src={avatarUrl} alt="user" className="w-9 h-9 rounded-full border border-slate-200 object-cover shrink-0" />
+          <img
+            src={avatarUrl}
+            alt="user"
+            className="w-9 h-9 rounded-full border border-slate-200 object-cover shrink-0"
+          />
         ) : (
           <div className="w-9 h-9 rounded-full border border-slate-200 bg-slate-100 shrink-0 flex items-center justify-center text-slate-600 text-xs font-bold">
             {(userName || "?")[0]}
@@ -196,11 +254,19 @@ const CommentItem = ({
           <div className="bg-white p-4 rounded-[1.3rem] rounded-tl-none border border-slate-100 shadow-sm relative group">
             <div className="flex justify-between items-start mb-1">
               <div>
-                <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{userName}</span>
-                {userRole && <p className="text-[10px] font-bold text-slate-400">{userRole}</p>}
+                <span className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                  {userName}
+                </span>
+                {userRole && (
+                  <p className="text-[10px] font-bold text-slate-400">
+                    {userRole}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 relative">
-                <span className="text-[10px] font-bold text-slate-400">{time}</span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {time}
+                </span>
                 {canSeeMenu && (
                   <>
                     <button
@@ -212,7 +278,11 @@ const CommentItem = ({
                     </button>
                     {showMenu && (
                       <>
-                        <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} aria-hidden />
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowMenu(false)}
+                          aria-hidden
+                        />
                         <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-20 py-1">
                           {isAuthor && (
                             <button
@@ -256,7 +326,10 @@ const CommentItem = ({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setEditMode(false); setEditText(comment.content || ""); }}
+                    onClick={() => {
+                      setEditMode(false);
+                      setEditText(comment.content || "");
+                    }}
                     className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600"
                   >
                     Annuler
@@ -283,27 +356,64 @@ const CommentItem = ({
                   <div className="mt-2 flex flex-wrap gap-2">
                     {comment.media.map((m, idx) => {
                       let path = m.url;
-                      if (path && !path.startsWith("http") && path.startsWith("/uploads/") && !path.includes("/images/") && !path.includes("/videos/") && !path.includes("/files/")) {
+                      if (
+                        path &&
+                        !path.startsWith("http") &&
+                        path.startsWith("/uploads/") &&
+                        !path.includes("/images/") &&
+                        !path.includes("/videos/") &&
+                        !path.includes("/files/")
+                      ) {
                         const filename = path.replace("/uploads/", "");
-                        const folder = m.type === "image" ? "images" : m.type === "video" ? "videos" : "files";
+                        const folder =
+                          m.type === "image"
+                            ? "images"
+                            : m.type === "video"
+                              ? "videos"
+                              : "files";
                         path = `/uploads/${folder}/${filename}`;
                       }
-                      const url = path?.startsWith("http") ? path : path ? `${API_BASE}${path}` : "";
+                      const url = path?.startsWith("http")
+                        ? path
+                        : path
+                          ? `${API_BASE}${path}`
+                          : "";
                       if (!url) return null;
                       if (m.type === "image") {
                         return (
-                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shrink-0">
-                            <img src={url} alt="comment media" className="w-full h-full object-cover" />
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shrink-0"
+                          >
+                            <img
+                              src={url}
+                              alt="comment media"
+                              className="w-full h-full object-cover"
+                            />
                           </a>
                         );
                       }
                       if (m.type === "video") {
                         return (
-                          <video key={idx} src={url} controls className="max-w-[200px] max-h-[120px] rounded-lg border border-slate-200" />
+                          <video
+                            key={idx}
+                            src={url}
+                            controls
+                            className="max-w-[200px] max-h-[120px] rounded-lg border border-slate-200"
+                          />
                         );
                       }
                       return (
-                        <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-600 hover:underline">
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-indigo-600 hover:underline"
+                        >
                           📄 {path?.split("/").pop()}
                         </a>
                       );
@@ -321,7 +431,10 @@ const CommentItem = ({
               disabled={liking}
               className="text-[11px] font-black text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-50"
             >
-              Like {likeCount > 0 && <span className="text-indigo-600">({likeCount})</span>}
+              Like{" "}
+              {likeCount > 0 && (
+                <span className="text-indigo-600">({likeCount})</span>
+              )}
             </button>
             {isRootComment && (onReply || (onRefresh && postId)) && (
               <>
@@ -346,22 +459,42 @@ const CommentItem = ({
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendReply(); } }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSendReply();
+                      }
+                    }}
                     placeholder="Écrire une réponse..."
                     className="flex-1 bg-transparent py-1.5 px-2 text-xs outline-none text-slate-700 placeholder:text-slate-400"
                   />
                   <div className="flex items-center gap-0.5 relative">
-                    <button type="button" onClick={() => setShowReplyEmojiPicker((v) => !v)} className="p-1 rounded text-slate-400 hover:text-amber-500">
+                    <button
+                      type="button"
+                      onClick={() => setShowReplyEmojiPicker((v) => !v)}
+                      className="p-1 rounded text-slate-400 hover:text-amber-500"
+                    >
                       <FiSmile size={16} />
                     </button>
                     {showReplyEmojiPicker && (
                       <>
-                        <div className="fixed inset-0 z-10" onClick={() => setShowReplyEmojiPicker(false)} aria-hidden />
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowReplyEmojiPicker(false)}
+                          aria-hidden
+                        />
                         <div className="absolute left-0 bottom-full mb-1 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-[220px]">
-                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1.5">Emoji</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1.5">
+                            Emoji
+                          </p>
                           <div className="grid grid-cols-6 gap-1 overflow-y-auto max-h-36">
                             {EMOJI_LIST.map((emoji) => (
-                              <button key={emoji} type="button" onClick={() => insertReplyEmoji(emoji)} className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded-lg shrink-0">
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => insertReplyEmoji(emoji)}
+                                className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded-lg shrink-0"
+                              >
                                 {emoji}
                               </button>
                             ))}
@@ -369,15 +502,29 @@ const CommentItem = ({
                         </div>
                       </>
                     )}
-                    <button type="button" onClick={() => replyFileInputRef.current?.click()} className="p-1 rounded text-slate-400 hover:text-indigo-500">
+                    <button
+                      type="button"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      className="p-1 rounded text-slate-400 hover:text-indigo-500"
+                    >
                       <FiImage size={16} />
                     </button>
-                    <input ref={replyFileInputRef} type="file" multiple accept="image/*,video/*,application/pdf" className="hidden" onChange={handleReplyMediaChange} />
+                    <input
+                      ref={replyFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,application/pdf"
+                      className="hidden"
+                      onChange={handleReplyMediaChange}
+                    />
                     <button
                       type="button"
                       onClick={handleSendReply}
-                      disabled={sendingReply || (!replyText.trim() && !replyMediaFiles.length)}
-                      className={`p-1.5 rounded ${(replyText.trim() || replyMediaFiles.length) ? "text-indigo-600" : "text-slate-200"}`}
+                      disabled={
+                        sendingReply ||
+                        (!replyText.trim() && !replyMediaFiles.length)
+                      }
+                      className={`p-1.5 rounded ${replyText.trim() || replyMediaFiles.length ? "text-indigo-600" : "text-slate-200"}`}
                     >
                       <FiSend size={14} />
                     </button>
@@ -386,9 +533,20 @@ const CommentItem = ({
                 {replyMediaFiles.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 px-1">
                     {replyMediaFiles.map((file, index) => (
-                      <span key={index} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-bold text-slate-600">
-                        <span className="max-w-[80px] truncate">{file.name}</span>
-                        <button type="button" onClick={() => removeReplyMediaFile(index)} className="text-slate-400 hover:text-red-500"><FiX size={10} /></button>
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-bold text-slate-600"
+                      >
+                        <span className="max-w-[80px] truncate">
+                          {file.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeReplyMediaFile(index)}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <FiX size={10} />
+                        </button>
                       </span>
                     ))}
                   </div>
@@ -396,7 +554,12 @@ const CommentItem = ({
               </div>
               <button
                 type="button"
-                onClick={() => !sendingReply && (setIsReplying(false), setReplyMediaFiles([]), setShowReplyEmojiPicker(false))}
+                onClick={() =>
+                  !sendingReply &&
+                  (setIsReplying(false),
+                  setReplyMediaFiles([]),
+                  setShowReplyEmojiPicker(false))
+                }
                 className="text-[9px] font-bold text-slate-400 mt-1 ml-1 hover:text-red-400 uppercase tracking-tighter"
               >
                 Annuler
@@ -405,21 +568,23 @@ const CommentItem = ({
           )}
 
           {/* Only show replies for root comments (one level only; no reply-to-reply) */}
-          {isRootComment && Array.isArray(comment.replies) && comment.replies.length > 0 && (
-            <div className="mt-3 space-y-2">
-              {comment.replies.map((r) => (
-                <CommentItem
-                  key={r._id || r.id}
-                  comment={r}
-                  postId={postId}
-                  onRefresh={onRefresh}
-                  isReply
-                  onToggleLike={onToggleLike}
-                  onReply={onReply}
-                />
-              ))}
-            </div>
-          )}
+          {isRootComment &&
+            Array.isArray(comment.replies) &&
+            comment.replies.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {comment.replies.map((r) => (
+                  <CommentItem
+                    key={r._id || r.id}
+                    comment={r}
+                    postId={postId}
+                    onRefresh={onRefresh}
+                    isReply
+                    onToggleLike={onToggleLike}
+                    onReply={onReply}
+                  />
+                ))}
+              </div>
+            )}
         </div>
       </div>
       {showDeleteConfirm && (

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import Messaging from "../../components/Messaging";
 import {
   FiUser,
   FiMail,
@@ -16,15 +16,18 @@ import {
   FiLogOut,
   FiTrash2,
 } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
-import api, { usersApi, authApi, avatarsApi } from "../services/api";
+import { useAuth } from "../../context/AuthContext";
+import api, { usersApi, authApi, avatarsApi } from "../../services/api";
 
-const API_BASE = (api.defaults.baseURL || "").replace(/\/api\/?$/, "") || "http://localhost:3000";
+const API_BASE =
+  (api.defaults.baseURL || "").replace(/\/api\/?$/, "") ||
+  "http://localhost:3000";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
   if (src.startsWith("http")) return src;
-  if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src.startsWith("/uploads") || src.startsWith("/avatars"))
+    return `${API_BASE}${src}`;
   return `${API_BASE}/avatars/${src}`;
 }
 
@@ -48,7 +51,10 @@ const Settings = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [profileMessage, setProfileMessage] = useState({ type: null, text: "" });
+  const [profileMessage, setProfileMessage] = useState({
+    type: null,
+    text: "",
+  });
   const [activeTab, setActiveTab] = useState("profile");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -153,9 +159,14 @@ const Settings = () => {
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
       setProfile(data ?? profile);
-      setProfileMessage({ type: "success", text: "Profil enregistré avec succès." });
+      setProfileMessage({
+        type: "success",
+        text: "Profil enregistré avec succès.",
+      });
     } catch (err) {
-      const msg = err.response?.data?.message || "Erreur lors de l'enregistrement du profil.";
+      const msg =
+        err.response?.data?.message ||
+        "Erreur lors de l'enregistrement du profil.";
       setProfileMessage({ type: "error", text: msg });
     } finally {
       setSaving(false);
@@ -178,10 +189,17 @@ const Settings = () => {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       alert("Mot de passe modifié.");
     } catch (err) {
-      alert(err.response?.data?.message || "Erreur lors du changement de mot de passe.");
+      alert(
+        err.response?.data?.message ||
+          "Erreur lors du changement de mot de passe.",
+      );
     } finally {
       setPasswordSaving(false);
     }
@@ -287,7 +305,10 @@ const Settings = () => {
                 {/* Contenu de l'onglet */}
                 <div className="flex-1">
                   {activeTab === "profile" && (
-                    <form onSubmit={handleSaveProfile} className="p-8 md:p-12 space-y-10">
+                    <form
+                      onSubmit={handleSaveProfile}
+                      className="p-8 md:p-12 space-y-10"
+                    >
                       {/* Nom */}
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
@@ -296,7 +317,9 @@ const Settings = () => {
                         <input
                           type="text"
                           value={form.name}
-                          onChange={(e) => handleProfileChange("name", e.target.value)}
+                          onChange={(e) =>
+                            handleProfileChange("name", e.target.value)
+                          }
                           className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
                         />
                       </div>
@@ -356,7 +379,9 @@ const Settings = () => {
                               <button
                                 key={a.file}
                                 type="button"
-                                onClick={() => handleProfileChange("profilePicture", a.file)}
+                                onClick={() =>
+                                  handleProfileChange("profilePicture", a.file)
+                                }
                                 className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 ${
                                   form.profilePicture === a.file
                                     ? "border-indigo-600 ring-2 ring-indigo-200"
@@ -416,7 +441,9 @@ const Settings = () => {
                             </label>
                             <div className="w-24 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
                               <img
-                                src={resolveAvatarUrl(form.coverPicture || "couverture-default.jpg")}
+                                src={resolveAvatarUrl(
+                                  form.coverPicture || "couverture-default.jpg",
+                                )}
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
@@ -429,7 +456,9 @@ const Settings = () => {
                               <button
                                 key={a.file}
                                 type="button"
-                                onClick={() => handleProfileChange("coverPicture", a.file)}
+                                onClick={() =>
+                                  handleProfileChange("coverPicture", a.file)
+                                }
                                 className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 ${
                                   form.coverPicture === a.file
                                     ? "border-indigo-600 ring-2 ring-indigo-200"
@@ -518,7 +547,9 @@ const Settings = () => {
                           className="flex items-center gap-3 bg-slate-900 text-white px-12 py-5 rounded-4xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
                         >
                           <FiSave size={16} />
-                          {saving ? "Enregistrement..." : "Enregistrer le profil"}
+                          {saving
+                            ? "Enregistrement..."
+                            : "Enregistrer le profil"}
                         </button>
                       </div>
                     </form>
@@ -529,7 +560,10 @@ const Settings = () => {
                       <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-2 border-l-4 border-indigo-600 mb-6">
                         Mot de passe
                       </h3>
-                      <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+                      <form
+                        onSubmit={handleChangePassword}
+                        className="space-y-4 max-w-md"
+                      >
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2">
                             <FiLock size={14} /> Mot de passe actuel
@@ -538,7 +572,10 @@ const Settings = () => {
                             type="password"
                             value={passwordForm.currentPassword}
                             onChange={(e) =>
-                              setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
+                              setPasswordForm((p) => ({
+                                ...p,
+                                currentPassword: e.target.value,
+                              }))
                             }
                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
                             placeholder="••••••••"
@@ -552,7 +589,10 @@ const Settings = () => {
                             type="password"
                             value={passwordForm.newPassword}
                             onChange={(e) =>
-                              setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+                              setPasswordForm((p) => ({
+                                ...p,
+                                newPassword: e.target.value,
+                              }))
                             }
                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
                             placeholder="••••••••"
@@ -566,7 +606,10 @@ const Settings = () => {
                             type="password"
                             value={passwordForm.confirmPassword}
                             onChange={(e) =>
-                              setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                              setPasswordForm((p) => ({
+                                ...p,
+                                confirmPassword: e.target.value,
+                              }))
                             }
                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-[12px] font-black text-slate-800 focus:border-indigo-500 outline-none"
                             placeholder="••••••••"
@@ -577,7 +620,9 @@ const Settings = () => {
                           disabled={passwordSaving}
                           className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-wide hover:bg-indigo-700 disabled:opacity-50"
                         >
-                          {passwordSaving ? "Envoi..." : "Changer le mot de passe"}
+                          {passwordSaving
+                            ? "Envoi..."
+                            : "Changer le mot de passe"}
                         </button>
                       </form>
                     </div>
@@ -589,8 +634,9 @@ const Settings = () => {
                         Supprimer le compte
                       </h3>
                       <p className="text-sm text-slate-600">
-                        Cette action est définitive. Votre compte, vos posts et toutes vos données
-                        associées seront supprimés de façon permanente.
+                        Cette action est définitive. Votre compte, vos posts et
+                        toutes vos données associées seront supprimés de façon
+                        permanente.
                       </p>
                       <button
                         type="button"
@@ -609,8 +655,9 @@ const Settings = () => {
                         Déconnexion
                       </h3>
                       <p className="text-sm text-slate-600">
-                        Vous allez être déconnecté de votre session actuelle. Vous pourrez vous
-                        reconnecter à tout moment avec vos identifiants.
+                        Vous allez être déconnecté de votre session actuelle.
+                        Vous pourrez vous reconnecter à tout moment avec vos
+                        identifiants.
                       </p>
                       <button
                         type="button"
@@ -638,9 +685,10 @@ const Settings = () => {
               Supprimer définitivement le compte
             </h3>
             <p className="text-sm text-slate-600">
-              Cette action est <span className="font-semibold">irréversible</span>. Votre compte, vos
-              posts, vos connaissances et toutes vos données associées seront supprimés
-              définitivement.
+              Cette action est{" "}
+              <span className="font-semibold">irréversible</span>. Votre compte,
+              vos posts, vos connaissances et toutes vos données associées
+              seront supprimés définitivement.
             </p>
             {deleteError && (
               <div className="px-3 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200">
@@ -679,3 +727,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

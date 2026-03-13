@@ -1,6 +1,6 @@
 import React, { useEffect, useContext, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
@@ -103,3 +103,4 @@ const OAuthCallback = () => {
 };
 
 export default OAuthCallback;
+

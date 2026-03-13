@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { FiCheck, FiX, FiExternalLink, FiClock, FiCalendar, FiEye, FiEdit3 } from "react-icons/fi";
-import { API_BASE, workshopsApi } from "../services/api";
+import { API_BASE, workshopsApi } from "../../services/api";
 
 const resolveAvatar = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
@@ -178,7 +178,7 @@ const WorkshopSchedule = () => {
 
                       <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2"><FiEdit3 className="text-indigo-400"/> Titre du Workshop *</label>
+                        <label className="text-[8px] font-black text-slate-500 uppercase ml-2 flex items-center gap-2"><FiEdit3 className="text-indigo-400"/> Titre du Workshop *</label>
                         <input
                           type="text"
                           value={scheduleData.customSubject}
@@ -188,7 +188,7 @@ const WorkshopSchedule = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Description</label>
+                        <label className="text-[8px] font-black text-slate-500 uppercase ml-2">Description</label>
                         <textarea
                           value={scheduleData.description}
                           className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-bold text-white outline-none focus:border-indigo-500 transition-all resize-none"
@@ -269,3 +269,4 @@ const WorkshopSchedule = () => {
 };
 
 export default WorkshopSchedule;
+

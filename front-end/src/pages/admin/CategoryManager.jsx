@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import Messaging from "../components/Messaging";
+import Sidebar from "../../components/Sidebar";
+import NavbarLoggedIn from "../../components/NavbarLoggedIn";
+import Messaging from "../../components/Messaging";
 import { 
   FiPlus, FiEdit3, FiTrash, FiGrid, FiHash, 
   FiSettings, FiActivity, FiCode, FiCpu, FiBook, FiLayers, FiStar
 } from "react-icons/fi";
-import { categoryApi, subcategoryApi } from "../services/api";
+import { categoryApi, subcategoryApi } from "../../services/api";
 
 const ICON_MAP = {
   FiHash, FiGrid, FiSettings, FiActivity, FiCode, FiCpu, FiBook, FiLayers, FiStar,
@@ -562,3 +562,4 @@ const CategoryManager = () => {
 };
 
 export default CategoryManager;
+
