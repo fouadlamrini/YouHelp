@@ -2,8 +2,27 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const GitHubStrategy = require("passport-github2").Strategy;
 const User = require("../models/User");
-const Role = require("../models/Role"); 
+const Role = require("../models/Role");
 require("dotenv").config();
+
+function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
+async function pickRoleAndStatusForNewUser() {
+  const userCount = await User.countDocuments();
+
+  if (userCount === 0) {
+    const superAdminRole = await Role.findOne({ name: "super_admin" });
+    if (!superAdminRole) {
+      throw new Error("super_admin role not found");
+    }
+    return { roleId: superAdminRole._id, status: "active", completeProfile: true };
+  }
+
+  const defaultRole = await Role.findOne({ name: "etudiant" });
+  return { roleId: defaultRole ? defaultRole._id : null, status: undefined, completeProfile: false };
+}
 
 /* ===================== GOOGLE ===================== */
 passport.use(
@@ -15,17 +34,24 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ email: profile.emails[0].value });
+        const rawEmail = profile.emails && profile.emails[0]?.value;
+        const email = normalizeEmail(rawEmail);
+
+        let user = email ? await User.findOne({ email }) : null;
 
         if (!user) {
-          const defaultRole = await Role.findOne({ name: "etudiant" });
-          user = await User.create({
+          const { roleId, status, completeProfile } = await pickRoleAndStatusForNewUser();
+          const data = {
             name: profile.displayName,
-            email: profile.emails[0].value,
+            email: email || null,
             provider: "google",
             googleId: profile.id,
-            role: defaultRole._id, 
-          });
+          };
+          if (roleId) data.role = roleId;
+          if (status) data.status = status;
+          if (completeProfile) data.completeProfile = true;
+
+          user = await User.create(data);
         }
 
         done(null, user);
@@ -47,7 +73,8 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails && profile.emails[0]?.value;
+        const rawEmail = profile.emails && profile.emails[0]?.value;
+        const email = normalizeEmail(rawEmail);
 
         let user = null;
         if (email) {
@@ -59,14 +86,18 @@ passport.use(
         }
 
         if (!user) {
-          const defaultRole = await Role.findOne({ name: "etudiant" });
-          user = await User.create({
+          const { roleId, status, completeProfile } = await pickRoleAndStatusForNewUser();
+          const data = {
             name: profile.username,
             email: email || null,
             provider: "github",
             githubId: profile.id,
-            role: defaultRole._id, 
-          });
+          };
+          if (roleId) data.role = roleId;
+          if (status) data.status = status;
+          if (completeProfile) data.completeProfile = true;
+
+          user = await User.create(data);
         }
 
         done(null, user);

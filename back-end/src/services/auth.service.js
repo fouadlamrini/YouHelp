@@ -43,6 +43,7 @@ async function register({ name, email, password }) {
   let role = null;
   let roleName = "etudiant";
   let status = "pending";
+  let completeProfile = false;
 
   if (userCount === 0) {
     const superAdminRole = await Role.findOne({ name: "super_admin" });
@@ -50,12 +51,13 @@ async function register({ name, email, password }) {
     role = superAdminRole._id;
     roleName = superAdminRole.name;
     status = "active";
+    completeProfile = true;
   } else {
     const etudiantRole = await Role.findOne({ name: "etudiant" });
     if (etudiantRole) role = etudiantRole._id;
   }
 
-  const user = await User.create({ name, email, password, role, status });
+  const user = await User.create({ name, email, password, role, status, completeProfile });
   const token = signToken(buildTokenPayload(user._id, roleName));
   return { user, roleName, token };
 }
@@ -102,7 +104,13 @@ async function completeProfile(userId, body) {
   if (user.completeProfile) return { error: { status: 400, message: "Profile already completed" } };
 
   const { campus, class: classId, level, profilePicture } = body;
-  const updateData = { completeProfile: true, status: "pending" };
+  const updateData = { completeProfile: true };
+  // For standard users, profile completion moves them to "pending"
+  // so that an admin can activate. If the user is already "active"
+  // (e.g. first super_admin), we keep that status.
+  if (user.status !== "active") {
+    updateData.status = "pending";
+  }
   if (campus !== undefined) updateData.campus = campus || null;
   if (classId !== undefined) updateData.class = classId || null;
   if (level !== undefined) updateData.level = level || null;
