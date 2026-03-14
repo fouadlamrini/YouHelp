@@ -245,46 +245,6 @@ export default function RegisterYouHelp() {
             </button>
           </form>
 
-          {/* Social Auth */}
-          <div className="mt-10">
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-4 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                Or connect with
-              </span>
-              <div className="flex-grow border-t border-slate-200"></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <button
-                onClick={() =>
-                  window.open("http://localhost:3000/api/auth/google", "_self")
-                }
-                className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
-              >
-                <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  className="w-5 h-5"
-                  alt=""
-                />{" "}
-                Google
-              </button>
-              <button
-                onClick={() =>
-                  window.open("http://localhost:3000/api/auth/github", "_self")
-                }
-                className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all font-bold text-slate-700"
-              >
-                <img
-                  src="https://www.svgrepo.com/show/512317/github-142.svg"
-                  className="w-5 h-5"
-                  alt=""
-                />{" "}
-                GitHub
-              </button>
-            </div>
-          </div>
-
           <p className="text-center mt-12 text-slate-500 font-semibold">
             Already have an account?{" "}
             <Link

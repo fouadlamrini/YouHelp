@@ -130,20 +130,6 @@ async function completeProfile(userId, body) {
   return { data: updated };
 }
 
-async function buildOAuthRedirectPayload(user) {
-  const roleName = await getRoleName(user);
-  const token = signToken(buildTokenPayload(user._id, roleName));
-  const userData = {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: roleName,
-    profilePicture: user.profilePicture,
-  };
-  const redirectUrl = `http://localhost:5173/oauth/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userData))}`;
-  return { redirectUrl };
-}
-
 module.exports = {
   register,
   login,
@@ -151,7 +137,6 @@ module.exports = {
   extractTokenFromHeader,
   getCompleteProfileOptions,
   completeProfile,
-  buildOAuthRedirectPayload,
   formatUserForResponse,
   getRoleName,
 };

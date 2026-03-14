@@ -28,7 +28,6 @@ import ClassManager from "./pages/admin/ClassManager.jsx";
 import FriendsList from "./pages/social/FriendsList.jsx";
 import Info from "./pages/misc/Info.jsx";
 import Settings from "./pages/misc/Settings.jsx";
-import OAuthCallback from "./pages/auth/OAuthCallback.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 const App = () => {
@@ -212,7 +211,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/oauth/callback" element={<OAuthCallback />} />
         </Routes>
       </AuthProvider>
     </Router>

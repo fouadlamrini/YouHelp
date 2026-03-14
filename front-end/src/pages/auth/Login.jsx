@@ -159,15 +159,6 @@ const Login = () => {
               )}
             </div>
 
-            <div className="flex justify-end mt-[-10px]">
-              <Link
-                to="/forgot-password"
-                className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors underline-offset-4 hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             {errors.general && (
               <p className="text-[11px] text-red-500 mt-2 ml-2 font-bold uppercase tracking-wider">
                 {errors.general}
@@ -182,49 +173,6 @@ const Login = () => {
               {loading ? "SIGNING IN..." : "SIGN IN"} <FiArrowRight size={20} />
             </button>
           </form>
-
-          {/* Divider dyal "Or" */}
-          <div className="mt-10 mb-8 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase font-black tracking-widest text-slate-400">
-              <span className="bg-[#fcfcfd] px-4">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Social Logins Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() =>
-                window.open("http://localhost:3000/api/auth/google", "_self")
-              }
-              className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
-            >
-              <img
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                className="w-5 h-5"
-                alt="Google"
-              />
-              Google
-            </button>
-            <button
-              onClick={() =>
-                window.open("http://localhost:3000/api/auth/github", "_self")
-              }
-              className="flex items-center justify-center gap-3 py-3.5 border-2 border-slate-100 rounded-2xl bg-white hover:bg-slate-50 hover:border-slate-200 transition-all font-bold text-slate-700 text-sm shadow-sm active:scale-95"
-            >
-              <img
-                src="https://www.svgrepo.com/show/512317/github-142.svg"
-                className="w-5 h-5"
-                alt="GitHub"
-              />
-              GitHub
-            </button>
-          </div>
-
-          {/* Hidden OAuth callback handler */}
-          <div id="oauth-callback" style={{ display: "none" }}></div>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">
             New here?{" "}

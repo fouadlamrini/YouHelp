@@ -77,28 +77,6 @@ class AuthController {
     }
   };
 
-  googleCallback = async (req, res) => {
-    try {
-      const user = req.user;
-      const { redirectUrl } = await authService.buildOAuthRedirectPayload(user);
-      res.redirect(redirectUrl);
-    } catch (err) {
-      console.error("Google OAuth error:", err);
-      res.status(500).json({ message: "Google login failed" });
-    }
-  };
-
-  githubCallback = async (req, res) => {
-    try {
-      const user = req.user;
-      const { redirectUrl } = await authService.buildOAuthRedirectPayload(user);
-      res.redirect(redirectUrl);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "GitHub login failed" });
-    }
-  };
-
   getCompleteProfileOptions = async (req, res) => {
     try {
       const data = await authService.getCompleteProfileOptions();
