@@ -6,6 +6,7 @@
   "scripts": {
     "start": " node server.js",
     "dev": "nodemon server.js",
+    "seedRole": "node src/seeders/seedRoles.js",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand --testPathIgnorePatterns=__tests__/routes",
     "test:integration": "jest --runInBand --testPathPattern=__tests__/routes --testTimeout=120000"
