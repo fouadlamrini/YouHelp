@@ -3,6 +3,9 @@ const Campus = require("../models/Campus");
 
 async function getAll() {
   const classes = await Class.find().populate("campus", "name").sort({ createdAt: -1 });
+  if (!classes || classes.length === 0) {
+    return { error: { status: 404, message: "No classes found" } };
+  }
   return { data: classes };
 }
 

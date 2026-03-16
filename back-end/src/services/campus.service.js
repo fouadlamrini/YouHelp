@@ -2,6 +2,9 @@ const Campus = require("../models/Campus");
 
 async function getAll() {
   const campuses = await Campus.find().sort({ createdAt: -1 });
+  if (!campuses || campuses.length === 0) {
+    return { error: { status: 404, message: "No campuses found" } };
+  }
   return { data: campuses };
 }
 

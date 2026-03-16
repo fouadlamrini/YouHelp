@@ -2,6 +2,9 @@ const Level = require("../models/Level");
 
 async function getAll() {
   const levels = await Level.find().sort({ createdAt: -1 });
+  if (!levels || levels.length === 0) {
+    return { error: { status: 404, message: "No levels found" } };
+  }
   return { data: levels };
 }
 

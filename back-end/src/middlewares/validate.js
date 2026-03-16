@@ -1,8 +1,4 @@
-/**
- * Reusable validation middleware using Yup.
- * Validates req.body against the given schema.
- * On failure, returns 400 with { message } to match existing API error format.
- */
+
 function validate(schema) {
   return async (req, res, next) => {
     try {
@@ -15,7 +11,7 @@ function validate(schema) {
     } catch (err) {
       const message =
         err.errors && err.errors.length > 0
-          ? err.errors[0]
+          ? err.errors.join(" • ")
           : err.message || "Validation error";
       return res.status(400).json({ message });
     }
