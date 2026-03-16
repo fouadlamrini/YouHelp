@@ -8,8 +8,6 @@ const subCategorySchema = new mongoose.Schema(
       required: true,
     },
     name: { type: String, required: true },
-    icon: { type: String, default: null },
-    color: { type: String, default: null },
   },
   { timestamps: true }
 );

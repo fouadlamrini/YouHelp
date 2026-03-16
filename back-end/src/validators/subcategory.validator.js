@@ -3,15 +3,11 @@ const yup = require("yup");
 const createSubCategorySchema = yup.object({
   name: yup.string().trim().required("Le nom de la sous-catégorie est requis."),
   category: yup.string().trim().required("Catégorie parente requise."),
-  icon: yup.string().nullable().optional(),
-  color: yup.string().nullable().optional(),
 });
 
 const updateSubCategorySchema = yup.object({
   name: yup.string().trim().optional(),
   category: yup.string().trim().optional(),
-  icon: yup.string().nullable().optional(),
-  color: yup.string().nullable().optional(),
 });
 
 module.exports = {

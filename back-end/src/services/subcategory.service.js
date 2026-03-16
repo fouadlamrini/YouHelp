@@ -17,7 +17,7 @@ async function getByCategory(categoryId) {
 }
 
 async function create(body) {
-  const { name, category: categoryName, icon, color } = body;
+  const { name, category: categoryName } = body;
   const trimmedName = typeof name === "string" ? name.trim() : "";
   const existingCategory = await Category.findOne({ name: categoryName });
   if (!existingCategory) {
@@ -27,8 +27,6 @@ async function create(body) {
     const subCategory = await SubCategory.create({
       name: trimmedName,
       category: existingCategory._id,
-      icon: icon || null,
-      color: color || null,
     });
     return { data: subCategory };
   } catch (err) {
@@ -40,7 +38,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, category: categoryName, icon, color } = body;
+  const { name, category: categoryName } = body;
   const existingCategory = await Category.findOne({ name: categoryName });
   if (!existingCategory) return { error: { status: 400, message: "Category not found" } };
   try {
@@ -49,8 +47,6 @@ async function update(id, body) {
       {
         name,
         category: existingCategory._id,
-        ...(icon !== undefined && { icon }),
-        ...(color !== undefined && { color }),
       },
       { new: true, runValidators: true }
     );
