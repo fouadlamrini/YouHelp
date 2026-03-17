@@ -27,27 +27,22 @@ export default function RegisterYouHelp() {
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.fullName.trim())
-      newErrors.fullName = "Le nom complet est requis";
-    const email = (formData.email ?? "").toString().trim();
-    if (!email) newErrors.email = "L'email est requis";
-    else if (!email.match(/^\S+@\S+\.\S+$/))
-      newErrors.email = "Adresse email invalide";
-    if (formData.password.length < 8)
-      newErrors.password = "Minimum 8 caractères";
-    return newErrors;
-  };
+  // const validate = () => {
+  //   const newErrors = {};
+  //   if (!formData.fullName.trim())
+  //     newErrors.fullName = "Le nom complet est requis";
+  //   const email = (formData.email ?? "").toString().trim();
+  //   if (!email) newErrors.email = "L'email est requis";
+  //   else if (!email.match(/^\S+@\S+\.\S+$/))
+  //     newErrors.email = "Adresse email invalide";
+  //   if (formData.password.length < 8)
+  //     newErrors.password = "Minimum 8 caractères";
+  //   return newErrors;
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
+    setErrors({});
     setLoading(true);
     try {
       const response = await register({
@@ -66,9 +61,14 @@ export default function RegisterYouHelp() {
         setErrors({ general: response.data?.message || "Registration failed" });
       }
     } catch (error) {
-      setErrors({
-        general: error.response?.data?.message || "Registration failed",
-      });
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Registration failed";
+      setErrors({ general: message });
+      if (error.response?.status === 400) {
+        console.warn("Register 400:", message);
+      }
     } finally {
       setLoading(false);
     }
@@ -230,9 +230,11 @@ export default function RegisterYouHelp() {
             ))}
 
             {errors.general && (
-              <p className="text-[11px] text-red-500 font-bold mt-2 ml-2 tracking-wide italic leading-none">
-                {errors.general}
-              </p>
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+                <p className="text-sm text-red-700 font-bold">
+                  {errors.general}
+                </p>
+              </div>
             )}
 
             <button

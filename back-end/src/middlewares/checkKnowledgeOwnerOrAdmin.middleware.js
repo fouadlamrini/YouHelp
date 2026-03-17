@@ -23,8 +23,10 @@ module.exports = async (req, res, next) => {
     const authorId = knowledge.author?._id?.toString() || knowledge.author?.toString();
     if (authorId === req.user.id.toString()) return next();
 
-    const author = knowledge.author?.toObject ? knowledge.author : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
-    const authorRoleName = author?.role?.name ?? author?.role ?? null;
+    const author = knowledge.author?.toObject
+      ? knowledge.author
+      : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
+    const authorRoleName = author?.role?.name || null;
 
     if (req.user.role === "admin") {
       if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return res.status(403).json({ message: "Access denied" });

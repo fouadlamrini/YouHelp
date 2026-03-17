@@ -52,9 +52,8 @@ export const usersApi = {
   rejectUser: (id) => api.put(`/users/${id}/reject`),
 };
 
-// —— Avatars (built-in + upload) ——
+// —— Avatars (upload from PC only; no image = default) ——
 export const avatarsApi = {
-  getAll: () => api.get("/avatars"),
   upload: (file) => {
     const formData = new FormData();
     formData.append("avatar", file);

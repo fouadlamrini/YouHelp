@@ -186,7 +186,7 @@ async function deleteComment(userId, userRole, commentId) {
   // Rôle et contexte du modérateur (super_admin / admin / formateur)
   let canModerate = false;
   const me = await User.findById(userId).populate("role", "name").populate("campus class level").lean();
-  const roleName = me?.role?.name ?? userRole ?? null;
+  const roleName = me?.role?.name || userRole || null;
 
   if (roleName === "super_admin") {
     canModerate = true;
@@ -196,7 +196,7 @@ async function deleteComment(userId, userRole, commentId) {
       .populate("campus class level")
       .lean();
     if (target) {
-      const targetRoleName = target.role?.name ?? null;
+      const targetRoleName = target.role?.name || null;
       const sameCampus =
         me?.campus &&
         target.campus &&

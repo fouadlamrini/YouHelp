@@ -172,7 +172,7 @@ async function update(currentUserId, targetUserId, body) {
   if (profilePicture !== undefined) updateData.profilePicture = profilePicture || null;
   if (statusValue !== undefined && ["active", "inactive"].includes(statusValue)) {
     const target = await User.findById(targetUserId).populate("role", "name");
-    const targetRoleName = target?.role?.name ?? null;
+    const targetRoleName = target?.role?.name || null;
     if (targetRoleName === "super_admin") return { error: { status: 403, message: "Cannot change super_admin status" } };
     updateData.status = statusValue;
   }

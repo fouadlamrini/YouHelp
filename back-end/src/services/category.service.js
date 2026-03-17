@@ -7,13 +7,10 @@ async function getAll() {
 
 async function create(body) {
   const { name, icon, color } = body;
-  const trimmedName = typeof name === "string" ? name.trim() : "";
-  const existing = await Category.findOne({
-    name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
-  });
+  const existing = await Category.findOne({ name });
   if (existing) return { error: { status: 400, message: "Une catégorie avec ce nom existe déjà." } };
   const category = await Category.create({
-    name: trimmedName,
+    name,
     icon: icon || null,
     color: color || null,
   });

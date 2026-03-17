@@ -221,9 +221,9 @@ async function getRecipientsForPostAction(authorDoc) {
  * authorDoc: { _id, campus, class, level }
  */
 async function notifyPostDeleted(actorDoc, authorDoc, postId) {
-  const actorRoleName = actorDoc?.role?.name ?? actorDoc?.role ?? null;
-  const actorName = actorDoc?.name ?? "Un responsable";
-  const authorId = refId(authorDoc?._id ?? authorDoc);
+  const actorRoleName = actorDoc?.role?.name || null;
+  const actorName = actorDoc?.name || "Un responsable";
+  const authorId = refId(authorDoc?._id || authorDoc);
 
   const toAuthor =
     actorRoleName === "super_admin"
@@ -253,9 +253,9 @@ async function notifyPostDeleted(actorDoc, authorDoc, postId) {
  * Notify when a post is marked solved: author + (if actor is admin/formateur) super_admin, admin same campus, formateur same context.
  */
 async function notifyPostSolved(actorDoc, authorDoc, postId) {
-  const actorRoleName = actorDoc?.role?.name ?? actorDoc?.role ?? null;
-  const actorName = actorDoc?.name ?? "Un responsable";
-  const authorId = refId(authorDoc?._id ?? authorDoc);
+  const actorRoleName = actorDoc?.role?.name || null;
+  const actorName = actorDoc?.name || "Un responsable";
+  const authorId = refId(authorDoc?._id || authorDoc);
 
   const toAuthor =
     actorRoleName === "super_admin"

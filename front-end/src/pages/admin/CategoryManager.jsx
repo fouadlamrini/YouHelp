@@ -430,7 +430,7 @@ const CategoryManager = () => {
                         <button 
                           onClick={() => {
                             setTargetCategoryId(cat._id);
-                            setSubForm({ name: "", icon: "", color: "" });
+                            setSubForm({ name: "" });
                           }}
                           title="Add Sub-category"
                           className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all duration-300 shadow-sm border border-indigo-100 active:scale-90"

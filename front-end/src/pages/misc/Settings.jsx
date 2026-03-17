@@ -38,14 +38,11 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [avatars, setAvatars] = useState([]);
   const [form, setForm] = useState({
     name: "",
     profilePicture: "",
     coverPicture: "",
   });
-  const [profilePictureSource, setProfilePictureSource] = useState("avatar");
-  const [coverPictureSource, setCoverPictureSource] = useState("avatar");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -92,8 +89,9 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    Promise.all([usersApi.getMe(), avatarsApi.getAll()])
-      .then(([meRes, avatarsRes]) => {
+    usersApi
+      .getMe()
+      .then((meRes) => {
         const data = meRes.data?.data;
         setProfile(data);
         if (data) {
@@ -103,7 +101,6 @@ const Settings = () => {
             coverPicture: data.coverPicture ?? "",
           });
         }
-        setAvatars(avatarsRes.data?.data ?? []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -324,156 +321,56 @@ const Settings = () => {
                         />
                       </div>
 
-                      {/* Photo de profil : PC ou Avatar */}
+                      {/* Photo de profil : Depuis mon PC uniquement ; sinon default */}
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
                           <FiCamera size={14} /> Photo de profil
                         </label>
-                        <div className="flex gap-4 mb-2">
-                          <button
-                            type="button"
-                            onClick={() => setProfilePictureSource("avatar")}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                              profilePictureSource === "avatar"
-                                ? "bg-indigo-600 text-white"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            Avatar (galerie)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setProfilePictureSource("pc")}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                              profilePictureSource === "pc"
-                                ? "bg-indigo-600 text-white"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
+                        <div className="flex items-center gap-4">
+                          <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
                             Depuis mon PC
-                          </button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleProfilePictureUpload}
+                            />
+                          </label>
+                          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100">
+                            <img
+                              src={resolveAvatarUrl(form.profilePicture || "default-avatar.jpg")}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
-                        {profilePictureSource === "pc" && (
-                          <div className="flex items-center gap-4">
-                            <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
-                              Choisir un fichier
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleProfilePictureUpload}
-                              />
-                            </label>
-                            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100">
-                              <img
-                                src={resolveAvatarUrl(form.profilePicture)}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {profilePictureSource === "avatar" && (
-                          <div className="flex flex-wrap gap-2">
-                            {avatars.map((a) => (
-                              <button
-                                key={a.file}
-                                type="button"
-                                onClick={() =>
-                                  handleProfileChange("profilePicture", a.file)
-                                }
-                                className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 ${
-                                  form.profilePicture === a.file
-                                    ? "border-indigo-600 ring-2 ring-indigo-200"
-                                    : "border-slate-200 hover:border-slate-300"
-                                }`}
-                              >
-                                <img
-                                  src={a.url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Photo de couverture : PC ou Avatar */}
+                      {/* Photo de couverture : Depuis mon PC uniquement ; sinon default */}
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 flex items-center gap-2">
                           <FiMonitor size={14} /> Photo de couverture
                         </label>
-                        <div className="flex gap-4 mb-2">
-                          <button
-                            type="button"
-                            onClick={() => setCoverPictureSource("avatar")}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                              coverPictureSource === "avatar"
-                                ? "bg-indigo-600 text-white"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            Avatar (galerie)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCoverPictureSource("pc")}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                              coverPictureSource === "pc"
-                                ? "bg-indigo-600 text-white"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
+                        <div className="flex items-center gap-4">
+                          <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
                             Depuis mon PC
-                          </button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleCoverPictureUpload}
+                            />
+                          </label>
+                          <div className="w-24 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
+                            <img
+                              src={resolveAvatarUrl(
+                                form.coverPicture || "couverture-default.jpg",
+                              )}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
-                        {coverPictureSource === "pc" && (
-                          <div className="flex items-center gap-4">
-                            <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
-                              Choisir un fichier
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleCoverPictureUpload}
-                              />
-                            </label>
-                            <div className="w-24 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
-                              <img
-                                src={resolveAvatarUrl(
-                                  form.coverPicture || "couverture-default.jpg",
-                                )}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {coverPictureSource === "avatar" && (
-                          <div className="flex flex-wrap gap-2">
-                            {avatars.map((a) => (
-                              <button
-                                key={a.file}
-                                type="button"
-                                onClick={() =>
-                                  handleProfileChange("coverPicture", a.file)
-                                }
-                                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 ${
-                                  form.coverPicture === a.file
-                                    ? "border-indigo-600 ring-2 ring-indigo-200"
-                                    : "border-slate-200 hover:border-slate-300"
-                                }`}
-                              >
-                                <img
-                                  src={a.url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       {/* Champs désactivés : email, campus, class, level */}

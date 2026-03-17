@@ -14,7 +14,7 @@ const { haveSameClassContext } = require("../utils/contextUtils");
 async function postsAuthorFilter(userId) {
   const current = await User.findById(userId).populate("campus class level").populate("role", "name");
   if (!current) return { _id: -1 };
-  const roleName = current.role?.name ?? null;
+  const roleName = current.role?.name || null;
   if (roleName === "super_admin") return {};
   if (roleName === "admin") {
     if (!current.campus) return {};
@@ -62,16 +62,22 @@ function sameContextAsAuthor(currentUser, post) {
 
 async function canModeratePost(currentUserId, currentUser, post) {
   if (!currentUserId || !currentUser) return false;
-  const roleName = currentUser.role?.name ?? currentUser.role ?? null;
+  const roleName = currentUser.role?.name || null;
   if (roleName === "super_admin") return true;
   const authorId = post.author?._id?.toString() || post.author?.toString();
   if (authorId === currentUserId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
+  const author = post.author?.toObject
+    ? post.author
+    : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
   if (!author) return false;
-  const authorRoleName = author?.role?.name ?? author?.role ?? null;
-  const sameCampus = [currentUser.campus?._id ?? currentUser.campus, author.campus?._id ?? author.campus].every(Boolean) &&
-    (currentUser.campus?._id ?? currentUser.campus).toString() === (author.campus?._id ?? author.campus).toString();
+  const authorRoleName = author.role?.name || null;
+  const currentCampusId = currentUser.campus?._id || currentUser.campus;
+  const authorCampusId = author.campus?._id || author.campus;
+  const sameCampus =
+    currentCampusId &&
+    authorCampusId &&
+    currentCampusId.toString() === authorCampusId.toString();
   if (roleName === "admin") {
     if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
     return sameCampus;
@@ -323,16 +329,22 @@ async function deletePost(deleterId, postId) {
 async function canToggleSolved(userId, post) {
   const me = await User.findById(userId).populate("role", "name").populate("campus class level").lean();
   if (!me) return false;
-  const roleName = me.role?.name ?? null;
+  const roleName = me.role?.name || null;
   if (roleName === "super_admin") return true;
   const authorId = post.author?._id?.toString() || post.author?.toString();
   if (authorId === userId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = post.author?.toObject ? post.author : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
+  const author = post.author?.toObject
+    ? post.author
+    : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
   if (!author) return false;
-  const authorRoleName = author?.role?.name ?? author?.role ?? null;
-  const sameCampus = [me.campus?._id ?? me.campus, author.campus?._id ?? author.campus].every(Boolean) &&
-    (me.campus?._id ?? me.campus).toString() === (author.campus?._id ?? author.campus).toString();
+  const authorRoleName = author.role?.name || null;
+  const meCampusId = me.campus?._id || me.campus;
+  const authorCampusId = author.campus?._id || author.campus;
+  const sameCampus =
+    meCampusId &&
+    authorCampusId &&
+    meCampusId.toString() === authorCampusId.toString();
   if (roleName === "admin") {
     if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
     return sameCampus;
@@ -377,7 +389,7 @@ async function toggleReaction(userId, postId) {
   const post = await Post.findById(postId).populate({ path: "author", populate: { path: "role", select: "name" } });
   if (!post) return { error: { status: 404, message: "Post not found" } };
   const me = await User.findById(userId).populate("role", "name").populate("campus class level");
-  const roleName = me?.role?.name ?? null;
+  const roleName = me?.role?.name || null;
   const isAuthorSuperAdmin = post.author?.role?.name === "super_admin";
   if (roleName !== "super_admin" && !isAuthorSuperAdmin && roleName === "etudiant") {
     const author = await User.findById(post.author._id || post.author).populate("campus class level");
@@ -479,7 +491,7 @@ async function toggleShare(userId, postId) {
       link: `/posts?post=${postId}`,
     });
   }
-  return { data: { totalShares: updated?.shareCount ?? post.shareCount + 1 } };
+  return { data: { totalShares: updated ? updated.shareCount : post.shareCount + 1 } };
 }
 
 module.exports = {

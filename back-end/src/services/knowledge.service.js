@@ -9,16 +9,22 @@ const { haveSameClassContext } = require("../utils/contextUtils");
 
 async function canModerateKnowledge(currentUserId, currentUser, knowledge) {
   if (!currentUserId || !currentUser) return false;
-  const roleName = currentUser.role?.name ?? currentUser.role ?? null;
+  const roleName = currentUser.role?.name || null;
   if (roleName === "super_admin") return true;
   const authorId = knowledge.author?._id?.toString() || knowledge.author?.toString();
   if (authorId === currentUserId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = knowledge.author?.toObject ? knowledge.author : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
+  const author = knowledge.author?.toObject
+    ? knowledge.author
+    : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
   if (!author) return false;
-  const authorRoleName = author?.role?.name ?? author?.role ?? null;
-  const sameCampus = [currentUser.campus?._id ?? currentUser.campus, author.campus?._id ?? author.campus].every(Boolean) &&
-    (currentUser.campus?._id ?? currentUser.campus).toString() === (author.campus?._id ?? author.campus).toString();
+  const authorRoleName = author.role?.name || null;
+  const currentCampusId = currentUser.campus?._id || currentUser.campus;
+  const authorCampusId = author.campus?._id || author.campus;
+  const sameCampus =
+    currentCampusId &&
+    authorCampusId &&
+    currentCampusId.toString() === authorCampusId.toString();
   if (roleName === "admin") {
     if (authorRoleName !== "etudiant" && authorRoleName !== "formateur") return false;
     return sameCampus;
@@ -148,7 +154,7 @@ async function updateKnowledge(userId, knowledgeId, body, uploadedMedia) {
 
   const user = await User.findById(userId).populate("role", "name");
   const isOwner = knowledge.author.toString() === userId;
-  const roleName = user?.role?.name ?? null;
+  const roleName = user?.role?.name || null;
   const isAdmin = roleName === "admin";
   if (!isOwner && !isAdmin) {
     return { error: { status: 403, message: "Seul l'auteur ou un admin peut mettre à jour cette connaissance" } };
@@ -187,7 +193,7 @@ async function deleteKnowledge(userId, knowledgeId) {
   const deleterId = userId.toString();
   if (authorId && authorId !== deleterId) {
     const actor = await User.findById(userId).select("name").populate("role", "name").lean();
-    const roleName = actor?.role?.name ?? null;
+    const roleName = actor?.role?.name || null;
     const message =
       roleName === "super_admin"
         ? "Le super admin a supprimé votre connaissance."

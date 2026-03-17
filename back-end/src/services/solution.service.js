@@ -7,7 +7,7 @@ async function markPostAsSolved(userId, postId, body) {
   if (!post) return { error: { status: 404, message: "Post introuvable" } };
   const user = await User.findById(userId).populate("role", "name");
   const isOwner = post.author.toString() === userId;
-  const roleName = user.role?.name ?? (user.role && user.role.toString?.()) ?? null;
+  const roleName = user.role?.name || null;
   const isFormateur = roleName === "formateur";
   const isAdmin = roleName === "admin";
   if (!isOwner && !isFormateur && !isAdmin) {
@@ -25,7 +25,7 @@ async function unmarkPostAsSolved(userId, postId) {
   if (!post) return { error: { status: 404, message: "Post introuvable" } };
   const user = await User.findById(userId).populate("role", "name");
   const isOwner = post.author.toString() === userId;
-  const roleName = user.role?.name ?? null;
+  const roleName = user.role?.name || null;
   const isFormateur = roleName === "formateur";
   const isAdmin = roleName === "admin";
   if (!isOwner && !isFormateur && !isAdmin) {

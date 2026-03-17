@@ -5,20 +5,15 @@ function refId(ref) {
 
 function getClassNickname(user) {
   if (!user) return null;
-  // Prefer explicit user.nickname if it exists, otherwise fall back to class.nickName / class.nickname
-  return (
-    user.nickname ??
-    user.nickName ??
-    user.class?.nickName ??
-    user.class?.nickname ??
-    null
-  );
+  // Project convention: nickname is stored only on the class (nickName)
+  return user.class?.nickName || null;
 }
 
 function getClassYear(user) {
   if (!user) return null;
   // Prefer explicit user.year if it exists, otherwise fall back to class.year
-  return user.year ?? user.class?.year ?? null;
+  if (user.year !== undefined && user.year !== null) return user.year;
+  return user.class?.year || null;
 }
 
 /**

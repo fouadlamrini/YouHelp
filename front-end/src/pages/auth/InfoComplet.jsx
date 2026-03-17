@@ -26,8 +26,6 @@ const InfoComplet = () => {
   const { user, setUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [options, setOptions] = useState({ campuses: [], classes: [], levels: [] });
-  const [avatars, setAvatars] = useState([]);
-  const [profilePictureSource, setProfilePictureSource] = useState("avatar");
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ campus: "", class: "", level: "" });
@@ -48,15 +46,12 @@ const InfoComplet = () => {
       return;
     }
     if (!user.completeProfile) {
-      Promise.all([authApi.getCompleteProfileOptions(), avatarsApi.getAll()])
-        .then(([optsRes, avatarsRes]) => {
+      authApi
+        .getCompleteProfileOptions()
+        .then((optsRes) => {
           setOptions(optsRes.data?.data ?? { campuses: [], classes: [], levels: [] });
-          setAvatars(avatarsRes.data?.data ?? []);
         })
-        .catch(() => {
-          setOptions({ campuses: [], classes: [], levels: [] });
-          setAvatars([]);
-        })
+        .catch(() => setOptions({ campuses: [], classes: [], levels: [] }))
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -189,55 +184,17 @@ const InfoComplet = () => {
           </div>
 
           <form onSubmit={handleConfirm} noValidate className="space-y-8">
-            {/* Photo de profil : Avatar (galerie) ou Depuis mon PC */}
+            {/* Photo de profil : Depuis mon PC uniquement ; sinon default */}
             <div className="flex flex-col items-center gap-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <FiCamera className="text-indigo-500" /> Photo de profil
               </label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setProfilePictureSource("avatar")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    profilePictureSource === "avatar" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  Avatar (galerie)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProfilePictureSource("pc")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    profilePictureSource === "pc" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
+              <div className="flex flex-col items-center gap-2">
+                <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
                   Depuis mon PC
-                </button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                </label>
               </div>
-              {profilePictureSource === "avatar" && (
-                <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto">
-                  {avatars.map((a) => (
-                    <button
-                      key={a.file}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, profilePicture: a.file }))}
-                      className={`w-12 h-12 rounded-full overflow-hidden border-2 shrink-0 transition-all ${
-                        formData.profilePicture === a.file ? "border-indigo-600 ring-2 ring-indigo-200" : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <img src={a.url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-              {profilePictureSource === "pc" && (
-                <div className="flex flex-col items-center gap-2">
-                  <label className="cursor-pointer px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200">
-                    Choisir un fichier
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                  </label>
-                </div>
-              )}
               <div className="relative">
                 <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-indigo-100 bg-slate-100">
                   <img
