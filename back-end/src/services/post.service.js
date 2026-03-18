@@ -91,12 +91,13 @@ function sameContextAsAuthor(currentUser, post) {
   return haveSameClassContext(currentUser, author || {});
 }
 
-async function canModeratePost(currentUserId, currentUser, post) {
-  if (!currentUserId || !currentUser) return false;
+async function canModeratePost(currentUser, post) {
+  if (!currentUser?._id) return false;
+  const currentUserId = String(currentUser._id);
   const roleName = currentUser.role?.name || null;
   if (roleName === "super_admin") return true;
   const authorId = post.author?._id?.toString();
-  if (authorId === currentUserId.toString()) return true;
+  if (authorId === currentUserId) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
   const author = post.author;
   if (!author) return false;
@@ -118,11 +119,13 @@ async function canModeratePost(currentUserId, currentUser, post) {
   return false;
 }
 
-async function postCanReact(currentUserId, currentUser, post, viewFilter) {
+async function postCanReact(currentUser, post, viewFilter) {
+  if (!currentUser?._id) return false;
+  const currentUserId = String(currentUser._id);
   if (currentUser.status !== "active") return false;
   const authorId = post.author?._id;
   if (!authorId) return false;
-  if (currentUserId.toString() === authorId.toString()) return true;
+  if (currentUserId === authorId.toString()) return true;
   const author = post.author;
   if (currentUser.role?.name === "super_admin") return true;
   if (author?.role?.name === "super_admin") return true;
@@ -184,7 +187,7 @@ async function getAllPosts(userId, queryFilter) {
       }
     }
   } else {
-    // Utilisateur inactif : uniquement "all" et "my_campus"
+    
     if (viewFilter === "friends") {
       noAuthors = true;
     } else if (viewFilter === "my_campus") {
@@ -224,8 +227,8 @@ async function getAllPosts(userId, queryFilter) {
       const reactionCount = await sameContextReactionCount(p._id, authorId);
       const totalSameContext = await totalSameContextCount(authorId);
       const commentCount = await Comment.countDocuments({ post: p._id });
-      const canReact = await postCanReact(userId, currentUser, p, viewFilter);
-      const canModerate = await canModeratePost(userId, currentUser, p);
+      const canReact = await postCanReact(currentUser, p, viewFilter);
+      const canModerate = await canModeratePost(currentUser, p);
       const sameContextAsAuthorFlag = sameContextAsAuthor(currentUser, p);
       const showDemandeWorkchopButton = totalSameContext > 0 && reactionCount >= totalSameContext * 0.5;
       const workchopRequestAlreadySent = showDemandeWorkchopButton
@@ -285,8 +288,8 @@ async function getPostById(userId, postId) {
   const reactionCount = await sameContextReactionCount(postId, authorId);
   const totalSameContext = await totalSameContextCount(authorId);
   const commentCount = await Comment.countDocuments({ post: postId });
-  const canReact = await postCanReact(userId, fullUser, post, "all");
-  const canModerate = await canModeratePost(userId, fullUser, post);
+  const canReact = await postCanReact(fullUser, post, "all");
+  const canModerate = await canModeratePost(fullUser, post);
   const sameContextAsAuthorFlag = sameContextAsAuthor(fullUser, post);
   const showDemandeWorkchopButton = totalSameContext > 0 && reactionCount >= totalSameContext * 0.5;
   const workchopRequestAlreadySent = showDemandeWorkchopButton
