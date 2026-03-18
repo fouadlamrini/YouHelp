@@ -1,11 +1,5 @@
 const mongoose = require("mongoose");
 
-/**
- * One model for both reaction (like) and share on Post or Knowledge.
- * - type: 'reaction' | 'share'
- * - user: who did the action
- * - post OR knowledge: target (one required)
- */
 const engagementSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ["reaction", "share"], required: true },
@@ -26,7 +20,6 @@ engagementSchema.pre("validate", function (next) {
   return next();
 });
 
-// Un seul engagement de type 'reaction' par user/post
 engagementSchema.index(
   { type: 1, user: 1, post: 1 },
   {
@@ -36,7 +29,7 @@ engagementSchema.index(
   }
 );
 
-// Un seul engagement de type 'reaction' par user/knowledge
+
 engagementSchema.index(
   { type: 1, user: 1, knowledge: 1 },
   {

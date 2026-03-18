@@ -24,6 +24,7 @@ async function getStats(userId) {
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
   const roleName = current.role?.name || null;
   const campusId = refId(current.campus);
+  const campusObjId = campusId && mongoose.Types.ObjectId.isValid(campusId) ? new mongoose.Types.ObjectId(campusId) : null;
   const adminRole = await Role.findOne({ name: "admin" });
   const formateurRole = await Role.findOne({ name: "formateur" });
   const etudiantRole = await Role.findOne({ name: "etudiant" });
@@ -34,24 +35,12 @@ async function getStats(userId) {
     return { data };
   }
   if (roleName === "admin" && campusId) {
-    let campusObjId = null;
-    try {
-      if (mongoose.Types.ObjectId.isValid(campusId) && String(campusId).length === 24) {
-        campusObjId = new mongoose.Types.ObjectId(campusId);
-      }
-    } catch (_) {}
     if (campusObjId) {
       const data = await getAdminStats(campusObjId, roles);
       return { data };
     }
   }
   if (roleName === "formateur" && campusId) {
-    let campusObjId = null;
-    try {
-      if (mongoose.Types.ObjectId.isValid(campusId) && String(campusId).length === 24) {
-        campusObjId = new mongoose.Types.ObjectId(campusId);
-      }
-    } catch (_) {}
     if (campusObjId) {
       const data = await getFormateurStats(campusObjId, roles);
       return { data };

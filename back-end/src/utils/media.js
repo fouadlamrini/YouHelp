@@ -1,12 +1,4 @@
-/**
- * Utilitaire pour le traitement des médias uploadés (post, knowledge, comment).
- * Détermine le type et le dossier public selon le mimetype, et construit l’URL.
- */
 
-/**
- * @param {string} mimetype
- * @returns {"image"|"video"|"pdf"|"doc"|"file"}
- */
 function getMediaType(mimetype) {
   if (!mimetype) return "file";
   if (mimetype.startsWith("image")) return "image";

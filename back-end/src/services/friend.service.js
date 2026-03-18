@@ -83,7 +83,7 @@ async function list(me) {
     .map((d) => (d && d.user1 && d.user2 ? (d.user1._id.toString() === me ? d.user2 : d.user1) : null))
     .filter((u) => !!u);
   const enriched = friends.map((u) => {
-    const plain = u.toObject ? u.toObject() : u;
+    const plain = u.toObject();
     if (!plain || !plain._id) return plain;
     const id = plain._id.toString();
     plain.online = isUserOnline(id);

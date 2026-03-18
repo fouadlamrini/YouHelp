@@ -61,15 +61,15 @@ async function requestFromPost(userId, body) {
     return { error: { status: 403, message: "Vous devez avoir le même campus, classe et niveau que l'auteur du post." } };
   }
   const totalSameContext = await User.countDocuments({
-    campus: author?.campus?._id || author?.campus,
-    class: author?.class?._id || author?.class,
-    level: author?.level?._id || author?.level,
+    campus: author?.campus,
+    class: author?.class,
+    level: author?.level,
   });
   if (totalSameContext === 0) return { error: { status: 400, message: "Contexte invalide." } };
   const sameContextUserIds = await User.find({
-    campus: author?.campus?._id || author?.campus,
-    class: author?.class?._id || author?.class,
-    level: author?.level?._id || author?.level,
+    campus: author?.campus,
+    class: author?.class,
+    level: author?.level,
   }).distinct("_id");
   const sameContextReactionCount = await Engagement.countDocuments({
     type: "reaction",
@@ -90,9 +90,9 @@ async function requestFromPost(userId, body) {
     .populate("post", "content");
   const student = await User.findById(userId).select("name").lean();
   const studentName = student?.name || "Un étudiant";
-  const campusId = me.campus?._id || me.campus;
-  const classId = me.class?._id || me.class;
-  const levelId = me.level?._id || me.level;
+  const campusId = me.campus?._id;
+  const classId = me.class?._id;
+  const levelId = me.level?._id;
   const formateurRole = await Role.findOne({ name: "formateur" });
   if (formateurRole && campusId && classId && levelId) {
     const formateurs = await User.find({
@@ -141,7 +141,7 @@ async function acceptRequest(userId, requestId, body) {
   request.workshop = workshop._id;
   request.status = "accepted";
   await request.save();
-  const studentId = request.user?.toString?.() || request.user;
+  const studentId = request.user?.toString?.();
   if (studentId) {
     await Notification.create({
       recipient: studentId,
@@ -165,7 +165,7 @@ async function rejectRequest(userId, requestId) {
   if (!sameContextAsAuthor(me, post.author)) return { error: { status: 403, message: "Forbidden." } };
   request.status = "rejected";
   await request.save();
-  const studentId = request.user?.toString?.() || request.user;
+  const studentId = request.user?.toString?.();
   if (studentId) {
     await Notification.create({
       recipient: studentId,

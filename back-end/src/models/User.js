@@ -11,9 +11,6 @@ const userSchema = new mongoose.Schema(
     class: { type: mongoose.Schema.Types.ObjectId, ref: "Class",default: null},
     level: { type: mongoose.Schema.Types.ObjectId, ref: "Level",default: null },
     role: { type: mongoose.Schema.Types.ObjectId, ref: "Role", default: null },
-    provider: { type: String, default: "local" },
-    googleId: { type: String },
-    githubId: { type: String },
     profilePicture: { 
       type: String, 
       default: "default-avatar.jpg" 

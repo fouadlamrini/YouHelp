@@ -5,27 +5,15 @@ function refId(ref) {
 
 function getClassNickname(user) {
   if (!user) return null;
-  // Project convention: nickname is stored only on the class (nickName)
   return user.class?.nickName || null;
 }
 
 function getClassYear(user) {
   if (!user) return null;
-  // Prefer explicit user.year if it exists, otherwise fall back to class.year
-  if (user.year !== undefined && user.year !== null) return user.year;
   return user.class?.year || null;
 }
 
-/**
- * Check if two users share the same "class context":
- * - same campus
- * - same class
- * - same nickname
- * - same year
- * - same level
- *
- * Works with either populated documents or raw ObjectIds.
- */
+
 function haveSameClassContext(user, otherUser) {
   if (!user || !otherUser) return false;
 

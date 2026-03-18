@@ -11,16 +11,14 @@ async function canModerateKnowledge(currentUserId, currentUser, knowledge) {
   if (!currentUserId || !currentUser) return false;
   const roleName = currentUser.role?.name || null;
   if (roleName === "super_admin") return true;
-  const authorId = knowledge.author?._id?.toString() || knowledge.author?.toString();
+  const authorId = knowledge.author?._id?.toString();
   if (authorId === currentUserId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = knowledge.author?.toObject
-    ? knowledge.author
-    : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
+  const author = knowledge.author;
   if (!author) return false;
   const authorRoleName = author.role?.name || null;
-  const currentCampusId = currentUser.campus?._id || currentUser.campus;
-  const authorCampusId = author.campus?._id || author.campus;
+  const currentCampusId = currentUser.campus?._id;
+  const authorCampusId = author.campus?._id;
   const sameCampus =
     currentCampusId &&
     authorCampusId &&
@@ -40,7 +38,7 @@ async function knowledgeCanReact(currentUserId, currentUser, knowledge, viewFilt
   if (!currentUser || currentUser.status !== "active") return false;
   const author = knowledge.author;
   if (!author) return false;
-  const authorId = author._id || author;
+  const authorId = author._id;
   if (currentUserId.toString() === authorId.toString()) return true;
   if (currentUser.role?.name === "super_admin") return true;
   if (author?.role?.name === "super_admin") return true;
@@ -94,7 +92,7 @@ async function getAllKnowledge(userId, queryFilter) {
       if (friendIds.length === 0) noAuthors = true;
       else authorFilter = { author: { $in: friendIds } };
     } else if (viewFilter === "my_campus") {
-      const campusId = currentUser.campus?._id || currentUser.campus;
+      const campusId = currentUser.campus?._id;
       if (campusId) {
         const sameCampusIds = await User.find({ campus: campusId }).distinct("_id");
         if (sameCampusIds.length === 0) noAuthors = true;
@@ -189,7 +187,7 @@ async function deleteKnowledge(userId, knowledgeId) {
   const knowledge = await Knowledge.findById(knowledgeId);
   if (!knowledge) return { error: { status: 404, message: "Connaissance introuvable" } };
 
-  const authorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
+  const authorId = knowledge.author?.toString() || null;
   const deleterId = userId.toString();
   if (authorId && authorId !== deleterId) {
     const actor = await User.findById(userId).select("name").populate("role", "name").lean();
@@ -228,7 +226,7 @@ async function toggleReaction(userId, knowledgeId) {
   if (!isCurrentUserSuperAdmin && !isAuthorSuperAdmin && currentUser.role?.name === "etudiant") {
     const author = knowledge.author;
     const sameContext = haveSameClassContext(currentUser, author);
-    const friend = await areFriends(userId, author._id || author);
+    const friend = await areFriends(userId, author._id);
     if (!sameContext && !friend) {
       return { error: { status: 403, message: "Vous ne pouvez réagir qu'aux connaissances de votre même campus/classe/niveau ou de vos amis." } };
     }
@@ -251,7 +249,7 @@ async function toggleShare(userId, knowledgeId) {
   }
   const knowledge = await Knowledge.findById(knowledgeId);
   if (!knowledge) return { error: { status: 404, message: "Connaissance introuvable" } };
-  const authorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
+  const authorId = knowledge.author?.toString() || null;
   await Engagement.create({ type: "share", user: userId, knowledge: knowledgeId });
   await Knowledge.findByIdAndUpdate(knowledgeId, { $inc: { shareCount: 1 } });
   if (authorId && authorId !== userId.toString()) {

@@ -35,28 +35,59 @@ async function postsAuthorFilter(userId) {
 }
 
 async function sameContextReactionCount(postId, authorId) {
-  const author = await User.findById(authorId).select("campus class level");
-  if (!author || (!author.campus && !author.class && !author.level)) return 0;
-  const filter = {};
-  if (author.campus) filter.campus = author.campus;
-  if (author.class) filter.class = author.class;
-  if (author.level) filter.level = author.level;
-  const userIds = await User.find(filter).distinct("_id");
-  return Engagement.countDocuments({ type: "reaction", post: postId, user: { $in: userIds } });
+  const author = await User.findById(authorId)
+    .select("campus class level")
+    .populate("class", "nickName")
+    .lean();
+
+  const campusId = author?.campus;
+  const levelId = author?.level;
+  const classId = author?.class?._id;
+  const nickName = author?.class?.nickName;
+
+  if (!campusId || !levelId || !classId || !nickName) return 0;
+
+  const users = await User.find({ campus: campusId, class: classId, level: levelId })
+    .select("_id class")
+    .populate("class", "nickName")
+    .lean();
+
+  const userIds = users
+    .filter((u) => u?.class?.nickName === nickName)
+    .map((u) => u._id);
+
+  if (userIds.length === 0) return 0;
+
+  return Engagement.countDocuments({
+    type: "reaction",
+    post: postId,
+    user: { $in: userIds },
+  });
 }
 
 async function totalSameContextCount(authorId) {
-  const author = await User.findById(authorId).select("campus class level");
-  if (!author || (!author.campus && !author.class && !author.level)) return 0;
-  const filter = {};
-  if (author.campus) filter.campus = author.campus;
-  if (author.class) filter.class = author.class;
-  if (author.level) filter.level = author.level;
-  return User.countDocuments(filter);
+  const author = await User.findById(authorId)
+    .select("campus class level")
+    .populate("class", "nickName")
+    .lean();
+
+  const campusId = author?.campus;
+  const levelId = author?.level;
+  const classId = author?.class?._id;
+  const nickName = author?.class?.nickName;
+
+  if (!campusId || !levelId || !classId || !nickName) return 0;
+
+  const users = await User.find({ campus: campusId, class: classId, level: levelId })
+    .select("_id class")
+    .populate("class", "nickName")
+    .lean();
+
+  return users.filter((u) => u?.class?.nickName === nickName).length;
 }
 
 function sameContextAsAuthor(currentUser, post) {
-  const author = post.author?.toObject ? post.author : post.author;
+  const author = post.author;
   return haveSameClassContext(currentUser, author || {});
 }
 
@@ -64,16 +95,14 @@ async function canModeratePost(currentUserId, currentUser, post) {
   if (!currentUserId || !currentUser) return false;
   const roleName = currentUser.role?.name || null;
   if (roleName === "super_admin") return true;
-  const authorId = post.author?._id?.toString() || post.author?.toString();
+  const authorId = post.author?._id?.toString();
   if (authorId === currentUserId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = post.author?.toObject
-    ? post.author
-    : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
+  const author = post.author;
   if (!author) return false;
   const authorRoleName = author.role?.name || null;
-  const currentCampusId = currentUser.campus?._id || currentUser.campus;
-  const authorCampusId = author.campus?._id || author.campus;
+  const currentCampusId = currentUser.campus?._id;
+  const authorCampusId = author.campus?._id;
   const sameCampus =
     currentCampusId &&
     authorCampusId &&
@@ -91,10 +120,10 @@ async function canModeratePost(currentUserId, currentUser, post) {
 
 async function postCanReact(currentUserId, currentUser, post, viewFilter) {
   if (currentUser.status !== "active") return false;
-  const authorId = post.author?._id || post.author;
+  const authorId = post.author?._id;
   if (!authorId) return false;
   if (currentUserId.toString() === authorId.toString()) return true;
-  const author = post.author?.toObject ? post.author.toObject() : post.author;
+  const author = post.author;
   if (currentUser.role?.name === "super_admin") return true;
   if (author?.role?.name === "super_admin") return true;
   if (viewFilter === "friends") return true;
@@ -147,7 +176,7 @@ async function getAllPosts(userId, queryFilter) {
       if (friendIds.length === 0) noAuthors = true;
       else authorFilter = { author: { $in: friendIds } };
     } else if (viewFilter === "my_campus") {
-      const campusId = currentUser.campus?._id || currentUser.campus;
+      const campusId = currentUser.campus?._id;
       if (campusId) {
         const sameCampusIds = await User.find({ campus: campusId }).distinct("_id");
         if (sameCampusIds.length === 0) noAuthors = true;
@@ -159,7 +188,7 @@ async function getAllPosts(userId, queryFilter) {
     if (viewFilter === "friends") {
       noAuthors = true;
     } else if (viewFilter === "my_campus") {
-      const campusId = currentUser.campus?._id || currentUser.campus;
+      const campusId = currentUser.campus?._id;
       if (campusId) {
         const sameCampusIds = await User.find({ campus: campusId }).distinct("_id");
         if (sameCampusIds.length === 0) noAuthors = true;
@@ -191,7 +220,7 @@ async function getAllPosts(userId, queryFilter) {
           profilePicture: p.author.profilePicture,
         });
       }
-      const authorId = p.author?._id || p.author;
+      const authorId = p.author?._id;
       const reactionCount = await sameContextReactionCount(p._id, authorId);
       const totalSameContext = await totalSameContextCount(authorId);
       const commentCount = await Comment.countDocuments({ post: p._id });
@@ -228,7 +257,7 @@ async function getPostById(userId, postId) {
 
   const currentUser = await User.findById(userId).select("status").lean();
   if (currentUser?.status !== "active") {
-    const scCount = await sameContextReactionCount(postId, post.author?._id || post.author);
+    const scCount = await sameContextReactionCount(postId, post.author?._id);
     const commentCount = await Comment.countDocuments({ post: postId });
     return {
       data: {
@@ -246,13 +275,13 @@ async function getPostById(userId, postId) {
   const authorFilter = await postsAuthorFilter(userId);
   if (authorFilter._id === -1) return { error: { status: 403, message: "Forbidden" } };
   if (authorFilter.author?.$in) {
-    const authorId = post.author?._id?.toString() || post.author?.toString();
+    const authorId = post.author?._id?.toString();
     const allowed = authorFilter.author.$in.some((id) => id.toString() === authorId);
     if (!allowed) return { error: { status: 403, message: "Forbidden" } };
   }
 
   const fullUser = await User.findById(userId).select("status campus class level role").populate("campus class level").populate("role", "name");
-  const authorId = post.author?._id || post.author;
+  const authorId = post.author?._id;
   const reactionCount = await sameContextReactionCount(postId, authorId);
   const totalSameContext = await totalSameContextCount(authorId);
   const commentCount = await Comment.countDocuments({ post: postId });
@@ -315,11 +344,10 @@ async function updatePost(postId, body, uploadedMedia) {
 async function deletePost(deleterId, postId) {
   const post = await Post.findById(postId).populate({ path: "author", populate: { path: "role", select: "name" }, select: "campus class level role" });
   if (!post) return { error: { status: 404, message: "Post not found" } };
-  const authorId = (post.author?._id || post.author)?.toString?.();
+  const authorId = post.author?._id?.toString();
   if (authorId && authorId !== deleterId) {
     const actorDoc = await User.findById(deleterId).populate("role", "name").lean();
-    const authorDoc = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
-    await notifyPostDeleted(actorDoc || { _id: deleterId, name: "?", role: null }, authorDoc || { _id: post.author, campus: null, class: null, level: null }, postId);
+    await notifyPostDeleted(actorDoc || { _id: deleterId, name: "?", role: null }, post.author || { _id: post.author, campus: null, class: null, level: null }, postId);
   }
   await Post.findByIdAndDelete(postId);
   await Engagement.deleteMany({ post: postId });
@@ -331,16 +359,14 @@ async function canToggleSolved(userId, post) {
   if (!me) return false;
   const roleName = me.role?.name || null;
   if (roleName === "super_admin") return true;
-  const authorId = post.author?._id?.toString() || post.author?.toString();
+  const authorId = post.author?._id?.toString();
   if (authorId === userId.toString()) return true;
   if (roleName !== "admin" && roleName !== "formateur") return false;
-  const author = post.author?.toObject
-    ? post.author
-    : await User.findById(post.author).populate("role", "name").populate("campus class level").lean();
+  const author = post.author;
   if (!author) return false;
   const authorRoleName = author.role?.name || null;
-  const meCampusId = me.campus?._id || me.campus;
-  const authorCampusId = author.campus?._id || author.campus;
+  const meCampusId = me.campus?._id;
+  const authorCampusId = author.campus?._id;
   const sameCampus =
     meCampusId &&
     authorCampusId &&
@@ -372,11 +398,10 @@ async function toggleSolved(userId, postId, body) {
   const description = typeof rawDescription === "string" && rawDescription.trim().length > 0 ? rawDescription.trim() : "Marqué comme résolu";
   await Solution.create({ post: postId, description, markedBy: userId });
   await Post.findByIdAndUpdate(postId, { isSolved: true });
-  const postAuthorId = post.author?._id?.toString() || post.author?.toString();
+  const postAuthorId = post.author?._id?.toString();
   if (postAuthorId && postAuthorId !== userId.toString()) {
     const actorDoc = await User.findById(userId).populate("role", "name").lean();
-    const authorDoc = post.author?.toObject ? post.author : await User.findById(post.author).populate("campus class level").lean();
-    await notifyPostSolved(actorDoc || { _id: userId, name: "?", role: null }, authorDoc || { _id: post.author, campus: null, class: null, level: null }, postId);
+    await notifyPostSolved(actorDoc || { _id: userId, name: "?", role: null }, post.author || { _id: post.author, campus: null, class: null, level: null }, postId);
   }
   return { data: { isSolved: true }, message: "Post marqué comme résolu" };
 }
@@ -392,9 +417,9 @@ async function toggleReaction(userId, postId) {
   const roleName = me?.role?.name || null;
   const isAuthorSuperAdmin = post.author?.role?.name === "super_admin";
   if (roleName !== "super_admin" && !isAuthorSuperAdmin && roleName === "etudiant") {
-    const author = await User.findById(post.author._id || post.author).populate("campus class level");
+    const author = await User.findById(post.author._id).populate("campus class level");
     const sameContext = haveSameClassContext(me, author);
-    const friend = await areFriends(userId, post.author._id || post.author);
+    const friend = await areFriends(userId, post.author._id);
     if (!sameContext && !friend) {
       return { error: { status: 403, message: "You can only react to posts from same campus/class/level or from friends" } };
     }
@@ -407,7 +432,7 @@ async function toggleReaction(userId, postId) {
   }
   await Engagement.create({ type: "reaction", user: userId, post: postId });
   await Post.findByIdAndUpdate(postId, { $inc: { reactionCount: 1 } });
-  const authorId = (post.author?._id || post.author)?.toString?.();
+  const authorId = post.author?._id?.toString();
   if (authorId && authorId !== userId.toString()) {
     const actor = await User.findById(userId).select("name").lean();
     const actorName = actor?.name || "Quelqu'un";
@@ -446,7 +471,7 @@ async function getMySharedPosts(userId) {
     engagements.map(async (e) => {
       if (e.post) {
         const post = e.post;
-        const reactionCount = await sameContextReactionCount(post._id, post.author?._id || post.author);
+        const reactionCount = await sameContextReactionCount(post._id, post.author?._id);
         const commentCount = await Comment.countDocuments({ post: post._id });
         return { _id: e._id, sharedAt: e.createdAt, post: { ...post, sameContextReactionCount: reactionCount, commentCount } };
       }
@@ -477,7 +502,7 @@ async function toggleShare(userId, postId) {
   }
   const post = await Post.findById(postId);
   if (!post) return { error: { status: 404, message: "Post introuvable" } };
-  const authorId = (post.author && post.author.toString ? post.author.toString() : post.author?.toString?.()) || null;
+  const authorId = post.author?.toString() || null;
   await Engagement.create({ type: "share", user: userId, post: postId });
   const updated = await Post.findByIdAndUpdate(postId, { $inc: { shareCount: 1 } }, { new: true });
   if (authorId && authorId !== userId.toString()) {
