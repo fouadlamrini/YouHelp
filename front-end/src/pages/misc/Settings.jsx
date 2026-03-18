@@ -257,20 +257,18 @@ const Settings = () => {
                     <span>Éditer le profil</span>
                   </button>
 
-                  {profile.provider === "local" && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("password")}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
-                        activeTab === "password"
-                          ? "bg-slate-900 text-white shadow-sm"
-                          : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
-                      }`}
-                    >
-                      <FiLock size={14} />
-                      <span>Mot de passe</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("password")}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                      activeTab === "password"
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FiLock size={14} />
+                    <span>Mot de passe</span>
+                  </button>
 
                   <button
                     type="button"
@@ -452,7 +450,7 @@ const Settings = () => {
                     </form>
                   )}
 
-                  {activeTab === "password" && profile.provider === "local" && (
+                  {activeTab === "password" && (
                     <div className="p-8 md:p-12">
                       <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-2 border-l-4 border-indigo-600 mb-6">
                         Mot de passe
