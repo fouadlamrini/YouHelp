@@ -173,17 +173,6 @@ export const commentApi = {
   delete: (id) => api.delete(`/comment/${id}`),
 };
 
-// —— Comment (knowledge) ——
-export const knowledgeCommentApi = {
-  getByKnowledge: (knowledgeId) =>
-    api.get(`/knowledge/${knowledgeId}/comments`),
-  create: (knowledgeId, data, formData) =>
-    formData
-      ? api.post(`/knowledge/${knowledgeId}/comments`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        })
-      : api.post(`/knowledge/${knowledgeId}/comments`, data),
-};
 
 // —— Solution ——
 export const solutionApi = {
@@ -196,22 +185,6 @@ export const solutionApi = {
   unmarkSolved: (postId) => api.delete(`/solution/${postId}/unmark-solved`),
 };
 
-// —— Knowledge ——
-export const knowledgeApi = {
-  getAll: (params) => api.get("/knowledge", { params }),
-  getById: (id) => api.get(`/knowledge/${id}`),
-  create: (formData) =>
-    api.post("/knowledge", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  update: (id, formData) =>
-    api.put(`/knowledge/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  delete: (id) => api.delete(`/knowledge/${id}`),
-  reaction: (id) => api.post(`/knowledge/${id}/reaction`),
-  share: (id) => api.post(`/knowledge/${id}/share`),
-};
 
 // —— Favorites ——
 export const favoritesApi = {

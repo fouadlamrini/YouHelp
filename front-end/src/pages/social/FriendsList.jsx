@@ -104,7 +104,12 @@ const FriendsList = () => {
       setFriends((prev) =>
         (prev || []).map((f) =>
           f && f._id && String(f._id) === id
-            ? { ...f, online: status === "online", lastSeen: lastSeen || f.lastSeen }
+            ? {
+                ...f,
+                status: status || f.status,
+                online: status === "online",
+                lastSeen: lastSeen || f.lastSeen,
+              }
             : f
         )
       );
@@ -346,7 +351,7 @@ const FriendsList = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {friendPageItems.map((friend) => {
-                  const isOnline = !!friend.online;
+                  const isOnline = friend?.status === "online";
                   return (
                   <div
                     key={friend._id}

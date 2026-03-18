@@ -51,6 +51,7 @@ const Messaging = ({ openChatUserId = null }) => {
   const [deleteModalMessageId, setDeleteModalMessageId] = useState(null);
   const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
   const [showClearConversationModal, setShowClearConversationModal] = useState(false);
+  const presenceDebugLoggedRef = useRef(new Set());
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
@@ -428,6 +429,7 @@ const Messaging = ({ openChatUserId = null }) => {
             user: {
               ...c.user,
               online: status === "online",
+              status: status || c.user.status,
               lastSeen: lastSeen || c.user.lastSeen,
             },
           };
@@ -441,6 +443,7 @@ const Messaging = ({ openChatUserId = null }) => {
           user: {
             ...prev.user,
             online: status === "online",
+            status: status || prev.user.status,
             lastSeen: lastSeen || prev.user.lastSeen,
           },
         };
@@ -451,6 +454,23 @@ const Messaging = ({ openChatUserId = null }) => {
       socket.off("user:status", handler);
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    const u = activeChat?.user;
+    const id = u?._id || u?.id;
+    if (!id) return;
+    // eslint-disable-next-line no-console
+    console.log("[presence][activeChat]", {
+      me: user?.id,
+      otherId: String(id),
+      otherName: u?.name || u?.email,
+      online: u?.online,
+      onlineType: typeof u?.online,
+      status: u?.status,
+      statusType: typeof u?.status,
+      lastSeen: u?.lastSeen,
+    });
+  }, [activeChat?.user?._id, activeChat?.user?.id, user?.id]);
 
   const handleSelectChat = (conv) => {
     setActiveChat(conv);
@@ -773,6 +793,9 @@ const Messaging = ({ openChatUserId = null }) => {
     return d.toLocaleDateString();
   };
 
+  // Trust only the textual status, not legacy boolean flags from old data
+  const isUserOnline = (u) => u?.status === "online";
+
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
       {/* Incoming Video Call Notification */}
@@ -885,7 +908,29 @@ const Messaging = ({ openChatUserId = null }) => {
                   if (!conv || !conv.user) return null;
                   const convUser = conv.user;
                   const convId = convUser._id || convUser.id;
-                  const isOnline = !!convUser.online;
+                  const convIdStr = convId ? String(convId) : "";
+                  if (
+                    convIdStr &&
+                    !presenceDebugLoggedRef.current.has(convIdStr) &&
+                    (convUser?.name?.toLowerCase?.().includes("admin") ||
+                      convUser?.email?.toLowerCase?.().includes("admin") ||
+                      activeChat?.user?._id && String(activeChat.user._id) === convIdStr)
+                  ) {
+                    presenceDebugLoggedRef.current.add(convIdStr);
+                    // eslint-disable-next-line no-console
+                    console.log("[presence][conversation]", {
+                      me: user?.id,
+                      otherId: convIdStr,
+                      otherName: convUser?.name || convUser?.email,
+                      online: convUser?.online,
+                      onlineType: typeof convUser?.online,
+                      status: convUser?.status,
+                      statusType: typeof convUser?.status,
+                      lastSeen: convUser?.lastSeen,
+                      rawUser: convUser,
+                    });
+                  }
+                  const isOnline = isUserOnline(convUser);
                   return (
                     <div
                       key={convId}
@@ -957,7 +1002,7 @@ const Messaging = ({ openChatUserId = null }) => {
               {friends.map((f) => {
                 if (!f) return null;
                 const friendId = f._id || f.id;
-                const isOnline = !!f.online;
+                const isOnline = isUserOnline(f);
                 return (
                   <button
                     key={friendId}
@@ -1010,7 +1055,7 @@ const Messaging = ({ openChatUserId = null }) => {
                 <span
                   className={
                     "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white " +
-                    (activeChat.user.online ? "bg-emerald-500" : "bg-rose-500")
+                    (isUserOnline(activeChat.user) ? "bg-emerald-500" : "bg-rose-500")
                   }
                 />
               </div>
@@ -1021,10 +1066,10 @@ const Messaging = ({ openChatUserId = null }) => {
                 <p
                   className={
                     "text-[9px] font-bold mt-1 " +
-                    (activeChat.user.online ? "text-emerald-500" : "text-slate-400")
+                    (isUserOnline(activeChat.user) ? "text-emerald-500" : "text-slate-400")
                   }
                 >
-                  {activeChat.user.online ? "En ligne" : "Hors ligne"}
+                  {isUserOnline(activeChat.user) ? "En ligne" : "Hors ligne"}
                 </p>
               </div>
             </div>

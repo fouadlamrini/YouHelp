@@ -55,8 +55,12 @@ const MyFavorites = () => {
     loadFavorites();
   }, []);
 
-  const favoritePosts = favorites.filter((f) => f.post).map((f) => f.post);
-  const favoriteKnowledge = favorites.filter((f) => f.knowledge).map((f) => f.knowledge);
+  const favoritePosts = favorites
+    .filter((f) => f.post && f.contentType !== "knowledge")
+    .map((f) => f.post);
+  const favoriteKnowledge = favorites
+    .filter((f) => f.post && f.contentType === "knowledge")
+    .map((f) => f.post);
 
   const filteredPosts = favoritePosts.filter((post) =>
     (post.content || "").toLowerCase().includes(searchTerm.toLowerCase())

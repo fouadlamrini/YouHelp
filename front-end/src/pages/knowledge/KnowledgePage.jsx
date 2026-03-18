@@ -12,7 +12,7 @@ import {
   FiSearch,
   FiX,
 } from "react-icons/fi";
-import { knowledgeApi, categoryApi, subCategoryApi } from "../../services/api";
+import { postApi, categoryApi, subCategoryApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = "http://localhost:3000";
@@ -93,7 +93,7 @@ const KnowledgePage = () => {
   const loadKnowledge = async () => {
     try {
       setLoading(true);
-      const res = await knowledgeApi.getAll({ filter: viewFilter });
+      const res = await postApi.getAll({ filter: viewFilter, type: "knowledge" });
       setKnowledgeRaw(res.data?.data ?? []);
     } catch {
       setKnowledgeRaw([]);
@@ -147,11 +147,12 @@ const KnowledgePage = () => {
     try {
       setCreating(true);
       const formData = new FormData();
+      formData.append("type", "knowledge");
       formData.append("content", trimmed);
       formData.append("category", category);
       if (subCategory) formData.append("subCategory", subCategory);
       files.forEach((f) => formData.append("media", f));
-      await knowledgeApi.create(formData);
+      await postApi.create(formData);
       setContent("");
       setFiles([]);
       await loadKnowledge();

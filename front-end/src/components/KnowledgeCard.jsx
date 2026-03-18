@@ -17,8 +17,7 @@ import {
 } from "react-icons/fi";
 import CommentItem from "./CommentItem";
 import {
-  knowledgeApi,
-  knowledgeCommentApi,
+  postApi,
   favoritesApi,
   commentApi,
 } from "../services/api";
@@ -175,8 +174,8 @@ const KnowledgeCard = ({
 
   const loadComments = () => {
     if (!data.id) return Promise.resolve();
-    return knowledgeCommentApi
-      .getByKnowledge(data.id)
+    return commentApi
+      .getByPost(data.id)
       .then((r) => {
         const list = r.data?.data ?? r.data ?? [];
         setComments(list);
@@ -213,9 +212,9 @@ const KnowledgeCard = ({
           const formData = new FormData();
           formData.append("content", content);
           commentMediaFiles.forEach((file) => formData.append("media", file));
-          return knowledgeCommentApi.create(data.id, formData, formData);
+          return commentApi.createOnPost(data.id, null, formData);
         })()
-      : knowledgeCommentApi.create(data.id, { content });
+      : commentApi.createOnPost(data.id, { content });
 
     req
       .then(() => {
@@ -286,10 +285,10 @@ const KnowledgeCard = ({
   const handleShare = () => {
     if (readOnly) return;
     if (!data.id) return;
-    knowledgeApi
+    postApi
       .share(data.id)
       .then((r) => {
-        const total = r.data?.shareCount ?? r.data?.data?.shareCount;
+        const total = r.data?.totalShares ?? r.data?.data?.totalShares;
         if (typeof total === "number") setShareCount(total);
         else setShareCount((prev) => prev + 1);
       })
@@ -299,7 +298,7 @@ const KnowledgeCard = ({
   const handleDeleteKnowledge = () => {
     if (!data.id || deleting) return;
     setDeleting(true);
-    knowledgeApi
+    postApi
       .delete(data.id)
       .then(() => {
         setShowDeleteConfirm(false);
@@ -652,14 +651,14 @@ const KnowledgeCard = ({
                         const formData = new FormData();
                         formData.append("content", trimmed);
                         files.forEach((f) => formData.append("media", f));
-                        return knowledgeCommentApi
-                          .create(data.id, formData, formData)
+                        return commentApi
+                          .createOnPost(data.id, null, formData)
                           .then(() => loadComments())
                           .catch(() => {});
                       }
 
-                      return knowledgeCommentApi
-                        .create(data.id, {
+                      return commentApi
+                        .createOnPost(data.id, {
                           content: trimmed,
                           parentComment: parentId,
                         })

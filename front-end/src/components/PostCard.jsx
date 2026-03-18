@@ -124,6 +124,7 @@ const PostCard = ({
 }) => {
   const { user } = useAuth();
   const post = normalizePost(rawPost);
+  const isKnowledge = rawPost?.type === "knowledge";
   const authorId = rawPost?.author?._id || rawPost?.author;
   const isAuthor = !!(
     user?.id &&
@@ -542,7 +543,7 @@ const PostCard = ({
       ref={cardRef}
       className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6 transition-all hover:shadow-md relative"
     >
-      {showWriteSolution && (
+      {!isKnowledge && showWriteSolution && (
         <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
@@ -589,7 +590,7 @@ const PostCard = ({
         </div>
       )}
 
-      {showSolutionSection && (
+      {!isKnowledge && showSolutionSection && (
         <div className="absolute inset-0 z-30 bg-white/98 backdrop-blur-md p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
@@ -634,7 +635,7 @@ const PostCard = ({
               <p className="text-sm font-black text-slate-900 leading-none">
                 {displayUser.name}
               </p>
-              {localSolved ? (
+              {!isKnowledge && localSolved ? (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -653,7 +654,7 @@ const PostCard = ({
                     Voir détail
                   </button>
                 </div>
-              ) : (
+              ) : !isKnowledge ? (
                 <button
                   type="button"
                   onClick={handleToggleSolved}
@@ -664,7 +665,7 @@ const PostCard = ({
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />{" "}
                   Not Solved
                 </button>
-              )}
+              ) : null}
             </div>
             {isSharedInstance && (
               <p className="mt-1 text-[11px] font-semibold text-slate-500">
@@ -925,7 +926,9 @@ const PostCard = ({
         </div>
       )}
 
-      <div className="p-2 grid grid-cols-4 gap-1 border-t border-slate-50 bg-white">
+      <div
+        className={`p-2 grid ${isKnowledge ? "grid-cols-3" : "grid-cols-4"} gap-1 border-t border-slate-50 bg-white`}
+      >
         <button
           type="button"
           onClick={(e) => {
@@ -952,19 +955,21 @@ const PostCard = ({
           <FiMessageCircle size={18} /> Commenter{" "}
           <span className="text-indigo-600">({commentCount})</span>
         </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleReaction();
-          }}
-          disabled={readOnly || reacting}
-          className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
-        >
-          <FiHelpCircle size={18} /> Même prob{" "}
-          <span className="text-amber-600">({reactionCount})</span>
-        </button>
+        {!isKnowledge && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleReaction();
+            }}
+            disabled={readOnly || reacting}
+            className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-2xl text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-all font-black text-[10px] sm:text-xs disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <FiHelpCircle size={18} /> Même prob{" "}
+            <span className="text-amber-600">({reactionCount})</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={(e) => {
@@ -980,7 +985,9 @@ const PostCard = ({
         </button>
       </div>
 
-      {rawPost?.showDemandeWorkchopButton && rawPost?.sameContextAsAuthor && (
+      {!isKnowledge &&
+        rawPost?.showDemandeWorkchopButton &&
+        rawPost?.sameContextAsAuthor && (
         <div className="px-2 pb-2 border-t border-slate-100 pt-2 space-y-2">
           {workchopSuccessMessage && (
             <div className="flex items-center justify-between gap-2 py-2.5 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
@@ -1032,7 +1039,7 @@ const PostCard = ({
         </div>
       )}
 
-      {readOnly && (
+      {!isKnowledge && readOnly && (
         <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500">
           Lecture seule — Réactions (même contexte) : {sameContextCount}
         </div>

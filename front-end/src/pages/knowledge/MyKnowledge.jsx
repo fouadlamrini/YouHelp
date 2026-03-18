@@ -8,7 +8,7 @@ import {
   FiImage, FiSend, 
   FiChevronDown, FiFileText, FiSearch, FiX 
 } from "react-icons/fi";
-import { API_BASE, knowledgeApi, categoryApi, subCategoryApi } from "../../services/api";
+import { API_BASE, postApi, categoryApi, subCategoryApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 const resolveAvatarUrl = (src) => {
@@ -69,7 +69,7 @@ const MyKnowledge = () => {
   const loadKnowledge = async () => {
     try {
       setLoading(true);
-      const res = await knowledgeApi.getAll();
+      const res = await postApi.getAll({ type: "knowledge" });
       const all = res.data?.data ?? [];
       const myId = user?.id || user?._id;
       const mine = myId
@@ -128,11 +128,12 @@ const MyKnowledge = () => {
     try {
       setCreating(true);
       const formData = new FormData();
+      formData.append("type", "knowledge");
       formData.append("content", trimmed);
       formData.append("category", category);
       if (subCategory) formData.append("subCategory", subCategory);
       files.forEach((f) => formData.append("media", f));
-      await knowledgeApi.create(formData);
+      await postApi.create(formData);
       setContent("");
       setFiles([]);
       await loadKnowledge();
