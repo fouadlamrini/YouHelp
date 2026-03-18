@@ -5,6 +5,7 @@ const Class = require("../models/Class");
 const Post = require("../models/Post");
 const Knowledge = require("../models/Knowledge");
 const Role = require("../models/Role");
+const { refId } = require("../utils/contextUtils");
 
 async function getCurrentUserWithContext(userId) {
   return User.findById(userId)
@@ -12,11 +13,6 @@ async function getCurrentUserWithContext(userId) {
     .populate("campus", "name")
     .populate("class", "name year")
     .populate("level", "name");
-}
-
-function refId(ref) {
-  if (!ref) return null;
-  return (ref._id || ref).toString();
 }
 
 async function getStats(userId) {

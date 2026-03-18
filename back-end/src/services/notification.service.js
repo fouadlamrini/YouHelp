@@ -1,11 +1,7 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
 const Notification = require("../models/Notification");
-
-function refId(ref) {
-  if (!ref) return null;
-  return (ref._id || ref).toString();
-}
+const { refId } = require("../utils/contextUtils");
 
 /**
  * Recipients when a new user completes profile (pending):

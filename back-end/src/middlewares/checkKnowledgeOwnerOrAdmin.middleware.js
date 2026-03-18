@@ -1,10 +1,6 @@
 const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
-
-function refId(ref) {
-  if (!ref) return null;
-  return (ref._id || ref).toString();
-}
+const { refId } = require("../utils/contextUtils");
 
 function sameRef(a, b) {
   const idA = refId(a);
@@ -20,12 +16,10 @@ module.exports = async (req, res, next) => {
 
     if (req.user.role === "super_admin") return next();
 
-    const authorId = knowledge.author?._id?.toString() || knowledge.author?.toString();
+    const authorId = knowledge.author?._id?.toString();
     if (authorId === req.user.id.toString()) return next();
 
-    const author = knowledge.author?.toObject
-      ? knowledge.author
-      : await User.findById(knowledge.author).populate("role", "name").populate("campus class level").lean();
+    const author = knowledge.author;
     const authorRoleName = author?.role?.name || null;
 
     if (req.user.role === "admin") {
