@@ -2,6 +2,7 @@ const FriendRequest = require("../models/FriendRequest");
 const Friend = require("../models/Friend");
 const User = require("../models/User");
 
+// Helper: normalise deux ids (ordre deterministe) pour traiter les demandes de facon cohérente.
 function normalizePair(a, b) {
   return [a.toString(), b.toString()].sort();
 }

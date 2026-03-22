@@ -9,14 +9,17 @@ const { notifyNewRegistration } = require("./notification.service");
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES;
 
+// Helper: construit le payload du JWT (id + role).
 function buildTokenPayload(userId, roleName) {
   return { id: userId, role: roleName };
 }
 
+// Helper: signe un token JWT avec secret et expiration.
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 }
 
+// Helper: formate l'utilisateur pour la reponse (inclut le nom du role).
 function formatUserForResponse(user, roleName) {
   return {
     id: user._id,
@@ -29,6 +32,7 @@ function formatUserForResponse(user, roleName) {
   };
 }
 
+// Helper: recupere le nom du role associe a l'utilisateur.
 async function getRoleName(user) {
   if (!user || !user.role) return "etudiant";
   const roleDocument = await Role.findById(user.role);
@@ -83,12 +87,14 @@ async function changePassword(userId, { currentPassword, newPassword }) {
   return { ok: true };
 }
 
+// Helper: extrait le token JWT depuis le header Authorization.
 function extractTokenFromHeader(authHeader) {
   if (!authHeader) return null;
   if (authHeader.startsWith("Bearer")) return authHeader.split(" ")[1];
   return authHeader;
 }
 
+// Helper: charge les options necessaires pour completer le profil.
 async function getCompleteProfileOptions() {
   const [campuses, classes, levels] = await Promise.all([
     Campus.find().sort({ name: 1 }).lean(),

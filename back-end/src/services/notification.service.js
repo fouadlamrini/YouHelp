@@ -9,6 +9,7 @@ const { refId } = require("../utils/contextUtils");
  * - admin (same campus)
  * - formateur (same campus, class, level)
  */
+// Helper: calcule les recepteurs a notifier quand un profil est en attente.
 async function getRecipientsForNewPendingUser(newUserDoc) {
   const campusId = refId(newUserDoc.campus);
   const classId = refId(newUserDoc.class);
@@ -46,6 +47,7 @@ async function getRecipientsForNewPendingUser(newUserDoc) {
  * Always includes the student (relatedUser).
  * Plus: according to actor role -> notify admin/super_admin/formateur.
  */
+// Helper: calcule les recepteurs a notifier lors d'une activation/refus (selon role de l'acteur).
 async function getRecipientsForUserStatusChange(actorDoc, studentDoc) {
   const actorRoleName = actorDoc.role?.name || null;
   const studentId = studentDoc._id.toString();
@@ -102,6 +104,7 @@ async function getRecipientsForUserStatusChange(actorDoc, studentDoc) {
   return Array.from(recipientIds);
 }
 
+// Helper: cree les notifications pour une nouvelle inscription en attente.
 async function notifyNewRegistration(newUserDoc) {
   const recipientIds = await getRecipientsForNewPendingUser(newUserDoc);
   const message =
@@ -116,6 +119,7 @@ async function notifyNewRegistration(newUserDoc) {
   if (notifications.length) await Notification.insertMany(notifications);
 }
 
+// Helper: cree les notifications apres activation d'un utilisateur.
 async function notifyUserActivated(actorDoc, studentDoc) {
   const recipientIds = await getRecipientsForUserStatusChange(actorDoc, studentDoc);
   const actorName = actorDoc.name || "Un formateur";
@@ -144,6 +148,7 @@ async function notifyUserActivated(actorDoc, studentDoc) {
   if (notifications.length) await Notification.insertMany(notifications);
 }
 
+// Helper: cree les notifications apres refus d'un utilisateur.
 async function notifyUserRefused(actorDoc, studentDoc) {
   const recipientIds = await getRecipientsForUserStatusChange(actorDoc, studentDoc);
   const actorName = actorDoc.name || "Un responsable";
@@ -179,6 +184,7 @@ async function notifyUserRefused(actorDoc, studentDoc) {
  * - formateur (same campus, class, level as post author)
  * authorDoc: { _id, campus, class, level } (post author)
  */
+// Helper: determine les recepteurs staff a notifier pour une action sur un post (delete/solve).
 async function getRecipientsForPostAction(authorDoc) {
   const campusId = refId(authorDoc?.campus);
   const classId = refId(authorDoc?.class);
@@ -216,6 +222,7 @@ async function getRecipientsForPostAction(authorDoc) {
  * actorDoc: { _id, name, role: { name } }
  * authorDoc: { _id, campus, class, level }
  */
+// Helper: envoie les notifications quand un post est supprime.
 async function notifyPostDeleted(actorDoc, authorDoc, postId) {
   const actorRoleName = actorDoc?.role?.name || null;
   const actorName = actorDoc?.name || "Un responsable";
@@ -248,6 +255,7 @@ async function notifyPostDeleted(actorDoc, authorDoc, postId) {
 /**
  * Notify when a post is marked solved: author + (if actor is admin/formateur) super_admin, admin same campus, formateur same context.
  */
+// Helper: envoie les notifications quand un post est marque "resolu".
 async function notifyPostSolved(actorDoc, authorDoc, postId) {
   const actorRoleName = actorDoc?.role?.name || null;
   const actorName = actorDoc?.name || "Un responsable";
@@ -277,6 +285,7 @@ async function notifyPostSolved(actorDoc, authorDoc, postId) {
   if (notifications.length) await Notification.insertMany(notifications);
 }
 
+// Helper: recupere les notifications recues par un utilisateur.
 async function getMine(userId) {
   const notifications = await Notification.find({ recipient: userId })
     .sort({ createdAt: -1 })
@@ -287,6 +296,7 @@ async function getMine(userId) {
   return { data: notifications };
 }
 
+// Helper: marque une notification specifique comme lue.
 async function markAsRead(userId, notificationId) {
   const notif = await Notification.findOne({ _id: notificationId, recipient: userId });
   if (!notif) return { error: { status: 404, message: "Notification not found" } };
@@ -295,6 +305,7 @@ async function markAsRead(userId, notificationId) {
   return { data: notif };
 }
 
+// Helper: marque toutes les notifications non lues comme lues pour un utilisateur.
 async function markAllAsRead(userId) {
   await Notification.updateMany({ recipient: userId, read: false }, { read: true });
   return { ok: true };

@@ -48,7 +48,6 @@ function setupSocket(server) {
     const socketSet = userSockets.get(targetUserId);
 
     if (!socketSet || socketSet.size === 0) {
-      console.log("[socket] no active socket for user:", targetUserId);
       return;
     }
 
@@ -59,7 +58,6 @@ function setupSocket(server) {
 
   io.on("connection", (socket) => {
     const userId = socket.userId;
-    console.log("[socket] connected:", userId);
 
     if (!userSockets.has(userId)) {
       userSockets.set(userId, new Set());

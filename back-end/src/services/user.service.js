@@ -5,6 +5,7 @@ const { notifyUserActivated, notifyUserRefused } = require("./notification.servi
 const { refId, haveSameClassContext } = require("../utils/contextUtils");
 
 /** Get current user doc with role (and campus, class) for permission checks */
+// Helper: recupere la fiche user complete (role + campus/classe) pour verifier les permissions.
 async function getCurrentUserWithContext(userId) {
   return User.findById(userId)
     .populate("role", "name")
@@ -14,6 +15,7 @@ async function getCurrentUserWithContext(userId) {
 }
 
 /** Check if current user can manage target user (for get/update/delete) */
+// Helper: verifie si currentUser peut gerer la cible (lecture/modif/suppression).
 async function canManage(currentUserDoc, targetUserId) {
   const roleName = currentUserDoc.role?.name || null;
   if (roleName === "super_admin") return true;
@@ -38,6 +40,7 @@ async function canManage(currentUserDoc, targetUserId) {
 }
 
 /** Check if current user can accept target user */
+// Helper: verifie si currentUser peut accepter la demande de la cible.
 async function canAcceptUser(currentUserDoc, targetUserDoc) {
   const roleName = currentUserDoc.role?.name || null;
   if (roleName === "super_admin") return true;
@@ -55,6 +58,7 @@ async function canAcceptUser(currentUserDoc, targetUserDoc) {
 }
 
 /** Build filter for list users: super_admin all, admin same campus, formateur same class */
+// Helper: construit le filtre d'acces pour lister les users selon role et contexte.
 async function buildListFilter(currentUserDoc) {
   const roleName = currentUserDoc.role?.name || null;
   if (roleName === "super_admin") return {};

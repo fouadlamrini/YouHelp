@@ -20,7 +20,6 @@ function registerCallHandlers({ socket, emitToUser }) {
     // Keep room join for compatibility and future room-based signaling.
     const room = prefix + [userId, otherUserId].sort().join("-");
     socket.join(room);
-    console.log("[socket] room joined:", room);
   }
 
   function forwardSessionPayload(eventName, fieldName, data) {

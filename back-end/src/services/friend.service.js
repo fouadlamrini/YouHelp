@@ -3,10 +3,12 @@ const FriendRequest = require("../models/FriendRequest");
 const User = require("../models/User");
 const { isUserOnline, getLastSeen } = require("../config/socket");
 
+// Helper: normalise deux ids (ordre deterministe) pour simplifier les recherches.
 function normalizePair(a, b) {
   return [a.toString(), b.toString()].sort();
 }
 
+// Helper: verifie si deux utilisateurs sont deja amis.
 async function areFriends(userId1, userId2) {
   const [id1, id2] = normalizePair(userId1, userId2);
   const doc = await Friend.findOne({
@@ -18,6 +20,7 @@ async function areFriends(userId1, userId2) {
   return !!doc;
 }
 
+// Helper: retourne la liste des ids de mes amis.
 async function getMyFriendIds(userId) {
   const docs = await Friend.find({ $or: [{ user1: userId }, { user2: userId }] }).select("user1 user2");
   return docs.map((d) => (d.user1.toString() === userId.toString() ? d.user2.toString() : d.user1.toString()));

@@ -19,7 +19,8 @@ class PostController {
   getAllPosts = async (req, res) => {
     try {
       const filter = req.query.filter || "all";
-      const result = await postService.getAllPosts(req.user.id, filter);
+      const type = req.query.type || "post";
+      const result = await postService.getAllPosts(req.user.id, filter, type);
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }

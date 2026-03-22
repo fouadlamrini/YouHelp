@@ -13,7 +13,6 @@ const subcategoryRoutes = require("./subcategory.routes");
 const postRoutes = require("./post.routes");
 const commentRoutes = require("./comment.routes");
 const solutionRoutes = require("./solution.routes");
-const knowledgeRoutes = require("./knowledge.routes");
 const favoriteRoutes = require("./favorite.routes");
 const avatarRoutes = require("./avatar.routes");
 const statsRoutes = require("./stats.routes");
@@ -36,7 +35,6 @@ function registerRoutes(app) {
   app.use("/api/post", postRoutes);
   app.use("/api/comment", commentRoutes);
   app.use("/api/solution", solutionRoutes);
-  app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/favorites", favoriteRoutes);
   app.use("/api/avatars", avatarRoutes);
   app.use("/api/stats", statsRoutes);

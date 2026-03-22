@@ -86,43 +86,6 @@ class CommentController {
       return res.status(500).json({ message: "Erreur serveur" });
     }
   };
-
-  createCommentForKnowledge = async (req, res) => {
-    try {
-      const currentUser = await User.findById(req.user.id).select("status").lean();
-      if (!currentUser || currentUser.status !== "active") {
-        return res.status(403).json({
-          message: "Seuls les comptes activés peuvent commenter les connaissances.",
-        });
-      }
-      const result = await commentService.createCommentForKnowledge(
-        req.user.id,
-        req.params.knowledgeId,
-        req.body,
-        req.files || []
-      );
-      if (result.error) {
-        return res.status(result.error.status).json({ message: result.error.message });
-      }
-      return res.status(201).json({ success: true, data: result.data });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Erreur serveur" });
-    }
-  };
-
-  getCommentsByKnowledge = async (req, res) => {
-    try {
-      const result = await commentService.getCommentsByKnowledge(req.params.knowledgeId);
-      if (result.error) {
-        return res.status(result.error.status).json({ message: result.error.message });
-      }
-      return res.json({ success: true, data: result.data });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Erreur serveur" });
-    }
-  };
 }
 
 module.exports = new CommentController();

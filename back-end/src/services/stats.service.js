@@ -3,10 +3,10 @@ const User = require("../models/User");
 const Campus = require("../models/Campus");
 const Class = require("../models/Class");
 const Post = require("../models/Post");
-const Knowledge = require("../models/Knowledge");
 const Role = require("../models/Role");
 const { refId } = require("../utils/contextUtils");
 
+// Helper: charge l'utilisateur avec ses relations (role, campus, classe, niveau).
 async function getCurrentUserWithContext(userId) {
   return User.findById(userId)
     .populate("role", "name")
@@ -15,6 +15,7 @@ async function getCurrentUserWithContext(userId) {
     .populate("level", "name");
 }
 
+// Helper: calcule les stats en fonction du role de l'utilisateur (et du campus).
 async function getStats(userId) {
   const current = await getCurrentUserWithContext(userId);
   if (!current) return { error: { status: 401, message: "Unauthorized" } };
@@ -45,6 +46,7 @@ async function getStats(userId) {
   return { data: { role: roleName, message: "No stats for this role or missing campus." } };
 }
 
+// Helper: calcule les stats globales pour un super_admin.
 async function getSuperAdminStats({ adminRole, formateurRole, etudiantRole }) {
   const [totalCampuses, totalClasses, campusesList, adminCount, formateurCount, etudiantCount, totalPosts, totalKnowledge] = await Promise.all([
     Campus.countDocuments(),
@@ -53,8 +55,8 @@ async function getSuperAdminStats({ adminRole, formateurRole, etudiantRole }) {
     adminRole ? User.countDocuments({ role: adminRole._id }) : 0,
     formateurRole ? User.countDocuments({ role: formateurRole._id }) : 0,
     etudiantRole ? User.countDocuments({ role: etudiantRole._id }) : 0,
-    Post.countDocuments(),
-    Knowledge.countDocuments(),
+    Post.countDocuments({ type: "post" }),
+    Post.countDocuments({ type: "knowledge" }),
   ]);
   const campusIds = campusesList.map((c) => c._id);
   const hasCampuses = campusIds.length > 0;
@@ -64,6 +66,7 @@ async function getSuperAdminStats({ adminRole, formateurRole, etudiantRole }) {
     hasCampuses && formateurRole ? User.aggregate([{ $match: { role: formateurRole._id, campus: { $in: campusIds } } }, { $group: { _id: "$campus", count: { $sum: 1 } } }]) : [],
     hasCampuses && etudiantRole ? User.aggregate([{ $match: { role: etudiantRole._id, campus: { $in: campusIds } } }, { $group: { _id: "$campus", count: { $sum: 1 } } }]) : [],
   ]);
+  // Helper: transforme les agrégats en une structure indexee par campus.
   const byCampus = (arr) =>
     campusesList.map((c) => ({
       campusName: c.name,
@@ -106,6 +109,7 @@ async function getSuperAdminStats({ adminRole, formateurRole, etudiantRole }) {
   };
 }
 
+// Helper: calcule les stats pour un admin dans un campus donne.
 async function getAdminStats(campusId, { adminRole, formateurRole, etudiantRole }) {
   const [
     campusDoc,
@@ -142,8 +146,8 @@ async function getAdminStats(campusId, { adminRole, formateurRole, etudiantRole 
   ]);
   const authorIds = await User.find({ campus: campusId }).distinct("_id");
   const [postsInCampus, knowledgeInCampus] = await Promise.all([
-    Post.countDocuments({ author: { $in: authorIds } }),
-    Knowledge.countDocuments({ author: { $in: authorIds } }),
+    Post.countDocuments({ type: "post", author: { $in: authorIds } }),
+    Post.countDocuments({ type: "knowledge", author: { $in: authorIds } }),
   ]);
   return {
     role: "admin",
@@ -160,6 +164,7 @@ async function getAdminStats(campusId, { adminRole, formateurRole, etudiantRole 
   };
 }
 
+// Helper: calcule les stats pour un formateur dans un campus donne.
 async function getFormateurStats(campusId, { formateurRole, etudiantRole }) {
   const [
     campusDoc,
@@ -194,8 +199,8 @@ async function getFormateurStats(campusId, { formateurRole, etudiantRole }) {
   ]);
   const authorIdsFormateur = await User.find({ campus: campusId }).distinct("_id");
   const [postsInCampus, knowledgeInCampus] = await Promise.all([
-    Post.countDocuments({ author: { $in: authorIdsFormateur } }),
-    Knowledge.countDocuments({ author: { $in: authorIdsFormateur } }),
+    Post.countDocuments({ type: "post", author: { $in: authorIdsFormateur } }),
+    Post.countDocuments({ type: "knowledge", author: { $in: authorIdsFormateur } }),
   ]);
   return {
     role: "formateur",

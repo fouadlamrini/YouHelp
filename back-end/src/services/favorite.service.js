@@ -1,20 +1,14 @@
 const Favorite = require("../models/Favorite");
 const Post = require("../models/Post");
-const Knowledge = require("../models/Knowledge");
 
 async function addToFavorites(userId, body) {
   const { contentType, contentId } = body;
-  if (contentType === "post") {
-    const content = await Post.findById(contentId);
-    if (!content) return { error: { status: 404, message: "Post non trouvé" } };
-  } else {
-    const content = await Knowledge.findById(contentId);
-    if (!content) return { error: { status: 404, message: "Connaissance non trouvée" } };
-  }
-  const existing = await Favorite.findOne({ user: userId, [contentType]: contentId });
+  const content = await Post.findById(contentId).select("type").lean();
+  if (!content) return { error: { status: 404, message: contentType === "knowledge" ? "Connaissance non trouvée" : "Post non trouvé" } };
+  const existing = await Favorite.findOne({ user: userId, post: contentId });
   if (existing) return { error: { status: 400, message: "Ce contenu est déjà dans vos favoris" } };
   const favoriteData = { user: userId, contentType };
-  favoriteData[contentType] = contentId;
+  favoriteData.post = contentId;
   try {
     const favorite = await Favorite.create(favoriteData);
     return { data: favorite };
@@ -26,7 +20,7 @@ async function addToFavorites(userId, body) {
 
 async function removeFromFavorites(userId, body) {
   const { contentType, contentId } = body;
-  const favorite = await Favorite.findOneAndDelete({ user: userId, [contentType]: contentId });
+  const favorite = await Favorite.findOneAndDelete({ user: userId, post: contentId, contentType });
   if (!favorite) return { error: { status: 404, message: "Ce contenu n'est pas dans vos favoris" } };
   return { ok: true };
 }
@@ -38,14 +32,6 @@ async function getUserFavorites(userId, query) {
   const favorites = await Favorite.find({ user: userId })
     .populate({
       path: "post",
-      populate: [
-        { path: "author", select: "name email profilePicture" },
-        { path: "category", select: "name" },
-        { path: "subCategory", select: "name" },
-      ],
-    })
-    .populate({
-      path: "knowledge",
       populate: [
         { path: "author", select: "name email profilePicture" },
         { path: "category", select: "name" },
@@ -73,7 +59,7 @@ async function checkIfFavorite(userId, contentType, contentId) {
   if (!["post", "knowledge"].includes(contentType)) {
     return { error: { status: 400, message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" } };
   }
-  const favorite = await Favorite.findOne({ user: userId, [contentType]: contentId });
+  const favorite = await Favorite.findOne({ user: userId, post: contentId, contentType });
   return { data: { isFavorite: !!favorite } };
 }
 

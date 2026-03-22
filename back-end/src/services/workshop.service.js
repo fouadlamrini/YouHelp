@@ -7,6 +7,7 @@ const Notification = require("../models/Notification");
 const Role = require("../models/Role");
 const { haveSameClassContext } = require("../utils/contextUtils");
 
+// Helper: verifie si deux users (ou un user + l'auteur) partagent le meme contexte scolaire.
 function sameContextAsAuthor(me, author) {
   return haveSameClassContext(me, author);
 }

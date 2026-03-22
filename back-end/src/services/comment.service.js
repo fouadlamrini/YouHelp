@@ -1,6 +1,5 @@
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
-const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { mapFilesToMedia } = require("../utils/media");
@@ -70,6 +69,7 @@ async function createComment(userId, postId, body, files) {
   return { data: populated };
 }
 
+// Helper: transforme une liste plate de commentaires en arbre (racines + reponses) trie par likes.
 function buildTree(comments) {
   const map = {};
   comments.forEach((c) => {
@@ -84,6 +84,8 @@ function buildTree(comments) {
       else roots.push(map[id]);
     } else roots.push(map[id]);
   });
+
+  // Helper: trie recursivement les reponses selon le nombre de likes.
   const sortRecursive = (arr) => {
     arr.forEach((item) => {
       if (!item.likes) item.likes = [];
@@ -121,9 +123,8 @@ async function toggleLike(userId, commentId) {
     const actorName = actor?.name || "Quelqu'un";
     const isReply = !!comment.parentComment;
     const message = isReply ? `${actorName} a aimé votre réponse.` : `${actorName} a aimé votre commentaire.`;
-    const postId = comment.post?.toString?.() || comment.post?.toString?.();
-    const knowledgeId = comment.knowledge?.toString?.() || comment.knowledge?.toString?.();
-    const link = postId ? `/posts?post=${postId}&comment=${comment._id}` : (knowledgeId ? `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}` : "/posts");
+    const postId = comment.post?.toString?.();
+    const link = postId ? `/posts?post=${postId}&comment=${comment._id}` : "/posts";
     await Notification.create({ recipient: commentAuthorId, actor: userId, type: "comment_like", message, link });
   }
   return { data: { totalLikes: comment.likes.length, removed: false } };
@@ -139,10 +140,6 @@ async function updateComment(userId, userRole, commentId, body, files) {
     const post = await Post.findById(comment.post);
     if (!post) return { error: { status: 404, message: "Post non trouvé" } };
     isOwner = post.author && post.author.toString() === userId;
-  } else if (comment.knowledge) {
-    const knowledge = await Knowledge.findById(comment.knowledge);
-    if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
-    isOwner = knowledge.author && knowledge.author.toString() === userId;
   }
 
   // Étudiant : peut seulement modifier ses propres commentaires
@@ -176,11 +173,6 @@ async function deleteComment(userId, userRole, commentId) {
     if (!post) return { error: { status: 404, message: "Post non trouvé" } };
     isOwner = post.author && post.author.toString() === userId;
     targetAuthor = post.author;
-  } else if (comment.knowledge) {
-    const knowledge = await Knowledge.findById(comment.knowledge);
-    if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
-    isOwner = knowledge.author && knowledge.author.toString() === userId;
-    targetAuthor = knowledge.author;
   }
 
   // Rôle et contexte du modérateur (super_admin / admin / formateur)
@@ -236,96 +228,8 @@ async function deleteComment(userId, userRole, commentId) {
   const result = await Comment.deleteMany({ _id: { $in: toDelete } });
   if (!comment.parentComment) {
     if (comment.post) await Post.findByIdAndUpdate(comment.post, { $pull: { comments: comment._id } });
-    else if (comment.knowledge) await Knowledge.findByIdAndUpdate(comment.knowledge, { $pull: { comments: comment._id } });
-  }
-  if (!comment.parentComment && comment.knowledge) {
-    await Knowledge.findByIdAndUpdate(comment.knowledge, { $pull: { comments: comment._id } });
   }
   return { data: { deletedCount: result.deletedCount } };
-}
-
-async function createCommentForKnowledge(userId, knowledgeId, body, files) {
-  const knowledge = await Knowledge.findById(knowledgeId);
-  if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
-  const { content, parentComment } = body;
-  const mediaFiles = mapFilesToMedia(files);
-  const comment = await Comment.create({
-    content: (content || "").trim(),
-    author: userId,
-    knowledge: knowledgeId,
-    parentComment: parentComment || null,
-    media: mediaFiles,
-  });
-  if (!parentComment) {
-    knowledge.comments = knowledge.comments || [];
-    knowledge.comments.push(comment._id);
-    await knowledge.save();
-  }
-  const commenterId = userId.toString();
-  const knowledgeAuthorId = (knowledge.author && knowledge.author.toString ? knowledge.author.toString() : knowledge.author?.toString?.()) || null;
-  const actor = await User.findById(userId).select("name").lean();
-  const actorName = actor?.name || "Quelqu'un";
-  if (!parentComment) {
-    if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
-      await Notification.create({
-        recipient: knowledgeAuthorId,
-        actor: userId,
-        type: "knowledge_comment",
-        message: `${actorName} a commenté votre connaissance.`,
-        link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-      });
-    }
-  } else {
-    const parent = await Comment.findById(parentComment).select("author").lean();
-    const parentAuthorId = (parent?.author && parent.author.toString ? parent.author.toString() : parent?.author?.toString?.()) || null;
-    if (knowledgeAuthorId && knowledgeAuthorId !== commenterId) {
-      await Notification.create({
-        recipient: knowledgeAuthorId,
-        actor: userId,
-        type: "knowledge_comment_reply",
-        message: `${actorName} a répondu à un commentaire sur votre connaissance.`,
-        link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-      });
-    }
-    if (parentAuthorId && parentAuthorId !== commenterId && parentAuthorId !== knowledgeAuthorId) {
-      await Notification.create({
-        recipient: parentAuthorId,
-        actor: userId,
-        type: "knowledge_comment_reply",
-        message: `${actorName} a répondu à votre commentaire.`,
-        link: `/knowledge?knowledge=${knowledgeId}&comment=${comment._id}`,
-      });
-    }
-  }
-  const populated = await Comment.findById(comment._id).populate("author", "name email profilePicture");
-  return { data: populated };
-}
-
-async function getCommentsByKnowledge(knowledgeId) {
-  const knowledge = await Knowledge.findById(knowledgeId);
-  if (!knowledge) return { error: { status: 404, message: "Connaissance non trouvée" } };
-  const comments = await Comment.find({ knowledge: knowledgeId }).populate("author", "name email profilePicture");
-  const map = {};
-  comments.forEach((c) => {
-    map[c._id.toString()] = { ...c.toObject(), replies: [] };
-  });
-  const roots = [];
-  comments.forEach((c) => {
-    const id = c._id.toString();
-    if (c.parentComment) {
-      const parentId = c.parentComment.toString();
-      if (map[parentId]) map[parentId].replies.push(map[id]);
-      else roots.push(map[id]);
-    } else roots.push(map[id]);
-  });
-  const sortRecursive = (arr) => {
-    arr.forEach((item) => {
-      if (item.replies?.length) sortRecursive(item.replies);
-    });
-    arr.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
-  };
-  sortRecursive(roots);
-  return { data: roots };
 }
 
 module.exports = {
@@ -334,6 +238,4 @@ module.exports = {
   toggleLike,
   updateComment,
   deleteComment,
-  createCommentForKnowledge,
-  getCommentsByKnowledge,
 };

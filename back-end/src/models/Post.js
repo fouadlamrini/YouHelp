@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
+  type: { type: String, enum: ["post", "knowledge"], default: "post", index: true },
   content: { type: String, required: true },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],

@@ -11,6 +11,7 @@ const { notifyPostDeleted, notifyPostSolved } = require("./notification.service"
 const { areFriends, getMyFriendIds } = require("./friend.service");
 const { haveSameClassContext } = require("../utils/contextUtils");
 
+// Helper: calcule le filtre des auteurs accessibles selon le role, le contexte et les amis.
 async function postsAuthorFilter(userId) {
   const current = await User.findById(userId).populate("campus class level").populate("role", "name");
   if (!current) return { _id: -1 };
@@ -34,6 +35,7 @@ async function postsAuthorFilter(userId) {
   return { _id: -1 };
 }
 
+// Helper: compte le nombre de reactions d'utilisateurs dans le meme contexte pour un post donne.
 async function sameContextReactionCount(postId, authorId) {
   const author = await User.findById(authorId)
     .select("campus class level")
@@ -65,6 +67,7 @@ async function sameContextReactionCount(postId, authorId) {
   });
 }
 
+// Helper: calcule le nombre total d'utilisateurs dans le meme contexte que l'auteur.
 async function totalSameContextCount(authorId) {
   const author = await User.findById(authorId)
     .select("campus class level")
@@ -86,11 +89,13 @@ async function totalSameContextCount(authorId) {
   return users.filter((u) => u?.class?.nickName === nickName).length;
 }
 
+// Helper: determine si le currentUser partage le meme contexte que l'auteur du post.
 function sameContextAsAuthor(currentUser, post) {
   const author = post.author;
   return haveSameClassContext(currentUser, author || {});
 }
 
+// Helper: verifie si un utilisateur peut moderer le post selon le role et le contexte.
 async function canModeratePost(currentUser, post) {
   if (!currentUser?._id) return false;
   const currentUserId = String(currentUser._id);
@@ -119,6 +124,7 @@ async function canModeratePost(currentUser, post) {
   return false;
 }
 
+// Helper: verifie si le currentUser peut reagir a un post selon les regles et le filtre choisi.
 async function postCanReact(currentUser, post, viewFilter) {
   if (!currentUser?._id) return false;
   const currentUserId = String(currentUser._id);
@@ -141,7 +147,7 @@ async function createPost(userId, body, mediaFiles) {
   if (currentUser?.status !== "active") {
     return { error: { status: 403, message: "Seuls les comptes activés peuvent créer des posts." } };
   }
-  const { content, category, subCategory } = body;
+  const { content, category, subCategory, type } = body;
   const categoryDoc = await Category.findOne({ name: category });
   if (!categoryDoc) return { error: { status: 400, message: "Category not found" } };
   let subCategoryId = null;
@@ -151,6 +157,7 @@ async function createPost(userId, body, mediaFiles) {
     subCategoryId = subCategoryDoc._id;
   }
   const post = await Post.create({
+    type: type === "knowledge" ? "knowledge" : "post",
     content,
     author: userId,
     category: categoryDoc._id,
@@ -160,10 +167,11 @@ async function createPost(userId, body, mediaFiles) {
   return { data: post };
 }
 
-async function getAllPosts(userId, queryFilter) {
+async function getAllPosts(userId, queryFilter, contentType) {
   const filter = (queryFilter || "all").toLowerCase();
   const allowedFilters = ["all", "friends", "my_campus"];
   const viewFilter = allowedFilters.includes(filter) ? filter : "all";
+  const type = contentType === "knowledge" ? "knowledge" : "post";
 
   const currentUser = await User.findById(userId)
     .select("status campus class level role")
@@ -202,7 +210,7 @@ async function getAllPosts(userId, queryFilter) {
 
   if (noAuthors) return { data: [] };
 
-  const posts = await Post.find(authorFilter)
+  const posts = await Post.find({ ...authorFilter, type })
     .sort({ createdAt: -1 })
     .populate({ path: "author", select: "name email campus class level profilePicture role", populate: { path: "role", select: "name" } })
     .populate("category", "name")
@@ -211,18 +219,6 @@ async function getAllPosts(userId, queryFilter) {
 
   const withMeta = await Promise.all(
     posts.map(async (p) => {
-      if (!p.author) {
-        console.error("Post without populated author", {
-          postId: p._id?.toString?.() || p._id,
-        });
-      } else if (!p.author.name || !p.author.profilePicture) {
-        console.log("Post author missing fields", {
-          postId: p._id?.toString?.() || p._id,
-          authorId: p.author._id?.toString?.() || p.author._id,
-          name: p.author.name,
-          profilePicture: p.author.profilePicture,
-        });
-      }
       const authorId = p.author?._id;
       const reactionCount = await sameContextReactionCount(p._id, authorId);
       const totalSameContext = await totalSameContextCount(authorId);
@@ -311,6 +307,7 @@ async function getPostById(userId, postId) {
   };
 }
 
+// Helper: convertit existingMedia (null/string/json) en tableau.
 function parseExistingMedia(existingMediaRaw) {
   if (!existingMediaRaw) return [];
   if (Array.isArray(existingMediaRaw)) return existingMediaRaw;
@@ -336,9 +333,7 @@ async function updatePost(postId, body, uploadedMedia) {
     if (existingMedia.length || (uploadedMedia && uploadedMedia.length)) {
       updateData.media = [...existingMedia, ...(uploadedMedia || [])];
     }
-  } catch (e) {
-    console.error("Error parsing existingMedia for post update:", e);
-  }
+  } catch {}
   const post = await Post.findByIdAndUpdate(postId, updateData, { new: true, runValidators: true });
   if (!post) return { error: { status: 404, message: "Post not found" } };
   return { data: post };
@@ -357,6 +352,7 @@ async function deletePost(deleterId, postId) {
   return { ok: true };
 }
 
+// Helper: verifie si l'utilisateur peut basculer le statut "resolu" du post.
 async function canToggleSolved(userId, post) {
   const me = await User.findById(userId).populate("role", "name").populate("campus class level").lean();
   if (!me) return false;
@@ -461,14 +457,6 @@ async function getMySharedPosts(userId) {
         { path: "subCategory", select: "name" },
       ],
     })
-    .populate({
-      path: "knowledge",
-      populate: [
-        { path: "author", select: "name email campus class level profilePicture" },
-        { path: "category", select: "name" },
-        { path: "subCategory", select: "name" },
-      ],
-    })
     .lean();
   const withMeta = await Promise.all(
     engagements.map(async (e) => {
@@ -477,11 +465,6 @@ async function getMySharedPosts(userId) {
         const reactionCount = await sameContextReactionCount(post._id, post.author?._id);
         const commentCount = await Comment.countDocuments({ post: post._id });
         return { _id: e._id, sharedAt: e.createdAt, post: { ...post, sameContextReactionCount: reactionCount, commentCount } };
-      }
-      if (e.knowledge) {
-        const knowledge = e.knowledge;
-        const commentCount = await Comment.countDocuments({ knowledge: knowledge._id });
-        return { _id: e._id, sharedAt: e.createdAt, knowledge: { ...knowledge, commentCount } };
       }
       return null;
     })

@@ -19,23 +19,16 @@ const favoriteSchema = new mongoose.Schema(
       enum: ["post", "knowledge"] 
     },
     
-    // Référence vers le post (si contentType = 'post')
+    // Référence vers le contenu (toujours un Post; distinguer par contentType)
     post: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: "Post" 
     },
-    
-    // Référence vers la connaissance (si contentType = 'knowledge')
-    knowledge: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Knowledge" 
-    }
   },
   { timestamps: true }
 );
 
 // Index composé pour éviter les doublons (un utilisateur ne peut pas ajouter le même contenu deux fois)
 favoriteSchema.index({ user: 1, post: 1 }, { unique: true, sparse: true });
-favoriteSchema.index({ user: 1, knowledge: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Favorite", favoriteSchema);

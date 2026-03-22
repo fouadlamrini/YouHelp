@@ -35,7 +35,6 @@ function registerPresenceHandlers({ io, socket }) {
   });
 
   socket.on("disconnect", () => {
-    console.log("[socket] disconnected:", userId);
     const socketSet = userSockets.get(userId);
 
     if (!socketSet) return;

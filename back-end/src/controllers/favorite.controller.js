@@ -1,7 +1,6 @@
 const Favorite = require("../models/Favorite");
-const Post = require("../models/Post");
-const Knowledge = require("../models/Knowledge");
 const User = require("../models/User");
+const favoriteService = require("../services/favorite.service");
 
 class FavoriteController {
   
@@ -12,85 +11,9 @@ class FavoriteController {
       if (currentUser?.status !== "active") {
         return res.status(403).json({ message: "Seuls les comptes activés peuvent ajouter aux favoris." });
       }
-      const { contentType, contentId } = req.body;
-      const userId = req.user.id;
-
-      // Vérification basique du corps de la requête
-      if (!req.body || typeof contentType === "undefined") {
-        return res.status(400).json({ message: "Requête mal formée" });
-      }
-
-      // Vérifier que le type de contenu est valide
-      if (!["post", "knowledge"].includes(contentType)) {
-        return res.status(400).json({ 
-          message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" 
-        });
-      }
-
-      // Vérifier que l'ID du contenu est fourni
-      if (!contentId) {
-        return res.status(400).json({ 
-          message: "L'ID du contenu est requis" 
-        });
-      }
-
-      // s'assurer que l'on travaille avec un ObjectId valide avant de requêter
-      const mongoose = require("mongoose");
-      if (!mongoose.Types.ObjectId.isValid(contentId)) {
-        return res.status(400).json({ message: "ID de contenu invalide" });
-      }
-
-      // Vérifier que le contenu existe
-      let content;
-      if (contentType === "post") {
-        content = await Post.findById(contentId);
-        if (!content) {
-          return res.status(404).json({ 
-            message: "Post non trouvé" 
-          });
-        }
-      } else {
-        content = await Knowledge.findById(contentId);
-        if (!content) {
-          return res.status(404).json({ 
-            message: "Connaissance non trouvée" 
-          });
-        }
-      }
-
-      // Vérifier si le contenu est déjà dans les favoris
-      const existingFavorite = await Favorite.findOne({
-        user: userId,
-        [contentType]: contentId
-      });
-
-      if (existingFavorite) {
-        return res.status(400).json({ 
-          message: "Ce contenu est déjà dans vos favoris" 
-        });
-      }
-
-      // Créer le nouveau favori
-      const favoriteData = {
-        user: userId,
-        contentType: contentType
-      };
-      favoriteData[contentType] = contentId;
-
-      try {
-        const favorite = await Favorite.create(favoriteData);
-        res.status(201).json({
-          success: true,
-          message: "Contenu ajouté aux favoris avec succès",
-          data: favorite
-        });
-      } catch (err) {
-        // gérer les erreurs de doublon de clé unique
-        if (err.code === 11000) {
-          return res.status(400).json({ message: "Ce contenu est déjà dans vos favoris" });
-        }
-        throw err; // laisser le catch principal s'occuper du reste
-      }
+      const result = await favoriteService.addToFavorites(req.user.id, req.body);
+      if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+      return res.status(201).json({ success: true, message: "Contenu ajouté aux favoris avec succès", data: result.data });
 
     } catch (error) {
       console.error(error);
@@ -107,32 +30,9 @@ class FavoriteController {
       if (currentUser?.status !== "active") {
         return res.status(403).json({ message: "Seuls les comptes activés peuvent gérer les favoris." });
       }
-      const { contentType, contentId } = req.body;
-      const userId = req.user.id;
-
-      // Vérifier que le type de contenu est valide
-      if (!["post", "knowledge"].includes(contentType)) {
-        return res.status(400).json({ 
-          message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" 
-        });
-      }
-
-      // Chercher et supprimer le favori
-      const favorite = await Favorite.findOneAndDelete({
-        user: userId,
-        [contentType]: contentId
-      });
-
-      if (!favorite) {
-        return res.status(404).json({ 
-          message: "Ce contenu n'est pas dans vos favoris" 
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Contenu retiré des favoris avec succès"
-      });
+      const result = await favoriteService.removeFromFavorites(req.user.id, req.body);
+      if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+      return res.status(200).json({ success: true, message: "Contenu retiré des favoris avec succès" });
 
     } catch (error) {
       console.error(error);
@@ -145,50 +45,9 @@ class FavoriteController {
   // Récupérer tous les favoris d'un utilisateur
   async getUserFavorites(req, res) {
     try {
-      const userId = req.user.id;
-      const { page = 1, limit = 10 } = req.query;
-
-      // Calculer les paramètres de pagination
-      const skip = (page - 1) * limit;
-
-      // Récupérer les favoris avec population des données
-      const favorites = await Favorite.find({ user: userId })
-        .populate({
-          path: "post",
-          populate: [
-            { path: "author", select: "name email profilePicture" },
-            { path: "category", select: "name" },
-            { path: "subCategory", select: "name" }
-          ]
-        })
-        .populate({
-          path: "knowledge",
-          populate: [
-            { path: "author", select: "name email profilePicture" },
-            { path: "category", select: "name" },
-            { path: "subCategory", select: "name" }
-          ]
-        })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit));
-
-      // Compter le total des favoris
-      const total = await Favorite.countDocuments({ user: userId });
-
-      res.status(200).json({
-        success: true,
-        message: "Favoris récupérés avec succès",
-        data: {
-          favorites,
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: Math.ceil(total / limit),
-            totalItems: total,
-            itemsPerPage: parseInt(limit)
-          }
-        }
-      });
+      const result = await favoriteService.getUserFavorites(req.user.id, req.query);
+      if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+      return res.status(200).json({ success: true, message: "Favoris récupérés avec succès", data: result.data });
 
     } catch (error) {
       console.error(error);
@@ -202,25 +61,9 @@ class FavoriteController {
   async checkIfFavorite(req, res) {
     try {
       const { contentType, contentId } = req.params;
-      const userId = req.user.id;
-
-      // Vérifier que le type de contenu est valide
-      if (!["post", "knowledge"].includes(contentType)) {
-        return res.status(400).json({ 
-          message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" 
-        });
-      }
-
-      // Chercher le favori
-      const favorite = await Favorite.findOne({
-        user: userId,
-        [contentType]: contentId
-      });
-
-      res.status(200).json({
-        success: true,
-        isFavorite: !!favorite
-      });
+      const result = await favoriteService.checkIfFavorite(req.user.id, contentType, contentId);
+      if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+      return res.status(200).json({ success: true, ...result.data });
 
     } catch (error) {
       console.error(error);

@@ -9,7 +9,6 @@ const commentSchema = new mongoose.Schema(
       required: true,
     },
     post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: null },
-    knowledge: { type: mongoose.Schema.Types.ObjectId, ref: "Knowledge", default: null },
     parentComment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",
@@ -27,8 +26,8 @@ const commentSchema = new mongoose.Schema(
 );
 
 commentSchema.pre("validate", function (next) {
-  if (!this.post && !this.knowledge) {
-    next(new Error("Comment must have either post or knowledge"));
+  if (!this.post) {
+    next(new Error("Comment must have a post"));
   } else {
     next();
   }

@@ -4,6 +4,7 @@ const createPostSchema = yup.object({
   content: yup.string().trim().required("Le contenu est obligatoire."),
   category: yup.string().trim().required("Category is required."),
   subCategory: yup.string().trim().nullable().optional(),
+  type: yup.string().oneOf(["post", "knowledge"]).optional(),
 });
 
 const updatePostSchema = yup.object({
@@ -11,6 +12,7 @@ const updatePostSchema = yup.object({
   category: yup.string().trim().nullable().optional(),
   subCategory: yup.string().trim().nullable().optional(),
   existingMedia: yup.mixed().optional(),
+  type: yup.string().oneOf(["post", "knowledge"]).optional(),
 });
 
 module.exports = {

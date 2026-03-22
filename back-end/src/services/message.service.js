@@ -3,6 +3,7 @@ const User = require("../models/User");
 const { isUserOnline, getLastSeen } = require("../config/socket");
 const { areFriends } = require("./friend.service");
 
+// Helper: construit un objet attachment a partir d'un fichier (type + url).
 function buildAttachment(file) {
   if (!file || !file.path) return null;
   const folder = file.path.includes("images") ? "images" : file.path.includes("videos") ? "videos" : file.path.includes("audio") ? "audio" : "files";
