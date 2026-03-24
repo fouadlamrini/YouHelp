@@ -28,7 +28,13 @@ function resolveAvatarUrl(src) {
   if (src.startsWith("http")) return src;
   if (src.startsWith("/uploads") || src.startsWith("/avatars"))
     return `${API_BASE}${src}`;
+  if (src.startsWith("media-")) return `${API_BASE}/uploads/images/${src}`;
   return `${API_BASE}/avatars/${src}`;
+}
+
+function handleAvatarLoadError(e) {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = `${API_BASE}/avatars/default-avatar.jpg`;
 }
 
 const Settings = () => {
@@ -339,6 +345,7 @@ const Settings = () => {
                               src={resolveAvatarUrl(form.profilePicture || "default-avatar.jpg")}
                               alt=""
                               className="w-full h-full object-cover"
+                              onError={handleAvatarLoadError}
                             />
                           </div>
                         </div>

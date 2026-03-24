@@ -5,10 +5,11 @@ const fs = require('fs');
 // Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let folder = 'src/uploads/files'; // default folder
-    if (file.mimetype.startsWith('image')) folder = 'src/uploads/images';
-    else if (file.mimetype.startsWith('video')) folder = 'src/uploads/videos';
-    else if (file.mimetype.startsWith('audio')) folder = 'src/uploads/audio';
+    const uploadsRoot = path.join(__dirname, '..', 'uploads');
+    let folder = path.join(uploadsRoot, 'files'); // default folder
+    if (file.mimetype.startsWith('image')) folder = path.join(uploadsRoot, 'images');
+    else if (file.mimetype.startsWith('video')) folder = path.join(uploadsRoot, 'videos');
+    else if (file.mimetype.startsWith('audio')) folder = path.join(uploadsRoot, 'audio');
 
     // Create folder if it doesn't exist
     if (!fs.existsSync(folder)) {

@@ -3,7 +3,7 @@ const path = require("path");
 
 // Helper: construit l'URL publique (path + url) pour un fichier upload.
 function processUpload(file, baseUrl) {
-  const uploadsBase = path.join(process.cwd(), "src", "uploads");
+  const uploadsBase = path.join(__dirname, "..", "uploads");
   const relativePathFromUploads = path
     .relative(uploadsBase, file.path)
     .replace(/\\/g, "/");

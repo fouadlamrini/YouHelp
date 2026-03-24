@@ -76,10 +76,18 @@ const UserManagement = () => {
     if (src.startsWith("/uploads") || src.startsWith("/avatars")) {
       return `${API_ORIGIN}${src}`;
     }
+    if (src.startsWith("media-")) {
+      return `${API_ORIGIN}/uploads/images/${src}`;
+    }
     if (src === "default-avatar.png") {
       return `${API_ORIGIN}/avatars/default-avatar.jpg`;
     }
     return `${API_ORIGIN}/avatars/${src}`;
+  };
+
+  const handleAvatarLoadError = (e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = `${API_ORIGIN}/avatars/default-avatar.jpg`;
   };
 
   const fetchUsers = () => {
@@ -561,6 +569,7 @@ const UserManagement = () => {
                                     src={resolveAvatarUrl(user.profilePicture)}
                                     alt={user.name}
                                     className="w-12 h-12 rounded-2xl object-cover border border-slate-100"
+                                    onError={handleAvatarLoadError}
                                   />
                                   <div>
                                     <p className="text-sm font-black text-slate-800">{user.name}</p>
@@ -857,7 +866,12 @@ const UserManagement = () => {
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLocalAvatarChange} />
                   <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-100">
-                    <img src={resolveAvatarUrl(formData.profilePicture)} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={resolveAvatarUrl(formData.profilePicture)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={handleAvatarLoadError}
+                    />
                   </div>
                 </div>
               </div>
@@ -967,6 +981,7 @@ const UserManagement = () => {
                       src={resolveAvatarUrl(editingUser.profilePicture)}
                       alt={editingUser.name}
                       className="w-full h-full object-cover"
+                      onError={handleAvatarLoadError}
                     />
                   </div>
                 </div>
