@@ -5,9 +5,7 @@ import PostCard from "../../components/PostCard";
 import KnowledgeCard from "../../components/KnowledgeCard";
 import Messaging from "../../components/Messaging";
 import Sidebar from "../../components/SideBar";
-import { postApi } from "../../services/api";
-
-const API_BASE = "http://localhost:3000";
+import { postApi, API_BASE } from "../../services/api";
 
 const resolveAvatarUrl = (src) => {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;

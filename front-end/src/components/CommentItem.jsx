@@ -8,10 +8,8 @@ import {
   FiSmile,
   FiImage,
 } from "react-icons/fi";
-import { commentApi } from "../services/api";
+import { commentApi, API_BASE } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE = "http://localhost:3000";
 const EMOJI_LIST = [
   "😀",
   "😃",

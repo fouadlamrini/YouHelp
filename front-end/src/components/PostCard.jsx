@@ -25,9 +25,8 @@ import {
   solutionApi,
   favoritesApi,
   workshopsApi,
+  API_BASE,
 } from "../services/api";
-
-const API_BASE = "http://localhost:3000";
 
 const EMOJI_LIST = [
   "😀",
