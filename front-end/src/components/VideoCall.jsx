@@ -409,9 +409,9 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 z-[999] flex flex-col">
+    <div className="fixed inset-0 bg-slate-900 z-[999]">
       {/* Header */}
-      <div className="bg-slate-800 p-4 flex items-center justify-between">
+      <div className="absolute top-0 left-0 right-0 z-30 bg-slate-800/95 backdrop-blur-sm p-4 flex items-center justify-between">
         <div className="text-white">
           <h3 className="font-semibold">
             {isInitiator ? 'Calling...' : 'Incoming Call'}
@@ -429,18 +429,21 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
       </div>
 
       {/* Video Area */}
-      <div className="flex-1 relative bg-black">
+      <div className="absolute inset-0 bg-black">
         {/* Remote Video (Full screen) */}
         <video
           ref={remoteVideoRef}
           autoPlay
           playsInline
           className="w-full h-full object-cover"
-          style={{ display: remoteStream ? 'block' : 'none' }}
+          style={{
+            display: remoteStream ? 'block' : 'none',
+            transform: 'scaleX(-1)',
+          }}
         />
 
         {/* Local Video (Picture in picture) - above overlay so user always sees their camera */}
-        <div className="absolute top-4 right-4 w-40 h-32 bg-slate-800 rounded-lg overflow-hidden border-2 border-white z-20">
+        <div className="absolute top-20 right-4 w-40 h-32 bg-slate-800 rounded-lg overflow-hidden border-2 border-white z-20">
           <video
             ref={localVideoRef}
             autoPlay
@@ -465,7 +468,7 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
       </div>
 
       {/* Controls */}
-      <div className="bg-slate-800 p-4 flex items-center justify-center gap-4">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-800/95 backdrop-blur-sm px-4 py-3 rounded-full flex items-center justify-center gap-3 shadow-xl border border-slate-700">
         <button
           onClick={toggleMute}
           className={`p-4 rounded-full transition-colors ${
