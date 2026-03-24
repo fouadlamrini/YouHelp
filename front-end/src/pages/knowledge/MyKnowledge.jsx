@@ -3,7 +3,7 @@ import NavbarLoggedIn from "../../components/NavbarLoggedIn";
 import HeaderProfile from "../../components/HeaderProfile";
 import KnowledgeCard from "../../components/KnowledgeCard";
 import Messaging from "../../components/Messaging";
-import Sidebar from "../../components/Sidebar"; 
+import Sidebar from "../../components/SideBar";
 import { 
   FiImage, FiSend, 
   FiChevronDown, FiFileText, FiSearch, FiX 

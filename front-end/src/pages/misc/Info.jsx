@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Sidebar from '../../components/Sidebar';
+import Sidebar from '../../components/SideBar';
 import NavbarLoggedIn from '../../components/NavbarLoggedIn';
 import HeaderProfile from '../../components/HeaderProfile';
 import { FiUser, FiMail, FiLock, FiShield, FiMapPin, FiLayers, FiSave, FiEdit3 } from 'react-icons/fi';

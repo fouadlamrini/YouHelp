@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
+import Sidebar from "../../components/SideBar";
 import NavbarLoggedIn from "../../components/NavbarLoggedIn";
 import PostCard from "../../components/PostCard";
 import Messaging from "../../components/Messaging";

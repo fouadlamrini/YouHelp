@@ -4,7 +4,7 @@ import HeaderProfile from "../../components/HeaderProfile";
 import PostCard from "../../components/PostCard";
 import KnowledgeCard from "../../components/KnowledgeCard";
 import Messaging from "../../components/Messaging";
-import Sidebar from "../../components/Sidebar";
+import Sidebar from "../../components/SideBar";
 import { FiSearch, FiStar, FiTrendingUp } from "react-icons/fi";
 import { API_BASE, favoritesApi } from "../../services/api";
 

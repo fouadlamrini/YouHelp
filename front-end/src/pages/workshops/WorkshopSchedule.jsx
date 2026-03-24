@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../../components/Sidebar";
+import Sidebar from "../../components/SideBar";
 import NavbarLoggedIn from "../../components/NavbarLoggedIn";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
