@@ -62,7 +62,17 @@ const UserManagement = () => {
 
   const resolveAvatarUrl = (src) => {
     if (!src) return `${API_ORIGIN}/avatars/default-avatar.jpg`;
-    if (src.startsWith("http://") || src.startsWith("https://")) return src;
+    if (src.startsWith("http://") || src.startsWith("https://")) {
+      try {
+        const parsed = new URL(src);
+        if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+          return `${API_ORIGIN}${parsed.pathname}`;
+        }
+      } catch {
+        // keep original URL fallback
+      }
+      return src;
+    }
     if (src.startsWith("/uploads") || src.startsWith("/avatars")) {
       return `${API_ORIGIN}${src}`;
     }

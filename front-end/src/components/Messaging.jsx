@@ -14,7 +14,17 @@ const RINGTONE_INCOMING = "/sounds/Toque Galaxy Bells (Samsung).mp3";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
-  if (src.startsWith("http")) return src;
+  if (src.startsWith("http")) {
+    try {
+      const parsed = new URL(src);
+      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        return `${API_BASE}${parsed.pathname}`;
+      }
+    } catch {
+      // keep fallback behavior
+    }
+    return src;
+  }
   if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
   if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
@@ -52,6 +62,7 @@ const Messaging = ({ openChatUserId = null }) => {
   const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
   const [showClearConversationModal, setShowClearConversationModal] = useState(false);
   const presenceDebugLoggedRef = useRef(new Set());
+  const callEventDedupRef = useRef(new Map());
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
@@ -86,6 +97,21 @@ const Messaging = ({ openChatUserId = null }) => {
 
   const appendCallMessage = (otherUserId, payload) => {
     if (!user?.id || !otherUserId || !payload?.callKind || !payload?.callStatus) return;
+    const dedupKey = [
+      String(otherUserId),
+      payload.callKind,
+      payload.callStatus,
+      payload.direction || "unknown",
+    ].join("|");
+    const nowTs = Date.now();
+    const previousTs = callEventDedupRef.current.get(dedupKey);
+    if (previousTs && nowTs - previousTs < 4000) return;
+    callEventDedupRef.current.set(dedupKey, nowTs);
+    setTimeout(() => {
+      const current = callEventDedupRef.current.get(dedupKey);
+      if (current === nowTs) callEventDedupRef.current.delete(dedupKey);
+    }, 7000);
+
     const kindLabel = payload.callKind === "video" ? "Appel vidéo" : "Appel vocal";
     const statusLabel =
       payload.callStatus === "missed"
