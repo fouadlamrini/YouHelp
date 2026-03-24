@@ -2,6 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiMic, FiMicOff, FiPhone } from 'react-icons/fi';
 import { getSocket } from '../services/socket';
 
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+
 const VoiceCall = ({ callData, onEnd, onConnected }) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -48,7 +64,7 @@ const VoiceCall = ({ callData, onEnd, onConnected }) => {
       setConnectionState('creating-peer');
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: ICE_SERVERS,
         iceCandidatePoolSize: 10
       });
       peerConnection.current = pc;

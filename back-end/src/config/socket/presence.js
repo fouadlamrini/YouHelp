@@ -28,10 +28,30 @@ function markUserOffline(io, userId) {
 
 function registerPresenceHandlers({ io, socket }) {
   const userId = socket.userId;
+  // Mark user online as soon as authenticated socket connects.
+  markUserOnline(io, userId);
 
   socket.on("user:online", () => {
     // Keep the event for compatibility, but trust the authenticated socket user.
     markUserOnline(io, userId);
+  });
+
+  socket.on("presence:batch-status", (payload, ack) => {
+    const rawIds = Array.isArray(payload?.userIds) ? payload.userIds : [];
+    const userIds = [...new Set(rawIds.map((id) => toUserId(id)).filter(Boolean))];
+
+    const data = userIds.map((id) => {
+      const lastSeen = getLastSeen(id);
+      return {
+        userId: id,
+        status: isUserOnline(id) ? "online" : "offline",
+        lastSeen: lastSeen ? lastSeen.toISOString() : null,
+      };
+    });
+
+    if (typeof ack === "function") {
+      ack({ data });
+    }
   });
 
   socket.on("disconnect", () => {

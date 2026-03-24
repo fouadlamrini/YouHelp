@@ -793,8 +793,44 @@ const Messaging = ({ openChatUserId = null }) => {
     return d.toLocaleDateString();
   };
 
-  // Trust only the textual status, not legacy boolean flags from old data
-  const isUserOnline = (u) => u?.status === "online";
+  const isUserOnline = (u) => u?.status === "online" || u?.online === true;
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const ids = [
+      ...new Set(
+        conversations
+          .map((c) => c?.user?._id || c?.user?.id || c?.user)
+          .filter(Boolean)
+          .map(String)
+      ),
+    ];
+    if (ids.length === 0) return;
+
+    socket.emit("presence:batch-status", { userIds: ids }, (res) => {
+      const list = Array.isArray(res?.data) ? res.data : [];
+      if (list.length === 0) return;
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          const convUserId = c?.user?._id || c?.user?.id || c?.user;
+          const row = list.find((r) => String(r.userId) === String(convUserId));
+          if (!row) return c;
+          return {
+            ...c,
+            user: {
+              ...c.user,
+              online: row.status === "online",
+              status: row.status,
+              lastSeen: row.lastSeen || c.user?.lastSeen,
+            },
+          };
+        })
+      );
+    });
+  }, [conversations.length]);
 
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
