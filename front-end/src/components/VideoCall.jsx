@@ -438,7 +438,6 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
           className="w-full h-full object-cover"
           style={{
             display: remoteStream ? 'block' : 'none',
-            transform: 'scaleX(-1)',
           }}
         />
 
@@ -450,6 +449,7 @@ const VideoCall = ({ callData, onEnd, onConnected }) => {
             playsInline
             muted
             className="w-full h-full object-cover"
+            style={{ transform: 'scaleX(-1)' }}
           />
         </div>
 
