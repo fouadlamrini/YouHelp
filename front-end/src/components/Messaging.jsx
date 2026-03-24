@@ -26,6 +26,7 @@ function resolveAvatarUrl(src) {
     return src;
   }
   if (src.startsWith("/uploads") || src.startsWith("/avatars")) return `${API_BASE}${src}`;
+  if (src.startsWith("media-")) return `${API_BASE}/uploads/images/${src}`;
   if (src === "default-avatar.png" || src === "default-avatar.jpg") return `${API_BASE}/avatars/default-avatar.jpg`;
   return `${API_BASE}/avatars/${src}`;
 }
