@@ -45,7 +45,7 @@ class FavoriteController {
   // Récupérer tous les favoris d'un utilisateur
   async getUserFavorites(req, res) {
     try {
-      const result = await favoriteService.getUserFavorites(req.user.id, req.query);
+      const result = await favoriteService.getUserFavorites(req.user.id);
       if (result.error) return res.status(result.error.status).json({ message: result.error.message });
       return res.status(200).json({ success: true, message: "Favoris récupérés avec succès", data: result.data });
 

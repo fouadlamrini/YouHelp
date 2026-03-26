@@ -25,10 +25,7 @@ async function removeFromFavorites(userId, body) {
   return { ok: true };
 }
 
-async function getUserFavorites(userId, query) {
-  const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 10;
-  const skip = (page - 1) * limit;
+async function getUserFavorites(userId) {
   const favorites = await Favorite.find({ user: userId })
     .populate({
       path: "post",
@@ -38,19 +35,10 @@ async function getUserFavorites(userId, query) {
         { path: "subCategory", select: "name" },
       ],
     })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-  const total = await Favorite.countDocuments({ user: userId });
+    .sort({ createdAt: -1 });
   return {
     data: {
       favorites,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit,
-      },
     },
   };
 }
@@ -60,7 +48,7 @@ async function checkIfFavorite(userId, contentType, contentId) {
     return { error: { status: 400, message: "Type de contenu invalide. Utilisez 'post' ou 'knowledge'" } };
   }
   const favorite = await Favorite.findOne({ user: userId, post: contentId, contentType });
-  return { data: { isFavorite: !!favorite } };
+  return { data: { isFavorite: favorite ? true : false } };
 }
 
 module.exports = {
