@@ -1,7 +1,7 @@
 const yup = require("yup");
 
 const createCommentSchema = yup.object({
-  content: yup.string().required("Le contenu du commentaire est requis"),
+  content: yup.string().optional(),
   parentComment: yup.string().nullable().optional(),
 });
 

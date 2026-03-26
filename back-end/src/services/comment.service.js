@@ -17,8 +17,12 @@ async function createComment(userId, postId, body, files) {
     }
   }
   const mediaFiles = mapFilesToMedia(files);
+  const cleanedContent = (content || "").trim();
+  if (!cleanedContent && mediaFiles.length === 0) {
+    return { error: { status: 400, message: "Le commentaire doit contenir du texte ou un média." } };
+  }
   const comment = await Comment.create({
-    content: (content || "").trim(),
+    content: cleanedContent,
     author: userId,
     post: postId,
     parentComment: parentComment || null,

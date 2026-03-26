@@ -2,7 +2,14 @@ const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema(
   {
-    content: { type: String, required: true },
+    content: {
+      type: String,
+      trim: true,
+      required: function requiredContentWhenNoMedia() {
+        return !this.media || this.media.length === 0;
+      },
+      default: "",
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
