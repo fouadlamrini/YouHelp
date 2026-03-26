@@ -45,7 +45,7 @@ const MyFavorites = () => {
   const loadFavorites = () => {
     setLoading(true);
     favoritesApi
-      .getMine({ limit: 100 })
+      .getMine()
       .then((res) => setFavorites(res.data?.data?.favorites || []))
       .catch(() => setFavorites([]))
       .finally(() => setLoading(false));
