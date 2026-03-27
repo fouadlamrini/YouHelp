@@ -11,13 +11,6 @@ const messageSchema = new mongoose.Schema(
       originalName: { type: String },
     },
     readAt: { type: Date, default: null },
-    // Legacy call fields are intentionally kept for safe reads of old documents.
-    isSystem: { type: Boolean, default: false },
-    systemType: { type: String },
-    callPayload: { type: mongoose.Schema.Types.Mixed, default: undefined },
-    reactions: [
-      { user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, emoji: { type: String } },
-    ],
     hiddenFor: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], default: [] },
   },
   { timestamps: true }

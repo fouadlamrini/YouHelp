@@ -44,10 +44,6 @@ describe("message.service", () => {
           content: "hello",
         })
       );
-      const payload = Message.create.mock.calls[0][0];
-      expect(payload.callPayload).toBeUndefined();
-      expect(payload.isSystem).toBeUndefined();
-      expect(payload.systemType).toBeUndefined();
     });
   });
 });
