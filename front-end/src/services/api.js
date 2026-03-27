@@ -204,7 +204,6 @@ export const messagesApi = {
   getConversation: (userId) => api.get(`/messages/conversation/${userId}`),
   delete: (id, scope) =>
     api.delete(`/messages/${id}`, scope ? { params: { scope } } : undefined),
-  reaction: (id, emoji) => api.post(`/messages/${id}/reaction`, { emoji }),
 };
 
 export const API_BASE = api.defaults.baseURL

@@ -39,14 +39,12 @@ const Messaging = ({ openChatUserId = null }) => {
   const [friendsLoading, setFriendsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [pendingUserId, setPendingUserId] = useState(null);
   const [deleteModalMessageId, setDeleteModalMessageId] = useState(null);
   const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
   const [showClearConversationModal, setShowClearConversationModal] = useState(false);
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
-  const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -284,30 +282,6 @@ const Messaging = ({ openChatUserId = null }) => {
     setShowEmojiPicker(false);
   };
 
-  const handleToggleReaction = async (messageId, emoji) => {
-    setReactionPickerMsgId(null);
-    try {
-      const res = await messagesApi.reaction(messageId, emoji);
-      setMessages((prev) =>
-        prev.map((m) => (m._id === messageId || m.id === messageId ? { ...m, reactions: res.data.data?.reactions || [] } : m))
-      );
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const getReactionsGrouped = (reactions) => {
-    if (!reactions?.length) return [];
-    const byEmoji = {};
-    reactions.forEach((r) => {
-      const e = r.emoji || "👍";
-      if (!byEmoji[e]) byEmoji[e] = { emoji: e, count: 0, hasMe: false };
-      byEmoji[e].count++;
-      if (r.user && String(r.user._id || r.user) === String(user?.id)) byEmoji[e].hasMe = true;
-    });
-    return Object.values(byEmoji);
-  };
-
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -531,7 +505,6 @@ const Messaging = ({ openChatUserId = null }) => {
               const isMe = user?.id && String(senderId) === String(user.id);
               const att = msg.attachment;
               const attachmentUrl = att?.url ? (att.url.startsWith("http") ? att.url : `${API_BASE}${att.url}`) : null;
-              const reactionsGrouped = getReactionsGrouped(msg.reactions);
               return (
                 <div
                   key={msg._id}
@@ -555,30 +528,7 @@ const Messaging = ({ openChatUserId = null }) => {
                     </div>
                   )}
                   {msg.content ? <p className="text-xs font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p> : null}
-                  {reactionsGrouped.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {reactionsGrouped.map((r) => (
-                        <button
-                          key={r.emoji}
-                          type="button"
-                          onClick={() => handleToggleReaction(msg._id, r.emoji)}
-                          className={`text-xs px-1.5 py-0.5 rounded ${r.hasMe ? "bg-white/30" : "bg-black/10 hover:bg-black/20"} ${isMe ? "" : "bg-slate-100 hover:bg-slate-200"}`}
-                          title={r.hasMe ? "Retirer la réaction" : "Réagir"}
-                        >
-                          {r.emoji} {r.count > 1 ? r.count : ""}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   <div className="flex items-center justify-end gap-1 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg._id ? null : msg._id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 transition-opacity text-sm"
-                      title="Réagir"
-                    >
-                      😊
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteMessage(msg)}
@@ -587,15 +537,6 @@ const Messaging = ({ openChatUserId = null }) => {
                     >
                       <FiTrash2 size={12} />
                     </button>
-                    {reactionPickerMsgId === msg._id && (
-                      <div className="absolute bottom-full left-0 mb-1 flex gap-0.5 p-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
-                        {QUICK_REACTIONS.map((emoji) => (
-                          <button key={emoji} type="button" onClick={() => handleToggleReaction(msg._id, emoji)} className="p-1 text-lg hover:bg-slate-100 rounded">
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                     <p className={`text-[9px] ${isMe ? "text-indigo-200" : "text-slate-400"}`}>{formatTime(msg.createdAt)}</p>
                   </div>
                 </div>

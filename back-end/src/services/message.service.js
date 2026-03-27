@@ -115,38 +115,9 @@ async function deleteMessage(userId, messageId, body) {
   return { ok: true };
 }
 
-async function toggleReaction(userId, messageId, body) {
-  const { emoji } = body;
-  if (!emoji || typeof emoji !== "string" || emoji.length > 8) {
-    return { error: { status: 400, message: "emoji required (string, max 8 chars)" } };
-  }
-  const message = await Message.findById(messageId);
-  if (!message) return { error: { status: 404, message: "Message not found" } };
-  const partnerId = message.sender.toString() === userId ? message.receiver.toString() : message.sender.toString();
-  const friends = await areFriends(userId, partnerId);
-  if (!friends) return { error: { status: 403, message: "Can only react in friend conversation" } };
-  const reactions = message.reactions || [];
-  const myIndex = reactions.findIndex((r) => r.user && r.user.toString() === userId);
-  if (myIndex >= 0 && reactions[myIndex].emoji === emoji) {
-    reactions.splice(myIndex, 1);
-  } else {
-    if (myIndex >= 0) reactions.splice(myIndex, 1);
-    reactions.push({ user: userId, emoji: emoji.trim() });
-  }
-  message.reactions = reactions;
-  await message.save();
-  const updated = await Message.findById(messageId)
-    .populate("sender", "name email")
-    .populate("receiver", "name email")
-    .populate("reactions.user", "name");
-  void partnerId;
-  return { data: updated };
-}
-
 module.exports = {
   send,
   getConversation,
   getConversations,
   deleteMessage,
-  toggleReaction,
 };
