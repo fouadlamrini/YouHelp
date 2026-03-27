@@ -1,16 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  FiEdit, FiMoreHorizontal, FiChevronUp, FiChevronDown, FiSearch, FiSliders, FiX, FiVideo, FiPhone, FiMinus, FiSmile, FiImage, FiPaperclip, FiSend, FiTrash2, FiMic,
-} from "react-icons/fi";
-import { messagesApi, friendsApi, API_BASE } from "../services/api";
-import { getSocket } from "../services/socket";
+import React, { useEffect, useRef, useState } from "react";
+import { FiChevronDown, FiChevronUp, FiEdit, FiMinus, FiMoreHorizontal, FiPaperclip, FiSearch, FiSend, FiSliders, FiSmile, FiTrash2, FiX } from "react-icons/fi";
+import { API_BASE, friendsApi, messagesApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import VideoCall from "./VideoCall.jsx";
-import VoiceCall from "./VoiceCall.jsx";
-import VoiceMessageBubble from "./VoiceMessageBubble.jsx";
-
-const RINGTONE_OUTGOING = "/sounds/bruit tonalité du telephone.mp3";
-const RINGTONE_INCOMING = "/sounds/Toque Galaxy Bells (Samsung).mp3";
 
 function resolveAvatarUrl(src) {
   if (!src) return `${API_BASE}/avatars/default-avatar.jpg`;
@@ -31,6 +22,8 @@ function resolveAvatarUrl(src) {
   return `${API_BASE}/avatars/${src}`;
 }
 
+const POLL_INTERVAL_MS = 10000;
+
 const Messaging = ({ openChatUserId = null }) => {
   const { user } = useAuth();
   const [isMinimized, setIsMinimized] = useState(true);
@@ -44,169 +37,33 @@ const Messaging = ({ openChatUserId = null }) => {
   const [showNewChat, setShowNewChat] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
-  const [videoCall, setVideoCall] = useState(null);
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [voiceCall, setVoiceCall] = useState(null);
-  const [incomingVoiceCall, setIncomingVoiceCall] = useState(null);
-  const outgoingRingtoneRef = useRef(null);
-  const incomingRingtoneRef = useRef(null);
   const fileInputRef = useRef(null);
-  const messageInputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const recordingStreamRef = useRef(null);
   const [pendingUserId, setPendingUserId] = useState(null);
-  const callConnectedAtRef = useRef(null);
   const [deleteModalMessageId, setDeleteModalMessageId] = useState(null);
   const [deleteForMeMessageId, setDeleteForMeMessageId] = useState(null);
   const [showClearConversationModal, setShowClearConversationModal] = useState(false);
-  const presenceDebugLoggedRef = useRef(new Set());
-  const callEventDedupRef = useRef(new Map());
 
   const EMOJI_LIST = "😀 😃 😄 😁 🥹 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😎 🤓 😏 😒 🙄 😬 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😶 😐 😑 😯 😦 😧 😮 😲 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤠 🥳 🥸 😈 👿 👹 👺 💀 ☠️ 💩 🤡 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👍 👎 👊 ✊ 🤛 🤜 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 💪 🦾 🙏 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝".split(/\s+/).filter(Boolean);
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
-  const appendSystemMessageForUser = (otherUserId, text) => {
-    if (!user?.id || !otherUserId || !text) return;
-    const now = new Date().toISOString();
-    if (activeChat?.user?._id && String(activeChat.user._id) === String(otherUserId)) {
-      const systemMsg = {
-        _id: `sys-${Date.now()}-${Math.random()}`,
-        sender: { _id: user.id },
-        content: text,
-        createdAt: now,
-        isSystem: true,
-      };
-      setMessages((prev) => [...prev, systemMsg]);
-    }
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.user?._id && String(c.user._id) === String(otherUserId)
-          ? {
-              ...c,
-              lastMessage: {
-                content: text,
-                createdAt: now,
-              },
-            }
-          : c
-      )
-    );
-  };
-
-  const appendCallMessage = (otherUserId, payload) => {
-    if (!user?.id || !otherUserId || !payload?.callKind || !payload?.callStatus) return;
-    const dedupKey = [
-      String(otherUserId),
-      payload.callKind,
-      payload.callStatus,
-      payload.direction || "unknown",
-    ].join("|");
-    const nowTs = Date.now();
-    const previousTs = callEventDedupRef.current.get(dedupKey);
-    if (previousTs && nowTs - previousTs < 4000) return;
-    callEventDedupRef.current.set(dedupKey, nowTs);
-    setTimeout(() => {
-      const current = callEventDedupRef.current.get(dedupKey);
-      if (current === nowTs) callEventDedupRef.current.delete(dedupKey);
-    }, 7000);
-
-    const kindLabel = payload.callKind === "video" ? "Appel vidéo" : "Appel vocal";
-    const statusLabel =
-      payload.callStatus === "missed"
-        ? "Sans réponse"
-        : payload.durationSec != null
-          ? `${payload.durationSec} s`
-          : "Terminé";
-    const shortText = `${kindLabel} • ${statusLabel}`;
-    const now = new Date().toISOString();
-    const tempId = `call-${Date.now()}-${Math.random()}`;
-    if (activeChat?.user?._id && String(activeChat.user._id) === String(otherUserId)) {
-      const systemMsg = {
-        _id: tempId,
-        sender: { _id: user.id },
-        content: shortText,
-        createdAt: now,
-        isSystem: true,
-        systemType: "call",
-        callPayload: payload,
-      };
-      setMessages((prev) => [...prev, systemMsg]);
-    }
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.user?._id && String(c.user._id) === String(otherUserId)
-          ? { ...c, lastMessage: { content: shortText, createdAt: now } }
-          : c
-      )
-    );
-    messagesApi
-      .send({
-        receiverId: String(otherUserId),
-        content: shortText,
-        type: "call",
-        callPayload: payload,
-      })
-      .then((res) => {
-        const created = res.data?.data;
-        if (!created?._id) return;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m._id === tempId
-              ? { ...created, callPayload: created.callPayload || payload, sender: created.sender || { _id: user.id } }
-              : m
-          )
-        );
-      })
-      .catch(() => {});
-  };
-
-  const stopOutgoingRingtone = () => {
-    const audio = outgoingRingtoneRef.current;
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-      outgoingRingtoneRef.current = null;
-    }
-  };
-
-  const stopIncomingRingtone = () => {
-    const audio = incomingRingtoneRef.current;
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-      incomingRingtoneRef.current = null;
-    }
-  };
-
-  const playOutgoingRingtone = () => {
-    stopOutgoingRingtone();
-    const audio = new Audio(RINGTONE_OUTGOING);
-    audio.loop = true;
-    audio.play().catch(() => {});
-    outgoingRingtoneRef.current = audio;
-  };
-
-  const playIncomingRingtone = () => {
-    stopIncomingRingtone();
-    const audio = new Audio(RINGTONE_INCOMING);
-    audio.loop = true;
-    audio.play().catch(() => {});
-    incomingRingtoneRef.current = audio;
-  };
-
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-  useEffect(() => {
+  const loadConversations = () => {
     if (!user?.id) return;
-    setLoading(true);
+    setLoading((v) => (conversations.length === 0 ? true : v));
     messagesApi
       .getConversations()
       .then((res) => setConversations(res.data.data || []))
       .catch(() => setConversations([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadConversations();
+    const id = window.setInterval(loadConversations, POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
   }, [user?.id]);
 
   useEffect(() => {
@@ -256,7 +113,7 @@ const Messaging = ({ openChatUserId = null }) => {
       .finally(() => setFriendsLoading(false));
   }, [showNewChat, user?.id]);
 
-  useEffect(() => {
+  const loadActiveConversation = () => {
     if (!activeChat?.user?._id) {
       setMessages([]);
       return;
@@ -270,234 +127,17 @@ const Messaging = ({ openChatUserId = null }) => {
       })
       .catch(() => setMessages([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadActiveConversation();
+    const id = window.setInterval(loadActiveConversation, POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
   }, [activeChat?.user?._id]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    
-    const onMessage = (msg) => {
-      const senderId = msg.sender?._id || msg.sender;
-      const receiverId = msg.receiver?._id || msg.receiver;
-      const myId = user?.id;
-
-      // Si c'est moi qui ai envoyé le message sur CE client,
-      // on ne l'ajoute pas une 2ème fois (handleSend l'a déjà ajouté).
-      if (myId && String(senderId) === String(myId)) {
-        return;
-      }
-
-      const otherUser =
-        myId && String(senderId) === String(myId)
-          ? msg.receiver
-          : msg.sender;
-
-      if (activeChat?.user?._id && otherUser?._id && String(activeChat.user._id) === String(otherUser._id)) {
-        setMessages((prev) => [...prev, msg]);
-      }
-
-      setConversations((prev) => {
-        let found = false;
-        const updated = prev.map((c) => {
-          const convUserId = c.user?._id || c.user;
-          if (
-            (convUserId && otherUser?._id && String(convUserId) === String(otherUser._id)) ||
-            (convUserId && (String(convUserId) === String(senderId) || String(convUserId) === String(receiverId)))
-          ) {
-            found = true;
-            return {
-              ...c,
-              user: c.user?._id ? c.user : otherUser || c.user,
-              lastMessage: {
-                content: msg.content || "",
-                createdAt: msg.createdAt || new Date().toISOString(),
-              },
-            };
-          }
-          return c;
-        });
-
-        if (!found && otherUser && otherUser._id) {
-          return [
-            {
-              user: otherUser,
-              lastMessage: {
-                content: msg.content || "",
-                createdAt: msg.createdAt || new Date().toISOString(),
-              },
-            },
-            ...updated,
-          ];
-        }
-
-        return updated;
-      });
-    };
-
-    const onVideoCallRequest = (data) => {
-      if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
-        const otherName = data.fromUser?.name || data.fromUser?.email || "Un utilisateur";
-        setIncomingCall({
-          currentUserId: user.id,
-          otherUserId: data.from,
-          isInitiator: false,
-          otherUserName: otherName,
-        });
-        playIncomingRingtone();
-      }
-    };
-
-    const onVoiceCallRequest = (data) => {
-      if (data.to === user?.id && !videoCall && !incomingCall && !voiceCall && !incomingVoiceCall) {
-        const otherName = data.fromUser?.name || data.fromUser?.email || "Un utilisateur";
-        setIncomingVoiceCall({
-          currentUserId: user.id,
-          otherUserId: data.from,
-          isInitiator: false,
-          otherUserName: otherName,
-        });
-        playIncomingRingtone();
-      }
-    };
-
-    const onMessageDeleted = ({ messageId }) => {
-      setMessages((prev) => prev.filter((m) => (m._id || m.id) !== messageId));
-    };
-    const onMessageReaction = ({ message: updatedMessage }) => {
-      if (!updatedMessage) return;
-      setMessages((prev) =>
-        prev.map((m) => (m._id === updatedMessage._id || m.id === updatedMessage._id ? { ...m, reactions: updatedMessage.reactions || [] } : m))
-      );
-    };
-
-    const onVideoCallEnded = (data) => {
-      stopOutgoingRingtone();
-      stopIncomingRingtone();
-      const wasInCall = !!videoCall;
-      const direction =
-        videoCall && typeof videoCall.isInitiator === "boolean"
-          ? videoCall.isInitiator
-            ? "outgoing"
-            : "incoming"
-          : incomingCall
-            ? "incoming"
-            : "incoming";
-      if (callConnectedAtRef.current) callConnectedAtRef.current = null;
-      setVideoCall(null);
-      setIncomingCall(null);
-      if (data?.from) {
-        appendCallMessage(data.from, {
-          callKind: "video",
-          callStatus: wasInCall ? "ended" : "missed",
-          direction,
-        });
-      }
-    };
-    const onVoiceCallEnded = (data) => {
-      stopOutgoingRingtone();
-      stopIncomingRingtone();
-      const wasInCall = !!voiceCall;
-      const direction =
-        voiceCall && typeof voiceCall.isInitiator === "boolean"
-          ? voiceCall.isInitiator
-            ? "outgoing"
-            : "incoming"
-          : incomingVoiceCall
-            ? "incoming"
-            : "incoming";
-      if (callConnectedAtRef.current) callConnectedAtRef.current = null;
-      setVoiceCall(null);
-      setIncomingVoiceCall(null);
-      if (data?.from) {
-        appendCallMessage(data.from, {
-          callKind: "voice",
-          callStatus: wasInCall ? "ended" : "missed",
-          direction,
-        });
-      }
-    };
-
-    socket.on("message", onMessage);
-    socket.on("video-call-request", onVideoCallRequest);
-    socket.on("voice-call-request", onVoiceCallRequest);
-    socket.on("message-deleted", onMessageDeleted);
-    socket.on("message-reaction", onMessageReaction);
-    socket.on("video-call-ended", onVideoCallEnded);
-    socket.on("voice-call-ended", onVoiceCallEnded);
-
-    return () => {
-      socket.off("message", onMessage);
-      socket.off("video-call-request", onVideoCallRequest);
-      socket.off("voice-call-request", onVoiceCallRequest);
-      socket.off("message-deleted", onMessageDeleted);
-      socket.off("message-reaction", onMessageReaction);
-      socket.off("video-call-ended", onVideoCallEnded);
-      socket.off("voice-call-ended", onVoiceCallEnded);
-    };
-  }, [activeChat?.user?._id, user?.id, videoCall, incomingCall, voiceCall, incomingVoiceCall]);
-
-  // Real-time presence updates for conversations and active chat
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !user?.id) return;
-    const handler = ({ userId, status, lastSeen }) => {
-      const id = String(userId);
-      setConversations((prev) =>
-        prev.map((c) => {
-          if (!c || !c.user) return c;
-          const convUserId = c.user._id || c.user.id || c.user;
-          if (!convUserId || String(convUserId) !== id) return c;
-          return {
-            ...c,
-            user: {
-              ...c.user,
-              online: status === "online",
-              status: status || c.user.status,
-              lastSeen: lastSeen || c.user.lastSeen,
-            },
-          };
-        })
-      );
-      setActiveChat((prev) => {
-        if (!prev || !prev.user?._id) return prev;
-        if (String(prev.user._id) !== id) return prev;
-        return {
-          ...prev,
-          user: {
-            ...prev.user,
-            online: status === "online",
-            status: status || prev.user.status,
-            lastSeen: lastSeen || prev.user.lastSeen,
-          },
-        };
-      });
-    };
-    socket.on("user:status", handler);
-    return () => {
-      socket.off("user:status", handler);
-    };
-  }, [user?.id]);
-
-  useEffect(() => {
-    const u = activeChat?.user;
-    const id = u?._id || u?.id;
-    if (!id) return;
-    // eslint-disable-next-line no-console
-    console.log("[presence][activeChat]", {
-      me: user?.id,
-      otherId: String(id),
-      otherName: u?.name || u?.email,
-      online: u?.online,
-      onlineType: typeof u?.online,
-      status: u?.status,
-      statusType: typeof u?.status,
-      lastSeen: u?.lastSeen,
-    });
-  }, [activeChat?.user?._id, activeChat?.user?.id, user?.id]);
 
   const handleSelectChat = (conv) => {
     setActiveChat(conv);
@@ -668,150 +308,6 @@ const Messaging = ({ openChatUserId = null }) => {
     return Object.values(byEmoji);
   };
 
-  const startVoiceRecording = () => {
-    if (!activeChat?.user?._id || sending) return;
-    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-      recordingStreamRef.current = stream;
-      const mr = new MediaRecorder(stream);
-      mediaRecorderRef.current = mr;
-      const chunks = [];
-      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      mr.onstop = () => {
-        recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
-        recordingStreamRef.current = null;
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const file = new File([blob], "voice.webm", { type: "audio/webm" });
-        handleSend(file);
-      };
-      mr.start();
-      setIsRecording(true);
-    }).catch((err) => console.error("Micro access:", err));
-  };
-
-  const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleVideoCall = () => {
-    if (!activeChat?.user?._id || !user?.id || videoCall || voiceCall) return;
-    const socket = getSocket();
-    if (socket) {
-      socket.emit("video-call-request", {
-        from: user.id,
-        to: activeChat.user._id,
-        fromUser: user
-      });
-    }
-    playOutgoingRingtone();
-    setVideoCall({
-      currentUserId: user.id,
-      otherUserId: activeChat.user._id,
-      isInitiator: true,
-      otherUserName: activeChat.user.name || activeChat.user.email
-    });
-  };
-
-  const handleVoiceCall = () => {
-    if (!activeChat?.user?._id || !user?.id || videoCall || voiceCall) return;
-    const socket = getSocket();
-    if (socket) {
-      socket.emit("voice-call-request", {
-        from: user.id,
-        to: activeChat.user._id,
-        fromUser: user
-      });
-    }
-    playOutgoingRingtone();
-    setVoiceCall({
-      currentUserId: user.id,
-      otherUserId: activeChat.user._id,
-      isInitiator: true,
-      otherUserName: activeChat.user.name || activeChat.user.email
-    });
-  };
-
-  const handleAcceptCall = () => {
-    if (incomingCall) {
-      stopIncomingRingtone();
-      setVideoCall(incomingCall);
-      setIncomingCall(null);
-    }
-  };
-
-  const handleRejectCall = () => {
-    stopIncomingRingtone();
-    const otherUserId = incomingCall?.otherUserId;
-    if (otherUserId) getSocket()?.emit("video-call-ended", { to: otherUserId });
-    if (otherUserId) appendCallMessage(otherUserId, { callKind: "video", callStatus: "missed", direction: "incoming" });
-    setIncomingCall(null);
-  };
-
-  const handleAcceptVoiceCall = () => {
-    if (incomingVoiceCall) {
-      stopIncomingRingtone();
-      setVoiceCall(incomingVoiceCall);
-      setIncomingVoiceCall(null);
-    }
-  };
-
-  const handleRejectVoiceCall = () => {
-    stopIncomingRingtone();
-    const otherUserId = incomingVoiceCall?.otherUserId;
-    if (otherUserId) getSocket()?.emit("voice-call-ended", { to: otherUserId });
-    if (otherUserId) appendCallMessage(otherUserId, { callKind: "voice", callStatus: "missed", direction: "incoming" });
-    setIncomingVoiceCall(null);
-  };
-
-  const handleEndVideoCall = () => {
-    stopOutgoingRingtone();
-    const otherId = videoCall?.otherUserId;
-    const wasConnected = !!callConnectedAtRef.current;
-    const durationSec = callConnectedAtRef.current
-      ? Math.round((Date.now() - callConnectedAtRef.current) / 1000)
-      : undefined;
-    callConnectedAtRef.current = null;
-    const direction = videoCall?.isInitiator ? "outgoing" : "incoming";
-    if (otherId) getSocket()?.emit("video-call-ended", { to: otherId });
-    if (otherId) {
-      appendCallMessage(otherId, {
-        callKind: "video",
-        callStatus: wasConnected ? "ended" : "missed",
-        ...(wasConnected && durationSec != null && { durationSec }),
-        direction,
-      });
-    }
-    setVideoCall(null);
-  };
-
-  const handleEndVoiceCall = () => {
-    stopOutgoingRingtone();
-    const otherId = voiceCall?.otherUserId;
-    const wasConnected = !!callConnectedAtRef.current;
-    const durationSec = callConnectedAtRef.current
-      ? Math.round((Date.now() - callConnectedAtRef.current) / 1000)
-      : undefined;
-    callConnectedAtRef.current = null;
-    const direction = voiceCall?.isInitiator ? "outgoing" : "incoming";
-    if (otherId) getSocket()?.emit("voice-call-ended", { to: otherId });
-    if (otherId) {
-      appendCallMessage(otherId, {
-        callKind: "voice",
-        callStatus: wasConnected ? "ended" : "missed",
-        ...(wasConnected && durationSec != null && { durationSec }),
-        direction,
-      });
-    }
-    setVoiceCall(null);
-  };
-
-  const handleCallConnected = () => {
-    stopOutgoingRingtone();
-    callConnectedAtRef.current = Date.now();
-  };
-
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -822,105 +318,8 @@ const Messaging = ({ openChatUserId = null }) => {
 
   const isUserOnline = (u) => u?.status === "online" || u?.online === true;
 
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const ids = [
-      ...new Set(
-        conversations
-          .map((c) => c?.user?._id || c?.user?.id || c?.user)
-          .filter(Boolean)
-          .map(String)
-      ),
-    ];
-    if (ids.length === 0) return;
-
-    socket.emit("presence:batch-status", { userIds: ids }, (res) => {
-      const list = Array.isArray(res?.data) ? res.data : [];
-      if (list.length === 0) return;
-
-      setConversations((prev) =>
-        prev.map((c) => {
-          const convUserId = c?.user?._id || c?.user?.id || c?.user;
-          const row = list.find((r) => String(r.userId) === String(convUserId));
-          if (!row) return c;
-          return {
-            ...c,
-            user: {
-              ...c.user,
-              online: row.status === "online",
-              status: row.status,
-              lastSeen: row.lastSeen || c.user?.lastSeen,
-            },
-          };
-        })
-      );
-    });
-  }, [conversations.length]);
-
   return (
     <div className="fixed bottom-0 right-8 flex items-end gap-4 z-[100] font-sans">
-      {/* Incoming Video Call Notification */}
-      {incomingCall && (
-        <div className="fixed top-20 right-8 bg-white rounded-lg shadow-2xl border border-slate-200 p-4 z-[102] w-80">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-              <FiVideo className="text-green-600" size={20} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800">Appel vidéo entrant</h4>
-              <p className="text-xs text-slate-500">{incomingCall.otherUserName}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleAcceptCall}
-              className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 flex items-center justify-center gap-2"
-            >
-              <FiPhone size={14} />
-              Accepter
-            </button>
-            <button
-              onClick={handleRejectCall}
-              className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-2"
-            >
-              <FiX size={14} />
-              Refuser
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Incoming Voice Call Notification */}
-      {incomingVoiceCall && (
-        <div className="fixed top-20 right-8 bg-white rounded-lg shadow-2xl border border-slate-200 p-4 z-[102] w-80">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-              <FiPhone className="text-indigo-600" size={20} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800">Appel vocal entrant</h4>
-              <p className="text-xs text-slate-500">{incomingVoiceCall.otherUserName}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleAcceptVoiceCall}
-              className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 flex items-center justify-center gap-2"
-            >
-              <FiPhone size={14} />
-              Accepter
-            </button>
-            <button
-              onClick={handleRejectVoiceCall}
-              className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-2"
-            >
-              <FiX size={14} />
-              Refuser
-            </button>
-          </div>
-        </div>
-      )}
       <div
         className={`w-80 bg-white shadow-2xl rounded-t-xl border border-slate-200 transition-all duration-300 ${isMinimized ? "h-12" : "h-[500px]"}`}
       >
@@ -971,28 +370,6 @@ const Messaging = ({ openChatUserId = null }) => {
                   if (!conv || !conv.user) return null;
                   const convUser = conv.user;
                   const convId = convUser._id || convUser.id;
-                  const convIdStr = convId ? String(convId) : "";
-                  if (
-                    convIdStr &&
-                    !presenceDebugLoggedRef.current.has(convIdStr) &&
-                    (convUser?.name?.toLowerCase?.().includes("admin") ||
-                      convUser?.email?.toLowerCase?.().includes("admin") ||
-                      activeChat?.user?._id && String(activeChat.user._id) === convIdStr)
-                  ) {
-                    presenceDebugLoggedRef.current.add(convIdStr);
-                    // eslint-disable-next-line no-console
-                    console.log("[presence][conversation]", {
-                      me: user?.id,
-                      otherId: convIdStr,
-                      otherName: convUser?.name || convUser?.email,
-                      online: convUser?.online,
-                      onlineType: typeof convUser?.online,
-                      status: convUser?.status,
-                      statusType: typeof convUser?.status,
-                      lastSeen: convUser?.lastSeen,
-                      rawUser: convUser,
-                    });
-                  }
                   const isOnline = isUserOnline(convUser);
                   return (
                     <div
@@ -1137,18 +514,6 @@ const Messaging = ({ openChatUserId = null }) => {
               </div>
             </div>
             <div className="flex items-center gap-2 text-indigo-600">
-              <FiPhone
-                size={14}
-                className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
-                onClick={handleVoiceCall}
-                title="Appel vocal"
-              />
-              <FiVideo
-                size={14}
-                className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
-                onClick={handleVideoCall}
-                title="Appel vidéo"
-              />
               <FiTrash2
                 size={14}
                 className="cursor-pointer hover:bg-slate-100 p-1 rounded-md w-6 h-6"
@@ -1166,69 +531,6 @@ const Messaging = ({ openChatUserId = null }) => {
               const isMe = user?.id && String(senderId) === String(user.id);
               const att = msg.attachment;
               const attachmentUrl = att?.url ? (att.url.startsWith("http") ? att.url : `${API_BASE}${att.url}`) : null;
-              if (att?.type === "audio" && attachmentUrl) {
-                return (
-                  <div key={msg._id} className={isMe ? "self-end" : ""}>
-                    <VoiceMessageBubble
-                      src={attachmentUrl}
-                      isMe={isMe}
-                      createdAt={formatTime(msg.createdAt)}
-                      onDelete={() => handleDeleteMessage(msg)}
-                    />
-                  </div>
-                );
-              }
-              const callPayload = msg.callPayload;
-              if (callPayload) {
-                const kindLabel = callPayload.callKind === "video" ? "Appel vidéo" : "Appel vocal";
-                const statusLabel =
-                  callPayload.callStatus === "missed"
-                    ? "Sans réponse"
-                    : callPayload.durationSec != null
-                      ? `${callPayload.durationSec} s`
-                      : "Terminé";
-                const isOutgoingCall = callPayload.direction === "outgoing";
-                return (
-                  <div key={msg._id} className="flex justify-center my-1">
-                    <div
-                      className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl shadow-sm border ${
-                        isOutgoingCall
-                          ? "bg-indigo-100 border-indigo-200"
-                          : "bg-emerald-100 border-emerald-200"
-                      }`}
-                    >
-                      {callPayload.callKind === "video" ? (
-                        <FiVideo
-                          className={isOutgoingCall ? "text-indigo-700 shrink-0" : "text-emerald-700 shrink-0"}
-                          size={20}
-                        />
-                      ) : (
-                        <FiPhone
-                          className={isOutgoingCall ? "text-indigo-700 shrink-0" : "text-emerald-700 shrink-0"}
-                          size={20}
-                        />
-                      )}
-                      <div className="flex flex-col">
-                        <span className={`text-xs font-semibold ${isOutgoingCall ? "text-indigo-900" : "text-emerald-900"}`}>
-                          {kindLabel}
-                        </span>
-                        <span className="text-[11px] text-slate-600">{statusLabel}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 ml-1">{formatTime(msg.createdAt)}</p>
-                      {isMe && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMessage(msg)}
-                          className="ml-2 p-1 rounded-full hover:bg-black/5 text-slate-500"
-                          title="Supprimer cet appel"
-                        >
-                          <FiTrash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
               const reactionsGrouped = getReactionsGrouped(msg.reactions);
               return (
                 <div
@@ -1306,7 +608,7 @@ const Messaging = ({ openChatUserId = null }) => {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,audio/*"
+                accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
               className="hidden"
               onChange={handleFileSelect}
             />
@@ -1316,18 +618,9 @@ const Messaging = ({ openChatUserId = null }) => {
                 placeholder="Message..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !isRecording && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                 className="flex-grow bg-transparent border-none focus:ring-0 text-xs py-1"
               />
-              {isRecording ? (
-                <button type="button" onClick={stopVoiceRecording} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600" title="Arrêter l’enregistrement">
-                  <FiMic size={18} />
-                </button>
-              ) : (
-                <button type="button" onClick={startVoiceRecording} className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg" title="Message vocal">
-                  <FiMic size={18} />
-                </button>
-              )}
               <button type="button" onClick={() => fileInputRef.current?.click()} className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg" title="Fichier, image ou vidéo">
                 <FiPaperclip size={18} />
               </button>
@@ -1442,22 +735,6 @@ const Messaging = ({ openChatUserId = null }) => {
         </div>
       )}
 
-      {/* Video Call Modal */}
-      {videoCall && (
-        <VideoCall
-          callData={videoCall}
-          onEnd={handleEndVideoCall}
-          onConnected={handleCallConnected}
-        />
-      )}
-      {/* Voice Call Modal */}
-      {voiceCall && (
-        <VoiceCall
-          callData={voiceCall}
-          onEnd={handleEndVoiceCall}
-          onConnected={handleCallConnected}
-        />
-      )}
     </div>
   );
 };

@@ -1,7 +1,6 @@
 const Friend = require("../models/Friend");
 const FriendRequest = require("../models/FriendRequest");
 const User = require("../models/User");
-const { isUserOnline, getLastSeen } = require("../config/socket");
 
 // Helper: normalise deux ids (ordre deterministe) pour simplifier les recherches.
 function normalizePair(a, b) {
@@ -89,9 +88,8 @@ async function list(me) {
     const plain = u.toObject();
     if (!plain || !plain._id) return plain;
     const id = plain._id.toString();
-    plain.online = isUserOnline(id);
-    const ls = getLastSeen(id);
-    plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+    plain.online = false;
+    plain.lastSeen = null;
     return plain;
   });
   return { data: enriched };

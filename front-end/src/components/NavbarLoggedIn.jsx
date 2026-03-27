@@ -19,7 +19,6 @@ import api, {
   messagesApi,
   notificationsApi,
 } from "../services/api";
-import { getSocket } from "../services/socket";
 
 const API_BASE =
   (api.defaults.baseURL || "").replace(/\/api$/, "") || "http://localhost:3000";
@@ -80,17 +79,10 @@ function NavbarLoggedIn() {
     if (isActive && activeDropdown === "invitations") loadInvitations();
   }, [isActive, activeDropdown]);
 
-  // Real-time invitations via socket
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !isActive) return;
-    const handler = () => {
-      loadInvitations();
-    };
-    socket.on("friend-request-received", handler);
-    return () => {
-      socket.off("friend-request-received", handler);
-    };
+    if (!isActive) return undefined;
+    const id = window.setInterval(loadInvitations, 10000);
+    return () => window.clearInterval(id);
   }, [isActive]);
 
   const loadConversations = () => {
@@ -128,11 +120,9 @@ function NavbarLoggedIn() {
   }, [user?.id]);
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const onMessage = () => loadConversations();
-    socket.on("message", onMessage);
-    return () => socket.off("message", onMessage);
+    if (!user?.id) return undefined;
+    const id = window.setInterval(loadConversations, 10000);
+    return () => window.clearInterval(id);
   }, [user?.id]);
 
   useEffect(() => {
@@ -141,17 +131,10 @@ function NavbarLoggedIn() {
     return () => window.removeEventListener("messages-read", onMessagesRead);
   }, []);
 
-  // Real-time notifications via socket (reaction, share, commentaires, etc.)
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !user?.id) return;
-    const handler = () => {
-      loadNotifications();
-    };
-    socket.on("notification-updated", handler);
-    return () => {
-      socket.off("notification-updated", handler);
-    };
+    if (!user?.id) return undefined;
+    const id = window.setInterval(loadNotifications, 10000);
+    return () => window.clearInterval(id);
   }, [user?.id]);
 
   const handleAcceptInvitation = (id) => {

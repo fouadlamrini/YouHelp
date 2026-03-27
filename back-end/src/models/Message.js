@@ -7,18 +7,14 @@ const messageSchema = new mongoose.Schema(
     content: { type: String, default: "" },
     attachment: {
       url: { type: String },
-      type: { type: String }, // "image" | "video" | "audio" | "file"
+      type: { type: String }, // "image" | "video" | "file"
       originalName: { type: String },
     },
     readAt: { type: Date, default: null },
+    // Legacy call fields are intentionally kept for safe reads of old documents.
     isSystem: { type: Boolean, default: false },
-    systemType: { type: String }, // "call"
-    callPayload: {
-      callKind: { type: String }, // "video" | "voice"
-      callStatus: { type: String }, // "missed" | "ended"
-      durationSec: { type: Number },
-      direction: { type: String }, // "incoming" | "outgoing"
-    },
+    systemType: { type: String },
+    callPayload: { type: mongoose.Schema.Types.Mixed, default: undefined },
     reactions: [
       { user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, emoji: { type: String } },
     ],

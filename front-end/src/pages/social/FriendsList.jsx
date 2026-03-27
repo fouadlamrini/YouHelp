@@ -7,7 +7,6 @@ import Messaging from "../../components/Messaging";
 import { FiUserX, FiSearch, FiMessageCircle, FiUserCheck, FiUserPlus, FiX } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { API_BASE, friendsApi, friendRequestsApi } from "../../services/api";
-import { getSocket } from "../../services/socket";
 
 const API_ORIGIN = API_BASE;
 
@@ -73,13 +72,10 @@ const FriendsList = () => {
     if (isActive) loadSentRequests();
   }, [isActive]);
 
-  // Realtime update of sent requests and available users when someone refuses (or cancels)
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !isActive) return;
-    const handler = () => {
+    if (!isActive) return undefined;
+    const poll = () => {
       loadSentRequests();
-      // si le modal Inviter est ouvert, on recharge aussi la liste des utilisateurs disponibles
       if (showInviteModal) {
         setAvailableLoading(true);
         friendRequestsApi
@@ -89,44 +85,20 @@ const FriendsList = () => {
           .finally(() => setAvailableLoading(false));
       }
     };
-    socket.on("friend-request-updated", handler);
-    return () => {
-      socket.off("friend-request-updated", handler);
-    };
+    const id = window.setInterval(poll, 10000);
+    return () => window.clearInterval(id);
   }, [isActive, showInviteModal]);
 
-  // Real-time presence updates for friends
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !isActive) return;
-    const handler = ({ userId, status, lastSeen }) => {
-      const id = String(userId);
-      setFriends((prev) =>
-        (prev || []).map((f) =>
-          f && f._id && String(f._id) === id
-            ? {
-                ...f,
-                status: status || f.status,
-                online: status === "online",
-                lastSeen: lastSeen || f.lastSeen,
-              }
-            : f
-        )
-      );
-    };
-    socket.on("user:status", handler);
-    return () => {
-      socket.off("user:status", handler);
-    };
+    if (!isActive) return undefined;
+    const id = window.setInterval(fetchFriends, 12000);
+    return () => window.clearInterval(id);
   }, [isActive]);
 
-  // Realtime update of friends list (accept / unfriend)
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !isActive) return;
-    const handler = () => {
+    if (!isActive) return undefined;
+    const poll = () => {
       fetchFriends();
-      // si le modal Inviter est ouvert, on recharge aussi la liste des utilisateurs disponibles
       if (showInviteModal) {
         setAvailableLoading(true);
         friendRequestsApi
@@ -136,10 +108,8 @@ const FriendsList = () => {
           .finally(() => setAvailableLoading(false));
       }
     };
-    socket.on("friends-updated", handler);
-    return () => {
-      socket.off("friends-updated", handler);
-    };
+    const id = window.setInterval(poll, 10000);
+    return () => window.clearInterval(id);
   }, [isActive, showInviteModal]);
 
   const handleUnfriend = (userId, name) => {

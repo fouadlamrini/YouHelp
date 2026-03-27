@@ -1,10 +1,6 @@
 jest.mock("../../src/models/Friend");
 jest.mock("../../src/models/FriendRequest");
 jest.mock("../../src/models/User");
-jest.mock("../../src/config/socket", () => ({
-  isUserOnline: jest.fn().mockReturnValue(false),
-  getLastSeen: jest.fn().mockReturnValue(null),
-}));
 
 const Friend = require("../../src/models/Friend");
 const FriendRequest = require("../../src/models/FriendRequest");

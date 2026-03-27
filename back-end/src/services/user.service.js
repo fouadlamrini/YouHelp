@@ -1,6 +1,5 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
-const { isUserOnline, getLastSeen } = require("../config/socket");
 const { notifyUserActivated, notifyUserRefused } = require("./notification.service");
 const { refId, haveSameClassContext } = require("../utils/contextUtils");
 
@@ -131,10 +130,8 @@ async function getAll(currentUserId, query = {}) {
 
   const enriched = users.map((u) => {
     const plain = u.toObject();
-    const id = plain._id.toString();
-    plain.online = isUserOnline(id);
-    const ls = getLastSeen(id);
-    plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+    plain.online = false;
+    plain.lastSeen = null;
     return plain;
   });
 
@@ -154,10 +151,8 @@ async function getById(currentUserId, targetUserId) {
     .select("-password");
   if (!user) return { error: { status: 404, message: "User not found" } };
   const plain = user.toObject();
-  const id = plain._id.toString();
-  plain.online = isUserOnline(id);
-  const ls = getLastSeen(id);
-  plain.lastSeen = ls ? (ls.toISOString ? ls.toISOString() : ls) : null;
+  plain.online = false;
+  plain.lastSeen = null;
   return { data: plain };
 }
 

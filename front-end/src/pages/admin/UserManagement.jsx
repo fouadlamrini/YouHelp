@@ -5,7 +5,6 @@ import Messaging from "../../components/Messaging";
 import { FiUserPlus, FiTrash2, FiEdit, FiSearch, FiX, FiSave, FiCheck } from "react-icons/fi";
 import api, { usersApi, campusApi, classApi, levelApi, rolesApi, avatarsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import { getSocket } from "../../services/socket";
 
 const roleBadgeClass = (roleName) => {
   const r = roleName?.toLowerCase?.() ?? "";
@@ -148,30 +147,6 @@ const UserManagement = () => {
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   }, [filterCampus, filterClass, filterLevel]);
-
-  // Real-time presence updates for users list
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const handler = ({ userId, status, lastSeen }) => {
-      const id = String(userId);
-      setUsers((prev) =>
-        prev.map((u) =>
-          u && u._id && String(u._id) === id
-            ? {
-                ...u,
-                online: status === "online",
-                lastSeen: lastSeen || u.lastSeen,
-              }
-            : u
-        )
-      );
-    };
-    socket.on("user:status", handler);
-    return () => {
-      socket.off("user:status", handler);
-    };
-  }, []);
 
   useEffect(() => {
     if (!authUser?.id) return;

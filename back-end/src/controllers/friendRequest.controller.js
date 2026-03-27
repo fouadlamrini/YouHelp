@@ -10,24 +10,6 @@ class FriendRequestController {
       }
       const friendRequest = result.data;
 
-      // Real-time notification to target user via socket, if available
-      try {
-        const emitToUser = req.app.get("emitToUser");
-        if (emitToUser && friendRequest?.toUser?._id) {
-          emitToUser(friendRequest.toUser._id.toString(), "friend-request-received", {
-            requestId: friendRequest._id,
-            fromUser: {
-              _id: friendRequest.fromUser?._id,
-              name: friendRequest.fromUser?.name,
-              email: friendRequest.fromUser?.email,
-              profilePicture: friendRequest.fromUser?.profilePicture,
-            },
-          });
-        }
-      } catch (e) {
-        // ignore socket errors
-      }
-
       return res.status(201).json({ success: true, data: friendRequest });
     } catch (err) {
       console.error(err);
@@ -69,19 +51,6 @@ class FriendRequestController {
       }
       const accepted = result.data;
 
-      // Notifier les deux utilisateurs que la liste d'amis a changé (temps réel)
-      try {
-        const emitToUser = req.app.get("emitToUser");
-        if (emitToUser && accepted?.fromUser?._id && accepted?.toUser?._id) {
-          const fromId = accepted.fromUser._id.toString();
-          const toId = accepted.toUser._id.toString();
-          emitToUser(fromId, "friends-updated", { with: toId });
-          emitToUser(toId, "friends-updated", { with: fromId });
-        }
-      } catch (e) {
-        // ignore socket errors
-      }
-
       // Créer une notification pour l'expéditeur : "X a accepté votre invitation"
       try {
         if (accepted?.fromUser?._id && accepted?.toUser?._id) {
@@ -115,19 +84,6 @@ class FriendRequestController {
         return res.status(result.error.status).json({ message: result.error.message });
       }
       const request = result.data;
-
-      // Notify sender that the request was rejected (realtime update)
-      try {
-        const emitToUser = req.app.get("emitToUser");
-        if (emitToUser && request?.fromUser?._id) {
-          emitToUser(request.fromUser._id.toString(), "friend-request-updated", {
-            requestId: request._id,
-            status: request.status,
-          });
-        }
-      } catch (e) {
-        // ignore socket errors
-      }
 
       return res.json({ success: true, message: "Request rejected" });
     } catch (err) {

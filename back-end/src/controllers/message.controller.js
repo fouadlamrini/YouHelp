@@ -3,8 +3,7 @@ const messageService = require("../services/message.service");
 class MessageController {
   send = async (req, res) => {
     try {
-      const emitToUser = req.app.get("emitToUser");
-      const result = await messageService.send(req.user.id, req.body, req.file, emitToUser);
+      const result = await messageService.send(req.user.id, req.body, req.file);
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }
@@ -43,9 +42,8 @@ class MessageController {
 
   async deleteMessage(req, res) {
     try {
-      const emitToUser = req.app.get("emitToUser");
       const body = { ...(req.body || {}), scope: req.query.scope || req.body?.scope };
-      const result = await messageService.deleteMessage(req.user.id, req.params.id, body, emitToUser);
+      const result = await messageService.deleteMessage(req.user.id, req.params.id, body);
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }
@@ -58,8 +56,7 @@ class MessageController {
 
   toggleReaction = async (req, res) => {
     try {
-      const emitToUser = req.app.get("emitToUser");
-      const result = await messageService.toggleReaction(req.user.id, req.params.id, req.body, emitToUser);
+      const result = await messageService.toggleReaction(req.user.id, req.params.id, req.body);
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }

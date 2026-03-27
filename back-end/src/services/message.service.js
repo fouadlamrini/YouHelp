@@ -1,13 +1,12 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
-const { isUserOnline, getLastSeen } = require("../config/socket");
 const { areFriends } = require("./friend.service");
 
 // Helper: construit un objet attachment a partir d'un fichier (type + url).
 function buildAttachment(file) {
   if (!file || !file.path) return null;
-  const folder = file.path.includes("images") ? "images" : file.path.includes("videos") ? "videos" : file.path.includes("audio") ? "audio" : "files";
-  const type = file.mimetype.startsWith("image") ? "image" : file.mimetype.startsWith("video") ? "video" : file.mimetype.startsWith("audio") ? "audio" : "file";
+  const folder = file.path.includes("images") ? "images" : file.path.includes("videos") ? "videos" : "files";
+  const type = file.mimetype.startsWith("image") ? "image" : file.mimetype.startsWith("video") ? "video" : "file";
   return {
     url: `/uploads/${folder}/${file.filename}`,
     type,
@@ -15,12 +14,11 @@ function buildAttachment(file) {
   };
 }
 
-async function send(senderId, body, file, emitToUser) {
+async function send(senderId, body, file) {
   const receiverId = body.receiverId;
   const content = (body.content || "").trim();
   const hasFile = file && file.path;
-  const isCallMessage = body.type === "call" && body.callPayload && typeof body.callPayload.callKind === "string" && typeof body.callPayload.callStatus === "string";
-  if (!content && !hasFile && !isCallMessage) return { error: { status: 400, message: "content, attachment or call payload required" } };
+  if (!content && !hasFile) return { error: { status: 400, message: "content or attachment required" } };
   const receiver = await User.findById(receiverId).select("_id");
   if (!receiver) return { error: { status: 404, message: "Receiver not found" } };
   if (receiverId === senderId) return { error: { status: 400, message: "Cannot send message to yourself" } };
@@ -32,21 +30,10 @@ async function send(senderId, body, file, emitToUser) {
     receiver: receiverId,
     content: content || "",
     ...(attachment && { attachment }),
-    ...(isCallMessage && {
-      isSystem: true,
-      systemType: "call",
-      callPayload: {
-        callKind: body.callPayload.callKind,
-        callStatus: body.callPayload.callStatus,
-        durationSec: body.callPayload.durationSec,
-        direction: body.callPayload.direction,
-      },
-    }),
   });
   const populated = await Message.findById(message._id)
     .populate("sender", "name email")
     .populate("receiver", "name email");
-  if (emitToUser) emitToUser(receiverId, "message", populated);
   return { data: populated };
 }
 
@@ -84,12 +71,10 @@ async function getConversations(me) {
         .lean();
       const unread = last && last.receiver && last.receiver.toString() === me && !last.readAt;
       const id = p._id.toString();
-      const online = isUserOnline(id);
-      const ls = getLastSeen(id);
       const enrichedUser = {
         ...p,
-        online,
-        lastSeen: ls ? (ls.toISOString ? ls.toISOString() : ls) : null,
+        online: false,
+        lastSeen: null,
       };
       return { user: enrichedUser, lastMessage: last || null, unread: !!unread };
     })
@@ -102,11 +87,10 @@ async function getConversations(me) {
   return { data: list };
 }
 
-async function deleteMessage(userId, messageId, body, emitToUser) {
+async function deleteMessage(userId, messageId, body) {
   const message = await Message.findById(messageId);
   if (!message) return { error: { status: 404, message: "Message not found" } };
   const isMyMessage = message.sender.toString() === userId;
-  const receiverId = message.receiver.toString();
 
   if (!isMyMessage) {
     if (!message.hiddenFor) message.hiddenFor = [];
@@ -120,7 +104,6 @@ async function deleteMessage(userId, messageId, body, emitToUser) {
   const scope = body?.scope === "forEveryone" ? "forEveryone" : "forMe";
   if (scope === "forEveryone") {
     await Message.findByIdAndDelete(messageId);
-    if (emitToUser) emitToUser(receiverId, "message-deleted", { messageId });
     return { ok: true };
   }
 
@@ -132,7 +115,7 @@ async function deleteMessage(userId, messageId, body, emitToUser) {
   return { ok: true };
 }
 
-async function toggleReaction(userId, messageId, body, emitToUser) {
+async function toggleReaction(userId, messageId, body) {
   const { emoji } = body;
   if (!emoji || typeof emoji !== "string" || emoji.length > 8) {
     return { error: { status: 400, message: "emoji required (string, max 8 chars)" } };
@@ -156,7 +139,7 @@ async function toggleReaction(userId, messageId, body, emitToUser) {
     .populate("sender", "name email")
     .populate("receiver", "name email")
     .populate("reactions.user", "name");
-  if (emitToUser) emitToUser(partnerId, "message-reaction", { message: updated });
+  void partnerId;
   return { data: updated };
 }
 
