@@ -15,9 +15,8 @@ const commentRoutes = require("./comment.routes");
 const solutionRoutes = require("./solution.routes");
 const favoriteRoutes = require("./favorite.routes");
 const avatarRoutes = require("./avatar.routes");
-const statsRoutes = require("./stats.routes");
-const publicStatsRoutes = require("./publicStats.routes");
 const notificationRoutes = require("./notification.routes");
+const publicStatsRoutes = require("./publicStats.routes");
 
 function registerRoutes(app) {
   app.use("/api/auth", authRoutes);
@@ -37,7 +36,6 @@ function registerRoutes(app) {
   app.use("/api/solution", solutionRoutes);
   app.use("/api/favorites", favoriteRoutes);
   app.use("/api/avatars", avatarRoutes);
-  app.use("/api/stats", statsRoutes);
   app.use("/api/public-stats", publicStatsRoutes);
   app.use("/api/notifications", notificationRoutes);
 }

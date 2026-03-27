@@ -70,11 +70,6 @@ export const rolesApi = {
   getAll: () => api.get("/roles"),
 };
 
-// —— Stats (super_admin / admin / formateur) ——
-export const statsApi = {
-  get: () => api.get("/stats"),
-};
-
 // —— Public stats (landing page, no auth required) ——
 export const publicStatsApi = {
   get: () => api.get("/public-stats"),

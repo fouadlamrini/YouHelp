@@ -17,4 +17,3 @@ class PublicStatsController {
 }
 
 module.exports = new PublicStatsController();
-

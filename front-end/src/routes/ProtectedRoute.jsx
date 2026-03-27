@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 const READ_ONLY_PATHS = ["/posts", "/knowledge"];
-const STAFF_ONLY_PATHS = ["/users", "/statistics", "/admin/campus", "/admin/level", "/admin/class"];
+const STAFF_ONLY_PATHS = ["/users", "/admin/campus", "/admin/level", "/admin/class"];
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);

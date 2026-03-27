@@ -18,7 +18,6 @@ import MyKnowledge from "./pages/knowledge/MyKnowledge.jsx";
 import MyFavorites from "./pages/favorites/MyFavorites.jsx";
 import MyShares from "./pages/posts/MyShares.jsx";
 import InfoComplet from "./pages/auth/InfoComplet.jsx";
-import Stats from "./pages/admin/Stats.jsx";
 import WorkshopSchedule from "./pages/workshops/WorkshopSchedule.jsx";
 import MyWorkshops from "./pages/workshops/MyWorkshops.jsx";
 import UserManagement from "./pages/admin/UserManagement.jsx";
@@ -131,14 +130,6 @@ const App = () => {
             }
           />
           <Route path="/complete-profile" element={<InfoComplet />} />
-          <Route
-            path="/statistics"
-            element={
-              <ProtectedRoute>
-                <Stats />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/Shedule"
             element={

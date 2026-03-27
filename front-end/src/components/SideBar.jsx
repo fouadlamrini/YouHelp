@@ -5,7 +5,6 @@ import {
   FiChevronRight,
   FiGrid,
   FiUsers,
-  FiBarChart2,
   FiMapPin,
   FiLayers,
   FiBook,
@@ -85,9 +84,6 @@ const Sidebar = () => {
       <div className="flex-grow px-3 overflow-y-auto overflow-x-hidden">
         {/* Categories */}
         <NavItem icon={FiGrid} label="Categories" to="/categories" isOpen={isOpen} />
-
-        {/* Statistiques */}
-        <NavItem icon={FiBarChart2} label="Statistiques" to="/statistics" isOpen={isOpen} />
 
         {/* Super Admin: Campus / Level / Class */}
         {isSuperAdmin && (

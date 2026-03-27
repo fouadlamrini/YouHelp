@@ -119,12 +119,29 @@ async function cancelSent(me, requestId) {
 }
 
 async function availableUsers(me) {
-  const friends = await Friend.find({ $or: [{ user1: me }, { user2: me }] });
-  const friendIds = friends.map((d) => (d.user1.toString() === me ? d.user2.toString() : d.user1.toString()));
-  const pendingFromMe = await FriendRequest.find({ fromUser: me, status: "pending" }).distinct("toUser");
-  const pendingToMe = await FriendRequest.find({ toUser: me, status: "pending" }).distinct("fromUser");
-  const exclude = [me, ...friendIds, ...pendingFromMe.map(String), ...pendingToMe.map(String)];
-  const users = await User.find({ _id: { $nin: exclude }, status: "active" })
+  const meId = String(me);
+
+  const friendDocs = await Friend.find({ $or: [{ user1: me }, { user2: me }] })
+    .select("user1 user2")
+    .lean();
+
+  const friendIds = friendDocs.map((doc) =>
+    String(doc.user1) === meId ? String(doc.user2) : String(doc.user1)
+  );
+
+  const [pendingSentIds, pendingReceivedIds] = await Promise.all([
+    FriendRequest.find({ fromUser: me, status: "pending" }).distinct("toUser"),
+    FriendRequest.find({ toUser: me, status: "pending" }).distinct("fromUser"),
+  ]);
+
+  const excludedIds = [
+    meId,
+    ...friendIds,
+    ...pendingSentIds.map(String),
+    ...pendingReceivedIds.map(String),
+  ];
+
+  const users = await User.find({ _id: { $nin: excludedIds }, status: "active" })
     .select("name email profilePicture campus class level role")
     .populate("campus", "name")
     .populate("class", "name")
