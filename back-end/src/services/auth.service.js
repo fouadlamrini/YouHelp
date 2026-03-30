@@ -27,6 +27,7 @@ function formatUserForResponse(user, roleName) {
     email: user.email,
     status: user.status,
     role: roleName,
+    provider: user.provider || "local",
     profilePicture: user.profilePicture,
     completeProfile: user.completeProfile,
   };
@@ -61,7 +62,86 @@ async function register({ name, email, password }) {
     if (etudiantRole) role = etudiantRole._id;
   }
 
-  const user = await User.create({ name, email, password, role, status, completeProfile });
+  const user = await User.create({
+    name,
+    email,
+    password,
+    provider: "local",
+    role,
+    status,
+    completeProfile,
+  });
+  const token = signToken(buildTokenPayload(user._id, roleName));
+  return { user, roleName, token };
+}
+
+async function getBootstrapRoleData() {
+  const userCount = await User.countDocuments();
+  if (userCount === 0) {
+    const superAdminRole = await Role.findOne({ name: "super_admin" });
+    if (!superAdminRole) return { error: { status: 500, message: "super_admin role not found" } };
+    return {
+      role: superAdminRole._id,
+      roleName: superAdminRole.name,
+      status: "active",
+      completeProfile: true,
+    };
+  }
+
+  const etudiantRole = await Role.findOne({ name: "etudiant" });
+  return {
+    role: etudiantRole?._id || null,
+    roleName: "etudiant",
+    status: "pending",
+    completeProfile: false,
+  };
+}
+
+async function loginOrRegisterOAuth({
+  provider,
+  providerId,
+  email,
+  name,
+}) {
+  const providerField = provider === "google" ? "googleId" : "githubId";
+  let user = null;
+
+  if (email) {
+    user = await User.findOne({ email: email.toLowerCase() });
+  }
+  if (!user) {
+    user = await User.findOne({ [providerField]: providerId });
+  }
+
+  if (!user) {
+    const bootstrapData = await getBootstrapRoleData();
+    if (bootstrapData.error) return bootstrapData;
+
+    user = await User.create({
+      name: name || email || `${provider}-user`,
+      email: email.toLowerCase(),
+      provider,
+      [providerField]: providerId,
+      role: bootstrapData.role,
+      status: bootstrapData.status,
+      completeProfile: bootstrapData.completeProfile,
+    });
+  } else {
+    let needSave = false;
+    if (!user[providerField]) {
+      user[providerField] = providerId;
+      needSave = true;
+    }
+    if (user.provider !== provider) {
+      user.provider = provider;
+      needSave = true;
+    }
+    if (needSave) {
+      await user.save();
+    }
+  }
+
+  const roleName = await getRoleName(user);
   const token = signToken(buildTokenPayload(user._id, roleName));
   return { user, roleName, token };
 }
@@ -145,4 +225,5 @@ module.exports = {
   completeProfile,
   formatUserForResponse,
   getRoleName,
+  loginOrRegisterOAuth,
 };

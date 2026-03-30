@@ -1,5 +1,5 @@
-import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useMemo, useState, useContext } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   FiMail,
   FiLock,
@@ -7,7 +7,9 @@ import {
   FiEyeOff,
   FiArrowRight,
   FiShield,
+  FiGithub,
 } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
@@ -15,9 +17,14 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const apiRoot = useMemo(
+    () => (import.meta.env.VITE_API_URL || "http://localhost:3000/api").replace(/\/api\/?$/, ""),
+    []
+  );
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -45,8 +52,6 @@ const Login = () => {
       await login(formData.email, formData.password);
       const user = JSON.parse(localStorage.getItem("user") || "null");
       if (user && !user.completeProfile) {
-        navigate("/complete-profile");
-      } else if (user && user.status !== "active") {
         navigate("/complete-profile");
       } else {
         navigate("/posts");
@@ -96,6 +101,13 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            {searchParams.get("oauth") === "failed" && (
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+                <p className="text-sm text-red-700 font-bold">
+                  OAuth failed{searchParams.get("reason") ? `: ${searchParams.get("reason")}` : "."}
+                </p>
+              </div>
+            )}
             {/* Email */}
             <div className="relative">
               <input
@@ -172,6 +184,23 @@ const Login = () => {
             >
               {loading ? "SIGNING IN..." : "SIGN IN"} <FiArrowRight size={20} />
             </button>
+
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <a
+                href={`${apiRoot}/api/auth/google`}
+                className="w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:border-indigo-400 hover:text-indigo-600 transition-all text-center inline-flex items-center justify-center gap-2"
+              >
+                <FcGoogle size={20} />
+                Continuer avec Google
+              </a>
+              <a
+                href={`${apiRoot}/api/auth/github`}
+                className="w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:border-indigo-400 hover:text-indigo-600 transition-all text-center inline-flex items-center justify-center gap-2"
+              >
+                <FiGithub size={18} />
+                Continuer avec GitHub
+              </a>
+            </div>
           </form>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">

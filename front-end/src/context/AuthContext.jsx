@@ -17,6 +17,7 @@ function normalizeUser(data) {
     email: data.email,
     status: data.status,
     role: data.role?.name ?? data.role,
+    provider: data.provider ?? "local",
     profilePicture: data.profilePicture ?? null,
     completeProfile: data.completeProfile ?? false,
   };

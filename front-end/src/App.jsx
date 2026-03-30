@@ -9,6 +9,7 @@ import Home from "./pages/posts/Home";
 import About from "./pages/misc/About";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import OAuthSuccess from "./pages/auth/OAuthSuccess";
 // Importi l-page jdida
 import PostPage from "./pages/posts/PostPage";
 import CategoryManager from "./pages/admin/CategoryManager";
@@ -71,6 +72,7 @@ const App = () => {
               </>
             }
           />
+          <Route path="/auth/oauth-success" element={<OAuthSuccess />} />
 
           {/* --- Private/App Routes (Sidebar + NavbarLogged dakhliyan) --- */}
           <Route

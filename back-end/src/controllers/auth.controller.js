@@ -2,6 +2,33 @@ const blacklistedTokens = require("../utils/blacklist");
 const authService = require("../services/auth.service");
 
 class AuthController {
+  oauthSuccess = (req, res) => {
+    try {
+      console.log("[oauth] oauthSuccess controller hit");
+      const authData = req.user;
+      if (!authData?.token || !authData?.user) {
+        console.error("[oauth] missing token or user in req.user");
+        return res.status(401).json({ message: "OAuth authentication failed" });
+      }
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const safeUser = authService.formatUserForResponse(authData.user, authData.roleName);
+      const redirectUrl =
+        `${frontendUrl}/auth/oauth-success` +
+        `?token=${encodeURIComponent(authData.token)}` +
+        `&user=${encodeURIComponent(JSON.stringify(safeUser))}`;
+      console.log("[oauth] redirecting to frontend success");
+      return res.redirect(redirectUrl);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
+
+  oauthFailure = (_req, res) => {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    return res.redirect(`${frontendUrl}/login?oauth=failed`);
+  };
+
   register = async (req, res) => {
     try {
       const { name, email, password } = req.body;

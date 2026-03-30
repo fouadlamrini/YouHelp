@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useMemo, useState, useContext } from "react";
 import {
   FiUser,
   FiMail,
@@ -7,7 +7,9 @@ import {
   FiEyeOff,
   FiArrowRight,
   FiCheckCircle,
+  FiGithub,
 } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -23,6 +25,10 @@ export default function RegisterYouHelp() {
 
   const { register, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const apiRoot = useMemo(
+    () => (import.meta.env.VITE_API_URL || "http://localhost:3000/api").replace(/\/api\/?$/, ""),
+    []
+  );
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -245,6 +251,23 @@ export default function RegisterYouHelp() {
               {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}{" "}
               <FiArrowRight size={20} />
             </button>
+
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <a
+                href={`${apiRoot}/api/auth/google`}
+                className="w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:border-indigo-400 hover:text-indigo-600 transition-all text-center inline-flex items-center justify-center gap-2"
+              >
+                <FcGoogle size={20} />
+                Continuer avec Google
+              </a>
+              <a
+                href={`${apiRoot}/api/auth/github`}
+                className="w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:border-indigo-400 hover:text-indigo-600 transition-all text-center inline-flex items-center justify-center gap-2"
+              >
+                <FiGithub size={18} />
+                Continuer avec GitHub
+              </a>
+            </div>
           </form>
 
           <p className="text-center mt-12 text-slate-500 font-semibold">

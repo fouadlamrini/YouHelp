@@ -243,4 +243,8 @@ export const friendRequestsApi = {
   cancel: (id) => api.delete(`/friend-requests/${id}/cancel`),
 };
 
+export const callsApi = {
+  getHistory: () => api.get("/calls/history"),
+};
+
 export default api;
