@@ -9,6 +9,7 @@ const storage = multer.diskStorage({
     let folder = path.join(uploadsRoot, 'files'); // default folder
     if (file.mimetype.startsWith('image')) folder = path.join(uploadsRoot, 'images');
     else if (file.mimetype.startsWith('video')) folder = path.join(uploadsRoot, 'videos');
+    else if (file.mimetype.startsWith('audio')) folder = path.join(uploadsRoot, 'audio');
 
     // Create folder if it doesn't exist
     if (!fs.existsSync(folder)) {
@@ -22,8 +23,8 @@ const storage = multer.diskStorage({
   },
 });
 
-// Allowed extensions for files (audio is intentionally not accepted for messages)
-const allowedExtensions = /\.(jpeg|jpg|png|gif|mp4|mov|avi|pdf|doc|docx|ppt|pptx|xls|xlsx|webm)$/i;
+// Allowed extensions for files including voice messages.
+const allowedExtensions = /\.(jpeg|jpg|png|gif|mp4|mov|avi|pdf|doc|docx|ppt|pptx|xls|xlsx|webm|mp3|wav|ogg|m4a)$/i;
 
 // File filter to check both mimetype and extension
 const fileFilter = (req, file, cb) => {
@@ -34,6 +35,7 @@ const fileFilter = (req, file, cb) => {
   const isValidMime =
     mimeType.startsWith('image') ||
     mimeType.startsWith('video') ||
+    mimeType.startsWith('audio') ||
     mimeType === 'application/pdf' ||
     mimeType.includes('word') ||
     mimeType.includes('sheet') ||

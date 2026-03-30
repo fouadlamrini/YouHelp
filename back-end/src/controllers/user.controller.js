@@ -31,6 +31,7 @@ class UserController {
     try {
       const { campus, class: classId, level } = req.query;
       const result = await userService.getAll(req.user.id, { campus, class: classId, level });
+
       if (result.error) {
         return res.status(result.error.status).json({ message: result.error.message });
       }

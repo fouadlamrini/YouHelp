@@ -13,6 +13,7 @@ async function getCurrentUserWithContext(userId) {
     .populate("level", "name");
 }
 
+
 /** Check if current user can manage target user (for get/update/delete) */
 // Helper: verifie si currentUser peut gerer la cible (lecture/modif/suppression).
 async function canManage(currentUserDoc, targetUserId) {
@@ -313,4 +314,5 @@ module.exports = {
   acceptUser,
   rejectUser,
   create,
+  
 };

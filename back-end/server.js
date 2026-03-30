@@ -1,9 +1,13 @@
 require("dotenv").config();
+const http = require("http");
 const mongoose = require("mongoose");
 const createApp = require("./app");
+const { setupSocket } = require("./src/config/socket");
+const { setSocketApi } = require("./src/config/socket/gateway");
 
 const PORT = Number(process.env.PORT) || 3000;
 const app = createApp();
+const server = http.createServer(app);
 
 // ======== START SERVER & CONNECT MONGO ========
 async function connectDatabase() {
@@ -19,7 +23,10 @@ async function connectDatabase() {
 async function start() {
   try {
     await connectDatabase();
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    const socketApi = setupSocket(server);
+    setSocketApi(socketApi);
+
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (err) {
     console.error("Failed to start server", err);
     process.exit(1);

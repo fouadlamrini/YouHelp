@@ -1,12 +1,25 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
 const { areFriends } = require("./friend.service");
+const socketGateway = require("../config/socket/gateway");
 
 // Helper: construit un objet attachment a partir d'un fichier (type + url).
 function buildAttachment(file) {
   if (!file || !file.path) return null;
-  const folder = file.path.includes("images") ? "images" : file.path.includes("videos") ? "videos" : "files";
-  const type = file.mimetype.startsWith("image") ? "image" : file.mimetype.startsWith("video") ? "video" : "file";
+  const folder = file.path.includes("images")
+    ? "images"
+    : file.path.includes("videos")
+      ? "videos"
+      : file.path.includes("audio")
+        ? "audio"
+        : "files";
+  const type = file.mimetype.startsWith("image")
+    ? "image"
+    : file.mimetype.startsWith("video")
+      ? "video"
+      : file.mimetype.startsWith("audio")
+        ? "audio"
+        : "file";
   return {
     url: `/uploads/${folder}/${file.filename}`,
     type,
@@ -34,6 +47,10 @@ async function send(senderId, body, file) {
   const populated = await Message.findById(message._id)
     .populate("sender", "name email")
     .populate("receiver", "name email");
+
+  socketGateway.emitToUser(receiverId, "message:new", populated);
+  socketGateway.emitToUser(senderId, "message:sent", populated);
+
   return { data: populated };
 }
 
@@ -73,8 +90,8 @@ async function getConversations(me) {
       const id = p._id.toString();
       const enrichedUser = {
         ...p,
-        online: false,
-        lastSeen: null,
+        online: socketGateway.isUserOnline(id),
+        lastSeen: socketGateway.getLastSeen(id),
       };
       return { user: enrichedUser, lastMessage: last || null, unread: !!unread };
     })
