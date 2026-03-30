@@ -7,6 +7,7 @@ const Engagement = require("../models/Engagement");
 const Solution = require("../models/Solution");
 const Notification = require("../models/Notification");
 const WorkshopRequest = require("../models/WorkshopRequest");
+const Role = require("../models/Role");
 const { notifyPostDeleted, notifyPostSolved } = require("./notification.service");
 const { areFriends, getMyFriendIds } = require("./friend.service");
 const { haveSameClassContext } = require("../utils/contextUtils");
@@ -47,24 +48,54 @@ async function sameContextReactionCount(postId, authorId) {
   const classId = author?.class?._id;
   const nickName = author?.class?.nickName;
 
-  if (!campusId || !levelId || !classId || !nickName) return 0;
+  if (!campusId || !levelId || !classId || !nickName) {
+    console.log("[workchop][sameContextReactionCount] missing author context", {
+      postId: String(postId),
+      authorId: String(authorId),
+      campusId: campusId ? String(campusId) : null,
+      classId: classId ? String(classId) : null,
+      levelId: levelId ? String(levelId) : null,
+      nickName: nickName || null,
+    });
+    return 0;
+  }
 
-  const users = await User.find({ campus: campusId, class: classId, level: levelId })
+  const etudiantRole = await Role.findOne({ name: "etudiant" }).select("_id").lean();
+  if (!etudiantRole?._id) {
+    console.log("[workchop][sameContextReactionCount] etudiant role not found");
+    return 0;
+  }
+
+  const users = await User.find({
+    campus: campusId,
+    class: classId,
+    level: levelId,
+    role: etudiantRole._id,
+  })
     .select("_id class")
     .populate("class", "nickName")
     .lean();
 
-  const userIds = users
-    .filter((u) => u?.class?.nickName === nickName)
-    .map((u) => u._id);
+  const sameNickUsers = users.filter((u) => u?.class?.nickName === nickName);
+  const userIds = sameNickUsers.map((u) => u._id);
 
   if (userIds.length === 0) return 0;
 
-  return Engagement.countDocuments({
+  const reactedUserIds = await Engagement.find({
     type: "reaction",
     post: postId,
     user: { $in: userIds },
+  }).distinct("user");
+
+  const count = reactedUserIds.length;
+  console.log("[workchop][sameContextReactionCount]", {
+    postId: String(postId),
+    authorId: String(authorId),
+    etudiantSameContextCount: userIds.length,
+    reactedSameContextCount: count,
+    nickName,
   });
+  return count;
 }
 
 // Helper: calcule le nombre total d'utilisateurs dans le meme contexte que l'auteur.
@@ -79,14 +110,40 @@ async function totalSameContextCount(authorId) {
   const classId = author?.class?._id;
   const nickName = author?.class?.nickName;
 
-  if (!campusId || !levelId || !classId || !nickName) return 0;
+  if (!campusId || !levelId || !classId || !nickName) {
+    console.log("[workchop][totalSameContextCount] missing author context", {
+      authorId: String(authorId),
+      campusId: campusId ? String(campusId) : null,
+      classId: classId ? String(classId) : null,
+      levelId: levelId ? String(levelId) : null,
+      nickName: nickName || null,
+    });
+    return 0;
+  }
 
-  const users = await User.find({ campus: campusId, class: classId, level: levelId })
+  const etudiantRole = await Role.findOne({ name: "etudiant" }).select("_id").lean();
+  if (!etudiantRole?._id) {
+    console.log("[workchop][totalSameContextCount] etudiant role not found");
+    return 0;
+  }
+
+  const users = await User.find({
+    campus: campusId,
+    class: classId,
+    level: levelId,
+    role: etudiantRole._id,
+  })
     .select("_id class")
     .populate("class", "nickName")
     .lean();
 
-  return users.filter((u) => u?.class?.nickName === nickName).length;
+  const count = users.filter((u) => u?.class?.nickName === nickName).length;
+  console.log("[workchop][totalSameContextCount]", {
+    authorId: String(authorId),
+    totalEtudiantSameContextCount: count,
+    nickName,
+  });
+  return count;
 }
 
 // Helper: determine si le currentUser partage le meme contexte que l'auteur du post.
@@ -212,7 +269,14 @@ async function getAllPosts(userId, queryFilter, contentType) {
 
   const posts = await Post.find({ ...authorFilter, type })
     .sort({ createdAt: -1 })
-    .populate({ path: "author", select: "name email campus class level profilePicture role", populate: { path: "role", select: "name" } })
+    .populate({
+      path: "author",
+      select: "name email campus class level profilePicture role",
+      populate: [
+        { path: "role", select: "name" },
+        { path: "class", select: "nickName year name" },
+      ],
+    })
     .populate("category", "name")
     .populate("subCategory", "name")
     .populate("comments");
@@ -230,6 +294,16 @@ async function getAllPosts(userId, queryFilter, contentType) {
       const workchopRequestAlreadySent = showDemandeWorkchopButton
         ? !!(await WorkshopRequest.findOne({ user: userId, post: p._id }))
         : false;
+      console.log("[workchop][post-meta]", {
+        postId: String(p._id),
+        authorId: String(authorId || ""),
+        sameContextAsAuthor: sameContextAsAuthorFlag,
+        reactionCount,
+        totalSameContext,
+        threshold: totalSameContext * 0.5,
+        showDemandeWorkchopButton,
+        workchopRequestAlreadySent,
+      });
       return {
         ...p.toObject(),
         sameContextReactionCount: reactionCount,
@@ -248,7 +322,14 @@ async function getAllPosts(userId, queryFilter, contentType) {
 
 async function getPostById(userId, postId) {
   const post = await Post.findById(postId)
-    .populate({ path: "author", select: "name email campus class level profilePicture role", populate: { path: "role", select: "name" } })
+    .populate({
+      path: "author",
+      select: "name email campus class level profilePicture role",
+      populate: [
+        { path: "role", select: "name" },
+        { path: "class", select: "nickName year name" },
+      ],
+    })
     .populate("category", "name")
     .populate("subCategory", "name")
     .populate("comments");
@@ -291,6 +372,16 @@ async function getPostById(userId, postId) {
   const workchopRequestAlreadySent = showDemandeWorkchopButton
     ? !!(await WorkshopRequest.findOne({ user: userId, post: postId }))
     : false;
+  console.log("[workchop][post-by-id-meta]", {
+    postId: String(postId),
+    authorId: String(authorId || ""),
+    sameContextAsAuthor: sameContextAsAuthorFlag,
+    reactionCount,
+    totalSameContext,
+    threshold: totalSameContext * 0.5,
+    showDemandeWorkchopButton,
+    workchopRequestAlreadySent,
+  });
 
   return {
     data: {
@@ -516,4 +607,6 @@ module.exports = {
   getMySharedPosts,
   deleteShare,
   toggleShare,
+  sameContextReactionCount,
+  totalSameContextCount,
 };

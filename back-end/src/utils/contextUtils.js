@@ -35,10 +35,12 @@ function haveSameClassContext(user, otherUser) {
     nicknameA != null &&
     nicknameB != null &&
     String(nicknameA) === String(nicknameB);
+  // Keep year as a soft check only when both are explicitly provided.
+  // This avoids false negatives when class.year is missing in one side.
   const sameYear =
-    yearA != null &&
-    yearB != null &&
-    String(yearA) === String(yearB);
+    yearA == null || yearB == null
+      ? true
+      : String(yearA) === String(yearB);
   const sameLevel = levelA && levelB && levelA === levelB;
 
   return sameCampus && sameClass && sameNickname && sameYear && sameLevel;

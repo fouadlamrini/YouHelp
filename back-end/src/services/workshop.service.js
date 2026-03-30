@@ -2,10 +2,13 @@ const Workshop = require("../models/Workshop");
 const WorkshopRequest = require("../models/WorkshopRequest");
 const User = require("../models/User");
 const Post = require("../models/Post");
-const Engagement = require("../models/Engagement");
 const Notification = require("../models/Notification");
 const Role = require("../models/Role");
 const { haveSameClassContext } = require("../utils/contextUtils");
+const {
+  sameContextReactionCount: countSameContextReactions,
+  totalSameContextCount: countTotalSameContext,
+} = require("./post.service");
 
 // Helper: verifie si deux users (ou un user + l'auteur) partagent le meme contexte scolaire.
 function sameContextAsAuthor(me, author) {
@@ -54,30 +57,22 @@ async function getMyRequests(userId) {
 
 async function requestFromPost(userId, body) {
   const { postId } = body;
-  const post = await Post.findById(postId).populate("author", "campus class level");
+  const post = await Post.findById(postId).populate({
+    path: "author",
+    select: "campus class level",
+    populate: [{ path: "class", select: "nickName year name" }],
+  });
   if (!post) return { error: { status: 404, message: "Post not found" } };
   const author = post.author;
   const me = await User.findById(userId).select("campus class level").populate("campus class level");
   if (!sameContextAsAuthor(me, author)) {
     return { error: { status: 403, message: "Vous devez avoir le même campus, classe et niveau que l'auteur du post." } };
   }
-  const totalSameContext = await User.countDocuments({
-    campus: author?.campus,
-    class: author?.class,
-    level: author?.level,
-  });
+  const authorId = author?._id;
+  const totalSameContext = await countTotalSameContext(authorId);
   if (totalSameContext === 0) return { error: { status: 400, message: "Contexte invalide." } };
-  const sameContextUserIds = await User.find({
-    campus: author?.campus,
-    class: author?.class,
-    level: author?.level,
-  }).distinct("_id");
-  const sameContextReactionCount = await Engagement.countDocuments({
-    type: "reaction",
-    post: postId,
-    user: { $in: sameContextUserIds },
-  });
-  if (sameContextReactionCount < totalSameContext * 0.5) {
+  const reactionSameContext = await countSameContextReactions(postId, authorId);
+  if (reactionSameContext < totalSameContext * 0.5) {
     return { error: { status: 400, message: "La demande de workchop n'est possible que si au moins 50% des étudiants du même contexte ont réagi au post." } };
   }
   const existing = await WorkshopRequest.findOne({ user: userId, post: postId });
@@ -118,7 +113,15 @@ async function getPendingForFormateur(userId) {
   const me = await User.findById(userId).select("campus class level").populate("campus class level");
   const requests = await WorkshopRequest.find({ post: { $ne: null }, status: "pending" })
     .populate("user", "name email profilePicture")
-    .populate({ path: "post", select: "content", populate: { path: "author", select: "name campus class level" } })
+    .populate({
+      path: "post",
+      select: "content",
+      populate: {
+        path: "author",
+        select: "name campus class level",
+        populate: [{ path: "class", select: "nickName year name" }],
+      },
+    })
     .sort({ createdAt: -1 });
   const filtered = requests.filter((r) => r.post && r.post.author && sameContextAsAuthor(me, r.post.author));
   return { data: filtered };
@@ -128,7 +131,11 @@ async function acceptRequest(userId, requestId, body) {
   const { title, description, date } = body;
   const request = await WorkshopRequest.findById(requestId).populate("post");
   if (!request || !request.post) return { error: { status: 404, message: "Demande introuvable." } };
-  const post = await Post.findById(request.post._id).populate("author", "campus class level");
+  const post = await Post.findById(request.post._id).populate({
+    path: "author",
+    select: "campus class level",
+    populate: [{ path: "class", select: "nickName year name" }],
+  });
   const me = await User.findById(userId).select("campus class level").populate("campus class level");
   if (!sameContextAsAuthor(me, post.author)) {
     return { error: { status: 403, message: "Vous ne pouvez accepter que les demandes de votre même campus/classe/niveau." } };
@@ -161,7 +168,11 @@ async function acceptRequest(userId, requestId, body) {
 async function rejectRequest(userId, requestId) {
   const request = await WorkshopRequest.findById(requestId).populate("post");
   if (!request || !request.post) return { error: { status: 404, message: "Demande introuvable." } };
-  const post = await Post.findById(request.post._id).populate("author", "campus class level");
+  const post = await Post.findById(request.post._id).populate({
+    path: "author",
+    select: "campus class level",
+    populate: [{ path: "class", select: "nickName year name" }],
+  });
   const me = await User.findById(userId).select("campus class level").populate("campus class level");
   if (!sameContextAsAuthor(me, post.author)) return { error: { status: 403, message: "Forbidden." } };
   request.status = "rejected";
