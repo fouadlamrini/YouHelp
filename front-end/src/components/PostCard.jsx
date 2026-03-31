@@ -122,6 +122,7 @@ const PostCard = ({
   scrollToCommentId = null,
 }) => {
   const { user } = useAuth();
+  const isEtudiant = user?.role === "etudiant";
   const post = normalizePost(rawPost);
   const isKnowledge = rawPost?.type === "knowledge";
   const authorId = rawPost?.author?._id || rawPost?.author;
@@ -188,6 +189,7 @@ const PostCard = ({
   );
   const [loadingWorkchop, setLoadingWorkchop] = useState(false);
   const [workchopSuccessMessage, setWorkchopSuccessMessage] = useState(false);
+  const [workchopErrorMessage, setWorkchopErrorMessage] = useState("");
   const isArabicContent = /[\u0600-\u06FF]/.test(post?.content || "");
   const contentDirection = isArabicContent ? "rtl" : "ltr";
   const contentAlignClass = isArabicContent ? "text-right" : "text-left";
@@ -205,6 +207,12 @@ const PostCard = ({
     const t = setTimeout(() => setWorkchopSuccessMessage(false), 5000);
     return () => clearTimeout(t);
   }, [workchopSuccessMessage]);
+
+  useEffect(() => {
+    if (!workchopErrorMessage) return;
+    const t = setTimeout(() => setWorkchopErrorMessage(""), 8000);
+    return () => clearTimeout(t);
+  }, [workchopErrorMessage]);
 
   if (!post || !post.user) return null;
 
@@ -985,6 +993,7 @@ const PostCard = ({
       </div>
 
       {!isKnowledge &&
+        isEtudiant &&
         rawPost?.showDemandeWorkchopButton &&
         rawPost?.sameContextAsAuthor && (
         <div className="px-2 pb-2 border-t border-slate-100 pt-2 space-y-2">
@@ -1000,6 +1009,22 @@ const PostCard = ({
               </button>
             </div>
           )}
+          {workchopErrorMessage && (
+            <div
+              role="alert"
+              className="flex items-start justify-between gap-2 py-2.5 px-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold"
+            >
+              <span className="leading-snug">{workchopErrorMessage}</span>
+              <button
+                type="button"
+                onClick={() => setWorkchopErrorMessage("")}
+                className="text-red-600 hover:text-red-900 shrink-0 p-0.5"
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <button
             type="button"
             onClick={async (e) => {
@@ -1009,6 +1034,8 @@ const PostCard = ({
                 workchopRequested || rawPost?.workchopRequestAlreadySent;
               if (readOnly || loadingWorkchop || alreadySent || !post.id)
                 return;
+              setWorkchopErrorMessage("");
+              setWorkchopSuccessMessage(false);
               setLoadingWorkchop(true);
               try {
                 await workshopsApi.requestFromPost(post.id);
@@ -1016,8 +1043,11 @@ const PostCard = ({
                 setWorkchopSuccessMessage(true);
                 // Pas d'appel à onRefresh pour éviter le rechargement de la liste (scroll, etc.)
               } catch (err) {
-                const msg = err.response?.data?.message || "Erreur";
-                alert(msg);
+                const msg =
+                  err.response?.data?.message ||
+                  err.message ||
+                  "Une erreur est survenue.";
+                setWorkchopErrorMessage(msg);
               } finally {
                 setLoadingWorkchop(false);
               }

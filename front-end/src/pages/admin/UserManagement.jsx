@@ -170,6 +170,8 @@ const UserManagement = () => {
   const formateurClassName = currentUser?.class?.name ?? (currentUser?.class ? "—" : null);
   const formateurLevelId = currentUser?.level?._id ?? currentUser?.level ?? null;
   const formateurLevelName = currentUser?.level?.name ?? (currentUser?.level ? "—" : null);
+  const availableClassYears = [...new Set(classes.map((cl) => cl?.year).filter((y) => y !== undefined && y !== null && y !== ""))]
+    .sort((a, b) => Number(a) - Number(b));
 
   useEffect(() => {
     if (isAdmin && adminCampusId && formData.campus !== adminCampusId) {
@@ -334,10 +336,13 @@ const UserManagement = () => {
   };
 
   const openEditModal = (user) => {
+    const classId = user.class?._id ?? user.class ?? "";
+    const classDoc = classes.find((cl) => String(cl._id) === String(classId));
     setEditingUser({
       ...user,
       campus: user.campus?._id ?? user.campus ?? "",
-      class: user.class?._id ?? user.class ?? "",
+      class: classId,
+      classYear: user.class?.year ?? classDoc?.year ?? "",
       level: user.level?._id ?? user.level ?? "",
       role: user.role?._id ?? user.role ?? "",
     });
@@ -963,16 +968,54 @@ const UserManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Année</label>
                   <select
-                    value={editingUser.class}
-                    onChange={(e) => setEditingUser({ ...editingUser, class: e.target.value })}
+                    value={editingUser.classYear ?? ""}
+                    onChange={(e) => {
+                      const selectedYear = e.target.value;
+                      const selectedClassDoc = classes.find((cl) => String(cl._id) === String(editingUser.class));
+                      const shouldResetClass =
+                        selectedClassDoc && String(selectedClassDoc.year ?? "") !== String(selectedYear ?? "");
+                      setEditingUser({
+                        ...editingUser,
+                        classYear: selectedYear,
+                        class: shouldResetClass ? "" : editingUser.class,
+                      });
+                    }}
                     className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
                   >
                     <option value="">—</option>
-                    {classes.map((cl) => (
+                    {availableClassYears.map((y) => (
+                      <option key={`year-${y}`} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Classe</label>
+                  <select
+                    value={editingUser.class}
+                    onChange={(e) => {
+                      const selectedClassId = e.target.value;
+                      const selectedClassDoc = classes.find((cl) => String(cl._id) === String(selectedClassId));
+                      setEditingUser({
+                        ...editingUser,
+                        class: selectedClassId,
+                        classYear: selectedClassDoc?.year ?? editingUser.classYear ?? "",
+                      });
+                    }}
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">—</option>
+                    {classes
+                      .filter((cl) => {
+                        if (!editingUser.classYear && editingUser.classYear !== 0) return true;
+                        return String(cl.year ?? "") === String(editingUser.classYear ?? "");
+                      })
+                      .map((cl) => (
                       <option key={cl._id} value={cl._id}>
-                        {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}
+                        {cl.name}{cl.nickName ? ` (${cl.nickName})` : ""}{cl.year !== undefined && cl.year !== null ? ` - ${cl.year}` : ""}
                       </option>
                     ))}
                   </select>
